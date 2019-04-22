@@ -69,5 +69,5 @@ add_custom_target(clobber
     COMMAND git clean -d -f -x
 )
 
-# src contains vsg2unity project source code and cmakelists
+# src contains unity2vsg project source code and cmakelists
 add_subdirectory(src/unity2vsg)

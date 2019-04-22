@@ -5,9 +5,6 @@
 //----------------------------------------------
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime;
 using System.Runtime.InteropServices;
 using UnityEngine;
 using AOT;
@@ -16,37 +13,29 @@ namespace vsgUnity.Native
 {
 	public static class NativeLog
 	{
-#if VSGUNITY_USE_NATIVE
-	#if VSGUNITY_NATIVE_INTERNAL_IMPORT
-		[DllImport ("__Internal")]
-	#else
-		[DllImport("vsgUnityNative", EntryPoint = "vsgUnity_Native_SetDebugLogCallback")]
-	#endif
-		private static extern void vsgUnity_Native_SetDebugLogCallback(IntPtr aCallbackFuntion);
-#else
-		private static void vsgUnity_Native_SetDebugLogCallback(IntPtr aCallbackFuntion) { }
-#endif
+
+        [DllImport("unity2vsgd", EntryPoint = "unity2vsg_Debug_SetDebugLogCallback")]
+		private static extern void unity2vsg_Debug_SetDebugLogCallback(IntPtr aCallbackFuntion);
+
 
 		delegate void DebugLogDelegate(string aMessageString);
 
 		[MonoPInvokeCallback (typeof (DebugLogDelegate))]
 		public static void InstallDebugLogCallback()
 		{
-#if VSGUNITY_USE_NATIVE
 			DebugLogDelegate callbackdelegate = new DebugLogDelegate(WriteLogLineDelegate);
 			 
 			// Convert delegate into a function pointer to pass to native plugin
 			IntPtr callbackpointer = Marshal.GetFunctionPointerForDelegate(callbackdelegate);
 			  
 			// Pass the pointer to native plugin
-			vsgUnity_Native_SetDebugLogCallback(callbackpointer);
-#endif
-		}
+			unity2vsg_Debug_SetDebugLogCallback(callbackpointer);
+        }
 
-		static void WriteLogLineDelegate(string str)
+        static void WriteLogLineDelegate(string str)
 		{
 		    Debug.Log("vsgUnityNative: " + str);
 		}
 	}
 
-} // end Hbx Native namespace
+}

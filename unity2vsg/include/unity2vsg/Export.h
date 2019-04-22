@@ -1,9 +1,8 @@
-#ifndef OSG2VSG_EXPORT_H
-#define OSG2VSG_EXPORT_H
+#pragma once
 
 /* <editor-fold desc="MIT License">
 
-Copyright(c) 2018 Robert Osfield
+Copyright(c) 2019 Thomas Hogarth
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -13,16 +12,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
-#if (defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__))
-    #if defined(UNITY2VSG_EXPORTS)
-        #define UNITY2VSG_DECLSPEC __declspec(dllexport)
-    #elif defined(UNITY2VSG_SHARED_LIBRARY)
-        #define UNITY2VSG_DECLSPEC __declspec(dllimport)
-    #else
-        #define UNITY2VSG_DECLSPEC
-    #endif
+#if defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined( __BCPLUSPLUS__)  || defined( __MWERKS__)
+#  if defined( UNITY2VSG_SHARED_LIBRARY )
+#    define UNITY2VSG_EXPORT   __declspec(dllexport)
+#  else
+#    define UNITY2VSG_EXPORT   __declspec(dllimport)
+#  endif
 #else
-    #define UNITY2VSG_DECLSPEC
-#endif
-
+#  define UNITY2VSG_EXPORT
 #endif

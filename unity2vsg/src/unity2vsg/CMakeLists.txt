@@ -6,16 +6,20 @@ set(HEADERS
     ${HEADER_PATH}/unity2vsg.h
 	${HEADER_PATH}/Debug.h
 	${HEADER_PATH}/DataTypes.h
+	${HEADER_PATH}/GraphicsPipelineBuilder.h
+	${HEADER_PATH}/ShaderUtils.h	
 )
 
 set(SOURCES
     unity2vsg.cpp
     Debug.cpp
     DataTypes.cpp
+	GraphicsPipelineBuilder.cpp
+	ShaderUtils.cpp
     glsllang/ResourceLimits.cpp
 )
 
-add_library(unity2vsg ${HEADERS} ${SOURCES})
+add_library(unity2vsg SHARED ${HEADERS} ${SOURCES})
 
 set_property(TARGET unity2vsg PROPERTY VERSION ${UNITY2VSG_VERSION_MAJOR}.${UNITY2VSG_VERSION_MINOR}.${UNITY2VSG_VERSION_PATCH})
 set_property(TARGET unity2vsg PROPERTY SOVERSION ${UNITY2VSG_SOVERSION})
@@ -41,7 +45,7 @@ install(TARGETS unity2vsg EXPORT unity2vsgTargets
 )
 
 #if (BUILD_SHARED_LIBS)
-    target_compile_definitions(unity2vsg INTERFACE UNITY2VSG_SHARED_LIBRARY)
+    target_compile_definitions(unity2vsg PUBLIC UNITY2VSG_SHARED_LIBRARY)
 #endif()
 
 
