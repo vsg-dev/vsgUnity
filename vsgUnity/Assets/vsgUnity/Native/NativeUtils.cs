@@ -11,6 +11,11 @@ using UnityEngine;
 namespace vsgUnity.Native
 {
 
+    public static class Library
+    {
+        public const string libraryName = "unity2vsgd";
+    }
+
     //
     // Local Unity types, should match layout of types in unity2vg DataTypes.h, used to pass data from C# to native code
     //
@@ -51,12 +56,34 @@ namespace vsgUnity.Native
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct Mesh
+    public struct MeshData
     {
+        public int id;
         public Vec3Array verticies;
         public IntArray triangles;
         public Vec3Array normals;
+        public Vec4Array colors;
         public Vec2Array uv0;
+        public Vec2Array uv1;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PipelineData
+    {
+        public int id;
+        public int hasNormals;
+        public int hasColors;
+        public int uvChannelCount;
+        public int vertexImageSamplerCount;
+        public int fragmentImageSamplerCount;
+        public int vertexUniformCount;
+        public int fragmentUniformCount;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct TransformData
+    {
+        public FloatArray matrix;
     }
 
     //
@@ -103,7 +130,7 @@ namespace vsgUnity.Native
 #if UNITY_IPHONE
 		[DllImport ("__Internal")]
 #else
-        [DllImport("unity2vsgd", EntryPoint = "unity2vsg_DataTypes_DeleteNativeObject")]
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_DataTypes_DeleteNativeObject")]
 #endif
         private static extern void unity2vsg_DataTypes_DeleteNativeObject(IntPtr anObjectPointer, bool isArray);
 

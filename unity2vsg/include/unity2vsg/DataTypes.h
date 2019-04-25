@@ -82,14 +82,39 @@ namespace unity2vsg
 		uint32_t length;
 	};
 
-	struct Mesh
+	struct MeshData
 	{
+        uint32_t id;
 		Vec3Array verticies;
 		IntArray triangles;
 		Vec3Array normals;
+        Vec4Array colors;
 		Vec2Array uv0;
+        Vec2Array uv1;
 	};
 
+    struct PipelineData
+    {
+        uint32_t id;
+        uint32_t hasNormals;
+        uint32_t hasColors;
+        uint32_t uvChannelCount;
+        uint32_t vertexImageSamplerCount;
+        uint32_t fragmentImageSamplerCount;
+        uint32_t vertexUniformCount;
+        uint32_t fragmentUniformCount;
+    };
+
+    struct TransformData
+    {
+        FloatArray matrix;
+    };
+
+    struct LightData
+    {
+        vsg::vec4 color;
+        float intensity;
+    };
 
     // create a vsg Array from a pointer and length, by default the ownership of the memory will be external to vsg still
     // so be sure to call Array dataRelease before the ref_ptr tries to delete the memory

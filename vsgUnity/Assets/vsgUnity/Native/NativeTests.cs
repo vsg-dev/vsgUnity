@@ -1,15 +1,16 @@
 ﻿
-using System.Runtime;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using UnityEngine;
 
 namespace vsgUnity.Native
 {
     public static class NativeTests
     {
-        [DllImport("unity2vsgd", EntryPoint = "unity2vsg_Tests_GetXValues")]
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_Tests_GetXValues")]
         private static extern NativeFloatArray unity2vsg_Tests_GetXValues(Vec2Array points);
 
-        public static float[] GetXValues(UnityEngine.Vector2[] points)
+        public static float[] GetXValues(Vector2[] points)
         {
             NativeFloatArray nativefloats = unity2vsg_Tests_GetXValues(Convert.FromLocal(points));
             FloatArray floatarray = Convert.FromNative(nativefloats);
@@ -21,12 +22,18 @@ namespace vsgUnity.Native
         //
         // Convert a mesh
 
-        [DllImport("unity2vsgd", EntryPoint = "unity2vsg_ConvertMesh")]
-        private static extern void unity2vsg_ConvertMesh(Mesh mesh);
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_ExportMesh")]
+        private static extern void unity2vsg_ExportMesh(MeshData mesh);
 
-        public static void ConvertMesh(UnityEngine.Mesh umesh)
+        public static void ExportMesh(Mesh umesh)
         {
-            Mesh mesh = new Mesh();
+            if(!umesh.isReadable)
+            {
+                Debug.LogWarning("ExportMesh: Unable to export mesh, mesh is not readable. Please enabled read/write in the models import settings.");
+                return;
+            }
+
+            MeshData mesh = new MeshData();
             mesh.verticies = new Vec3Array();
             mesh.verticies.data = umesh.vertices;
             mesh.verticies.length = umesh.vertexCount;
@@ -39,7 +46,7 @@ namespace vsgUnity.Native
             mesh.normals.data = umesh.normals;
             mesh.normals.length = umesh.vertexCount;
 
-            unity2vsg_ConvertMesh(mesh);
+            unity2vsg_ExportMesh(mesh);
         }
     }
 }

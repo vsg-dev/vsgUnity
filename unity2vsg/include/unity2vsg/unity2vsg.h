@@ -17,5 +17,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 extern "C"
 {
-	UNITY2VSG_EXPORT void unity2vsg_ConvertMesh(unity2vsg::Mesh mesh);
+	UNITY2VSG_EXPORT void unity2vsg_ExportMesh(unity2vsg::MeshData mesh);
+
+
+    UNITY2VSG_EXPORT void unity2vsg_BeginExport(char* saveFileName);
+    UNITY2VSG_EXPORT void unity2vsg_EndExport();
+
+    UNITY2VSG_EXPORT void unity2vsg_AddGroup();
+    UNITY2VSG_EXPORT void unity2vsg_AddTransform(unity2vsg::TransformData transform);
+    UNITY2VSG_EXPORT void unity2vsg_AddGeometry(unity2vsg::MeshData mesh);
+    UNITY2VSG_EXPORT void unity2vsg_AddStateGroup();
+    UNITY2VSG_EXPORT void unity2vsg_AddBindGraphicsPipeline(unity2vsg::PipelineData pipeline);
+
+    UNITY2VSG_EXPORT void unity2vsg_EndNode();
 }

@@ -7,6 +7,7 @@ using vsgUnity.Native;
 public class Tests : MonoBehaviour
 {
     public GameObject meshGameObject;
+    public GameObject sceneGameObject;
 
     // Start is called before the first frame update
     void Start()
@@ -29,7 +30,9 @@ public class Tests : MonoBehaviour
 
         MeshFilter filter = meshGameObject.GetComponent<MeshFilter>();
         Debug.Log("Got mesh with " + filter.mesh.vertexCount + " verticies");
-        NativeTests.ConvertMesh(filter.mesh);
+        NativeTests.ExportMesh(filter.mesh);
+
+        GraphBuilder.Export(sceneGameObject);
     }
 
     // Update is called once per frame

@@ -13,20 +13,20 @@ namespace vsgUnity.Native
 {
 	public static class NativeLog
 	{
-
-        [DllImport("unity2vsgd", EntryPoint = "unity2vsg_Debug_SetDebugLogCallback")]
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_Debug_SetDebugLogCallback")]
 		private static extern void unity2vsg_Debug_SetDebugLogCallback(IntPtr aCallbackFuntion);
 
+        delegate void DebugLogDelegate(string aMessageString);
 
-		delegate void DebugLogDelegate(string aMessageString);
+        static DebugLogDelegate _callbackdelegate = null;
 
-		[MonoPInvokeCallback (typeof (DebugLogDelegate))]
+        [MonoPInvokeCallback (typeof (DebugLogDelegate))]
 		public static void InstallDebugLogCallback()
 		{
-			DebugLogDelegate callbackdelegate = new DebugLogDelegate(WriteLogLineDelegate);
+            _callbackdelegate = new DebugLogDelegate(WriteLogLineDelegate);
 			 
 			// Convert delegate into a function pointer to pass to native plugin
-			IntPtr callbackpointer = Marshal.GetFunctionPointerForDelegate(callbackdelegate);
+			IntPtr callbackpointer = Marshal.GetFunctionPointerForDelegate(_callbackdelegate);
 			  
 			// Pass the pointer to native plugin
 			unity2vsg_Debug_SetDebugLogCallback(callbackpointer);
