@@ -32,7 +32,7 @@ public class Tests : MonoBehaviour
         Debug.Log("Got mesh with " + filter.mesh.vertexCount + " verticies");
         NativeTests.ExportMesh(filter.mesh);
 
-        GraphBuilder.Export(sceneGameObject);
+        GraphBuilder.Export(sceneGameObject, "C:\\Work\\VSG\\exported", true, false);
     }
 
     // Update is called once per frame

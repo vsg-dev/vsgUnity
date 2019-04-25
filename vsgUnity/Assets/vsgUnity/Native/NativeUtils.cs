@@ -13,7 +13,8 @@ namespace vsgUnity.Native
 
     public static class Library
     {
-        public const string libraryName = "unity2vsgd";
+        //public const string libraryName = "unity2vsgd";
+        public const string libraryName = "unity2vsg";
     }
 
     //

@@ -9,10 +9,10 @@ namespace vsgUnity.Native
     public static class GraphBuilder
     {
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_BeginExport")]
-        private static extern void unity2vsg_BeginExport(string saveFileName);
+        private static extern void unity2vsg_BeginExport();
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_EndExport")]
-        private static extern void unity2vsg_EndExport();
+        private static extern void unity2vsg_EndExport([MarshalAs(UnmanagedType.LPStr)] string saveFileName, int useBinary, int launchViewer);
 
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddGroup")]
@@ -42,9 +42,9 @@ namespace vsgUnity.Native
             return pipeline;
         }
 
-        public static void Export(GameObject gameObject)
+        public static void Export(GameObject gameObject, string saveFileName, bool useBinary, bool launchViewer)
         {
-            GraphBuilder.unity2vsg_BeginExport("hello");
+            GraphBuilder.unity2vsg_BeginExport();
 
             Dictionary<int, MeshData> meshCache = new Dictionary<int, MeshData>();
 
@@ -90,7 +90,7 @@ namespace vsgUnity.Native
                 {
                     Mesh mesh = meshFilter.sharedMesh;
 
-                    if (mesh.isReadable)
+                    if (mesh != null && mesh.isReadable)
                     {
                         // create mesh data, if the mesh has already been created we only need to pass the ID to the addGeometry function
                         MeshData meshdata = new MeshData();
@@ -145,7 +145,7 @@ namespace vsgUnity.Native
 
             processGameObject(gameObject);
 
-            GraphBuilder.unity2vsg_EndExport();
+            GraphBuilder.unity2vsg_EndExport(saveFileName, useBinary ? 1 : 0, launchViewer ? 1 : 0);
         }
     }
 

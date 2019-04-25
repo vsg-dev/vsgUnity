@@ -20,8 +20,8 @@ extern "C"
 	UNITY2VSG_EXPORT void unity2vsg_ExportMesh(unity2vsg::MeshData mesh);
 
 
-    UNITY2VSG_EXPORT void unity2vsg_BeginExport(char* saveFileName);
-    UNITY2VSG_EXPORT void unity2vsg_EndExport();
+    UNITY2VSG_EXPORT void unity2vsg_BeginExport();
+    UNITY2VSG_EXPORT void unity2vsg_EndExport(const char* saveFileName, uint32_t useBinary, uint32_t launchViewer);
 
     UNITY2VSG_EXPORT void unity2vsg_AddGroup();
     UNITY2VSG_EXPORT void unity2vsg_AddTransform(unity2vsg::TransformData transform);

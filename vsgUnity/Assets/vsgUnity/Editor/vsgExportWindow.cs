@@ -7,7 +7,7 @@ using vsgUnity.Native;
 
 public class vsgExportWindow : EditorWindow
 {
-    string saveFilePath = "Hello World";
+    string saveFilePath = "C:\\Work\\VSG\\exportedfromwindow";
     public GameObject _exportTarget = null;
 
     string _feedbackText = "Select an export object.";
@@ -28,7 +28,7 @@ public class vsgExportWindow : EditorWindow
     {
         NativeLog.InstallDebugLogCallback(); // why do we need to do this every time?
         float starttick = Time.realtimeSinceStartup;
-        GraphBuilder.Export(_exportTarget);
+        GraphBuilder.Export(_exportTarget, saveFilePath, true, false);
 
         _feedbackText = "Exported in " + (Time.realtimeSinceStartup - starttick) + " seconds";
         EditorUtility.SetDirty(this);

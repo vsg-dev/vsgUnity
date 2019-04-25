@@ -388,11 +388,14 @@ public:
         return (x << 16) | (y && 0xFFFF);
     }
 
-    void writeFile()
+    void writeFile(std::string fileName, bool useBinary)
     {
         vsg::vsgReaderWriter io;
-        io.writeFile(_root.get(), "C:\\Work\\VSG\\sceneexport.vsga");
+        io.writeFile(_root.get(), fileName + (useBinary ? ".vsgb" : ".vsga"));
+    }
 
+    void releaseObjects()
+    {
         ReleaseArrays releaser;
         _root->accept(releaser);
     }
@@ -413,14 +416,16 @@ public:
 
 vsg::ref_ptr<GraphBuilder> _builder;
 
-void unity2vsg_BeginExport(char* saveFileName)
+void unity2vsg_BeginExport()
 {
     _builder = vsg::ref_ptr<GraphBuilder>(new GraphBuilder());
 }
 
-void unity2vsg_EndExport()
+void unity2vsg_EndExport(const char* saveFileName, uint32_t useBinary, uint32_t launchViewer)
 {
-    _builder->writeFile();
+    _builder->writeFile(std::string(saveFileName), (bool)useBinary);
+
+    _builder->releaseObjects();
 }
 
 void unity2vsg_AddGroup()
