@@ -48,26 +48,6 @@ namespace vsgUnity.Editor
             window.Show();
         }
 
-        static void PopulatePreviewCamerasList()
-        {
-            _previewCameras.Clear();
-            _previewCameraNames.Clear();
-
-            _previewCameras.Add(SceneView.lastActiveSceneView.camera);
-            _previewCameraNames.Add("Scene View");
-            Camera[] sceneCameras = Camera.allCameras;
-            for (int i = 0; i < sceneCameras.Length; i++)
-            {
-                _previewCameras.Add(sceneCameras[i]);
-                _previewCameraNames.Add(sceneCameras[i].gameObject.name);
-            }
-
-            if(_cameraSelectionIndex >= _previewCameras.Count)
-            {
-                _cameraSelectionIndex = 0;
-            }
-        }
-
         void ExportTarget()
         {
             if (_isExporting || _exportTarget == null) return;
@@ -77,14 +57,14 @@ namespace vsgUnity.Editor
             float starttick = Time.realtimeSinceStartup;
 
             string exportname = string.IsNullOrEmpty(_exportFileName) ? "export" : Path.GetFileNameWithoutExtension(_exportFileName);
-            string finalSaveFileName = Path.Combine(_exportDirectory, exportname) + (_binaryExport ? ".vsgb" : "vsga");
+            string finalSaveFileName = Path.Combine(_exportDirectory, exportname) + (_binaryExport ? ".vsgb" : ".vsga");
 
             GraphBuilder.Export(_exportTarget, finalSaveFileName);
 
             _feedbackText = "Exported in " + (Time.realtimeSinceStartup - starttick) + " seconds";
             EditorUtility.SetDirty(this);
 
-            GraphBuilder.LaunchViewer(finalSaveFileName, _matchSceneCamera, _previewCameras[_cameraSelectionIndex]); // this currently blocks
+            if(_showPreview) GraphBuilder.LaunchViewer(finalSaveFileName, _matchSceneCamera, _previewCameras[_cameraSelectionIndex]); // this currently blocks
 
             _isExporting = false;
         }
@@ -146,7 +126,116 @@ namespace vsgUnity.Editor
                 ExportTarget();
             }
 
+            if (GUILayout.Button("Fix Import Settings"))
+            {
+                FixImportSettings();
+            }
+
             EditorGUILayout.LabelField(_feedbackText, EditorStyles.centeredGreyMiniLabel);
+        }
+
+        static void PopulatePreviewCamerasList()
+        {
+            _previewCameras.Clear();
+            _previewCameraNames.Clear();
+
+            _previewCameras.Add(SceneView.lastActiveSceneView.camera);
+            _previewCameraNames.Add("Scene View");
+            Camera[] sceneCameras = Camera.allCameras;
+            for (int i = 0; i < sceneCameras.Length; i++)
+            {
+                _previewCameras.Add(sceneCameras[i]);
+                _previewCameraNames.Add(sceneCameras[i].gameObject.name);
+            }
+
+            if (_cameraSelectionIndex >= _previewCameras.Count)
+            {
+                _cameraSelectionIndex = 0;
+            }
+        }
+
+        static void FixImportSettings()
+        {
+            if (_exportTarget == null) return;
+
+            MeshRenderer[] renderers = _exportTarget.GetComponentsInChildren<MeshRenderer>();
+            MeshFilter[] filters = _exportTarget.GetComponentsInChildren<MeshFilter>();
+
+            List<Texture> allTextures = new List<Texture>();
+            foreach(MeshRenderer renderer in renderers)
+            {
+                if (renderer.sharedMaterial == null) continue;
+
+                Dictionary<string, Texture> textures = NativeUtils.GetValidTexturesForMaterial(renderer.sharedMaterial);
+                allTextures.AddRange(textures.Values);
+            }
+
+            List<Mesh> allMeshes = new List<Mesh>();
+            foreach(MeshFilter filter in filters)
+            {
+                if (filter.sharedMesh != null) allMeshes.Add(filter.sharedMesh);
+            }
+
+            EditorUtility.DisplayProgressBar("Fixing Textures", "", 0.0f);
+            int progress = 0;
+
+            string report = string.Empty;
+
+            foreach (Texture tex in allTextures)
+            {
+                NativeUtils.TextureSupportIssues issues = NativeUtils.GetSupportIssuesForTexture(tex);
+                if(issues != NativeUtils.TextureSupportIssues.None && (issues & NativeUtils.TextureSupportIssues.Dimensions) != NativeUtils.TextureSupportIssues.Dimensions)
+                {
+                    report += NativeUtils.GetTextureSupportReport(issues, tex);
+
+                    EditorUtility.DisplayProgressBar("Fixing Textures", "Processing " + tex.name, (float)((float)progress/(float)allTextures.Count));
+
+                    string path = AssetDatabase.GetAssetPath(tex);
+                    TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(path);
+                    if (importer == null) continue;
+
+                    if ((issues & NativeUtils.TextureSupportIssues.ReadWrite) == NativeUtils.TextureSupportIssues.ReadWrite)
+                    {
+                        importer.isReadable = true;
+                    }
+                    if ((issues & NativeUtils.TextureSupportIssues.Format) == NativeUtils.TextureSupportIssues.Format)
+                    {
+                        importer.textureCompression = TextureImporterCompression.Uncompressed;
+                        TextureImporterPlatformSettings platformSettings = importer.GetPlatformTextureSettings("Standalone");
+                        platformSettings.format = TextureImporterFormat.RGBA32;
+                        importer.SetPlatformTextureSettings(platformSettings);
+                    }
+                    if ((issues & NativeUtils.TextureSupportIssues.Dimensions) == NativeUtils.TextureSupportIssues.Dimensions)
+                    {
+
+                    }
+                    importer.SaveAndReimport();
+                }
+                else if((issues & NativeUtils.TextureSupportIssues.Dimensions) == NativeUtils.TextureSupportIssues.Dimensions)
+                {
+                    Debug.Log("Texture '" + tex.name + "' is using an unspported dimension '" + tex.dimension.ToString() + "' an cannot be converted.");
+                }
+                progress++;
+            }
+
+            EditorUtility.DisplayProgressBar("Fixing Meshes", "", 0.0f);
+            progress = 0;
+
+            foreach (Mesh mesh in allMeshes)
+            {
+                EditorUtility.DisplayProgressBar("Fixing Meshes", "Processing " + mesh.name, (float)((float)progress / (float)allMeshes.Count));
+
+                if (!mesh.isReadable)
+                {
+                    string path = AssetDatabase.GetAssetPath(mesh);
+                    ModelImporter importer = (ModelImporter)ModelImporter.GetAtPath(path);
+                    importer.isReadable = true;
+                    importer.SaveAndReimport();
+                }
+                progress++;
+            }
+
+            EditorUtility.ClearProgressBar();
         }
     }
 }

@@ -243,21 +243,6 @@ namespace vsgUnity.Native
             return WrapMode.Unsupported;
         }
 
-        //
-        // Returns empty string if texture is support,
-        // otherwise returns description of unsupported feature
-        //
-        public static string IsTextureSupported(Texture texture)
-        {
-            if (!texture.isReadable) return "Texture '" + texture.name + "' is not readable. Please enable Read/Write in import settings.";
-            TexFormat format = GetTextureFormat(texture.graphicsFormat);
-            if (format == TexFormat.Unsupported) return "Texture '" + texture.name + "' is using unsupported format '" + texture.graphicsFormat.ToString() + "'. Please select another format (RGBA32) in import settings";
-
-            if(texture.dimension != TextureDimension.Tex2D && texture.dimension != TextureDimension.Tex3D) return "Texture '" + texture.name + "' is an unsupported dimension '" + texture.dimension.ToString() + "'. Please select another dimension (2D,3D) in import settings";
-
-            return string.Empty;
-        }
-
         public static TextureData CreateTextureData(Texture texture)
         {
             TextureData texdata = new TextureData();
@@ -276,7 +261,7 @@ namespace vsgUnity.Native
         {
             if (!PopulateTextureData(texture as Texture, ref texdata)) return false;
             texdata.depth = 1;
-            texdata.pixels.data = texture.GetRawTextureData();
+            texdata.pixels.data = Color32ArrayToByteArray(texture.GetPixels32());// texture.GetRawTextureData();
             texdata.pixels.length = texdata.pixels.data.Length;
             return true;
         }
@@ -333,6 +318,8 @@ namespace vsgUnity.Native
         {
             Dictionary<string, Texture> textures = new Dictionary<string, Texture>();
 
+            if (mat == null) return textures;
+
             Shader shader = mat.shader;
             for (int i = 0; i < ShaderUtil.GetPropertyCount(shader); i++)
             {
@@ -341,6 +328,25 @@ namespace vsgUnity.Native
                     string propname = ShaderUtil.GetPropertyName(shader, i);
                     Texture texture = mat.GetTexture(propname);
                     textures.Add(propname, texture);
+                }
+            }
+            return textures;
+        }
+
+        public static Dictionary<string, Texture> GetValidTexturesForMaterial(Material mat)
+        {
+            Dictionary<string, Texture> textures = new Dictionary<string, Texture>();
+
+            if (mat == null) return textures;
+
+            Shader shader = mat.shader;
+            for (int i = 0; i < ShaderUtil.GetPropertyCount(shader); i++)
+            {
+                if (ShaderUtil.GetPropertyType(shader, i) == ShaderUtil.ShaderPropertyType.TexEnv)
+                {
+                    string propname = ShaderUtil.GetPropertyName(shader, i);
+                    Texture texture = mat.GetTexture(propname);
+                    if(texture != null) textures.Add(propname, texture);
                 }
             }
             return textures;
@@ -369,6 +375,55 @@ namespace vsgUnity.Native
             }
 
             return bytes;
+        }
+
+        [Flags]
+        public enum TextureSupportIssues
+        {
+            None = 0,
+            Dimensions = 1,
+            Format = 2,
+            ReadWrite = 4
+        }
+
+        public static TextureSupportIssues GetSupportIssuesForTexture(Texture texture)
+        {
+            TextureSupportIssues issues = TextureSupportIssues.None;
+
+            if (!texture.isReadable) issues |= TextureSupportIssues.ReadWrite;
+
+            TexFormat format = GetTextureFormat(texture.graphicsFormat);
+            if (format == TexFormat.Unsupported) issues |= TextureSupportIssues.Format;
+
+            if (texture.dimension != TextureDimension.Tex2D && texture.dimension != TextureDimension.Tex3D) issues |= TextureSupportIssues.Dimensions;
+
+            return issues;
+        }
+
+        //
+        // Returns empty string if texture is support,
+        // otherwise returns description of unsupported feature
+        //
+        public static string GetTextureSupportReport(Texture texture)
+        {
+            TextureSupportIssues issues = GetSupportIssuesForTexture(texture);
+            return GetTextureSupportReport(issues, texture);
+        }
+
+        public static string GetTextureSupportReport(TextureSupportIssues issues, Texture texture)
+        {
+            string report = string.Empty;
+
+            if ((issues & TextureSupportIssues.ReadWrite) == TextureSupportIssues.ReadWrite) report += "Read/Write not enabled. Please enabled Read/Write in import settings.\n";
+            if ((issues & TextureSupportIssues.Format) == TextureSupportIssues.Format) report += "Format '" + texture.graphicsFormat.ToString() + "' unsupported. Please select a supported format (RGBA32) in import settings.\n";
+            if ((issues & TextureSupportIssues.Dimensions) == TextureSupportIssues.Dimensions) report += "Unsupported Texture dimension '" + texture.dimension.ToString() + "'. Try selecting another 'Texture Shape' (2D) in immport settings.\n";
+
+            if(!string.IsNullOrEmpty(report))
+            {
+                report = texture.name + " has the following issues:\n" + report;
+            }
+
+            return report;
         }
     }
 

@@ -178,10 +178,10 @@ namespace vsgUnity.Native
 
                             if (maintex)
                             {
-                                string supported = NativeUtils.IsTextureSupported(maintex);
-                                if (!string.IsNullOrEmpty(supported))
+                                NativeUtils.TextureSupportIssues issues = NativeUtils.GetSupportIssuesForTexture(maintex);
+                                if (issues != NativeUtils.TextureSupportIssues.None)
                                 {
-                                    Debug.LogWarning(supported);
+                                    Debug.LogWarning(NativeUtils.GetTextureSupportReport(issues, maintex));
                                 }
                                 else
                                 {
