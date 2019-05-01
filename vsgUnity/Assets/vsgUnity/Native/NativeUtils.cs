@@ -211,7 +211,7 @@ namespace vsgUnity.Native
                 case GraphicsFormat.R8_UNorm: return TexFormat.R8_UNORM;
                 case GraphicsFormat.R8G8_UNorm: return TexFormat.R8G8_UNORM;
                 case GraphicsFormat.R8G8B8A8_UNorm: return TexFormat.R8G8B8A8_UNORM;
-                case GraphicsFormat.RGBA_DXT1_UNorm: return TexFormat.BC1_RGBA_UNORM;
+                //case GraphicsFormat.RGBA_DXT1_UNorm: return TexFormat.BC1_RGBA_UNORM;
                 //case TextureFormat.DXT5: return TexFormat.BC1_RGBA_UNORM;
                 default: break;
             }
@@ -395,7 +395,7 @@ namespace vsgUnity.Native
             TexFormat format = GetTextureFormat(texture.graphicsFormat);
             if (format == TexFormat.Unsupported) issues |= TextureSupportIssues.Format;
 
-            if (texture.dimension != TextureDimension.Tex2D && texture.dimension != TextureDimension.Tex3D) issues |= TextureSupportIssues.Dimensions;
+            if (texture.dimension != TextureDimension.Tex2D) issues |= TextureSupportIssues.Dimensions; //&& texture.dimension != TextureDimension.Tex3D
 
             return issues;
         }

@@ -40,7 +40,7 @@ namespace vsgUnity.Editor
 
             if (_exportTarget == null)
             {
-                _exportTarget = Selection.transforms.Length > 0 ? Selection.transforms[0].gameObject : null;
+                //_exportTarget = Selection.transforms.Length > 0 ? Selection.transforms[0].gameObject : null;
             }
 
             PopulatePreviewCamerasList();
@@ -50,7 +50,8 @@ namespace vsgUnity.Editor
 
         void ExportTarget()
         {
-            if (_isExporting || _exportTarget == null) return;
+            if (_isExporting) return;
+
             _isExporting = true;
 
             NativeLog.InstallDebugLogCallback(); // why do we need to do this every time?
@@ -59,7 +60,15 @@ namespace vsgUnity.Editor
             string exportname = string.IsNullOrEmpty(_exportFileName) ? "export" : Path.GetFileNameWithoutExtension(_exportFileName);
             string finalSaveFileName = Path.Combine(_exportDirectory, exportname) + (_binaryExport ? ".vsgb" : ".vsga");
 
-            GraphBuilder.Export(_exportTarget, finalSaveFileName);
+            if (_exportTarget != null)
+            {
+                GraphBuilder.Export(new GameObject[] { _exportTarget }, finalSaveFileName);
+            }
+            else
+            {
+                Scene scene = SceneManager.GetActiveScene();
+                GraphBuilder.Export(scene.GetRootGameObjects(), finalSaveFileName);
+            }
 
             _feedbackText = "Exported in " + (Time.realtimeSinceStartup - starttick) + " seconds";
             EditorUtility.SetDirty(this);
@@ -77,7 +86,7 @@ namespace vsgUnity.Editor
             EditorGUILayout.Separator();
 
             // target object
-            _exportTarget = (GameObject)EditorGUILayout.ObjectField("Export Object", _exportTarget, typeof(GameObject), true);
+            _exportTarget = (GameObject)EditorGUILayout.ObjectField("Specific Object", _exportTarget, typeof(GameObject), true);
 
             EditorGUILayout.Separator();
 
@@ -156,18 +165,37 @@ namespace vsgUnity.Editor
 
         static void FixImportSettings()
         {
-            if (_exportTarget == null) return;
+            if(_exportTarget != null)
+            {
+                FixImportSettings(_exportTarget);
+            }
+            else
+            {
+                Scene scene = SceneManager.GetActiveScene();
+                GameObject[] rootObjects = scene.GetRootGameObjects();
+                foreach(GameObject go in rootObjects)
+                {
+                    FixImportSettings(go);
+                }
+            }
+        }
 
-            MeshRenderer[] renderers = _exportTarget.GetComponentsInChildren<MeshRenderer>();
-            MeshFilter[] filters = _exportTarget.GetComponentsInChildren<MeshFilter>();
+        static void FixImportSettings(GameObject gameObject)
+        {
+            MeshRenderer[] renderers = gameObject.GetComponentsInChildren<MeshRenderer>();
+            MeshFilter[] filters = gameObject.GetComponentsInChildren<MeshFilter>();
 
             List<Texture> allTextures = new List<Texture>();
             foreach(MeshRenderer renderer in renderers)
             {
-                if (renderer.sharedMaterial == null) continue;
+                Material[] sharedMaterials = renderer.sharedMaterials;
 
-                Dictionary<string, Texture> textures = NativeUtils.GetValidTexturesForMaterial(renderer.sharedMaterial);
-                allTextures.AddRange(textures.Values);
+                foreach (Material m in sharedMaterials)
+                {
+                    if (m == null) continue;
+                    Dictionary<string, Texture> textures = NativeUtils.GetValidTexturesForMaterial(m);
+                    allTextures.AddRange(textures.Values);
+                }
             }
 
             List<Mesh> allMeshes = new List<Mesh>();
@@ -202,6 +230,7 @@ namespace vsgUnity.Editor
                     {
                         importer.textureCompression = TextureImporterCompression.Uncompressed;
                         TextureImporterPlatformSettings platformSettings = importer.GetPlatformTextureSettings("Standalone");
+                        platformSettings.overridden = true;
                         platformSettings.format = TextureImporterFormat.RGBA32;
                         importer.SetPlatformTextureSettings(platformSettings);
                     }
@@ -227,6 +256,7 @@ namespace vsgUnity.Editor
 
                 if (!mesh.isReadable)
                 {
+                    report += "Mesh '" + mesh.name + "' is not readable.\n";
                     string path = AssetDatabase.GetAssetPath(mesh);
                     ModelImporter importer = (ModelImporter)ModelImporter.GetAtPath(path);
                     importer.isReadable = true;
@@ -236,6 +266,8 @@ namespace vsgUnity.Editor
             }
 
             EditorUtility.ClearProgressBar();
+
+            Debug.Log("Fix report for GameObject '" + gameObject.name + "':\n" + report);
         }
     }
 }

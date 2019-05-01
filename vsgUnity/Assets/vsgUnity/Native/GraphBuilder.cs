@@ -52,7 +52,7 @@ namespace vsgUnity.Native
         }
 
 
-        public static void Export(GameObject gameObject, string saveFileName)
+        public static void Export(GameObject[] gameObjects, string saveFileName)
         {
             GraphBuilder.unity2vsg_BeginExport();
 
@@ -123,8 +123,28 @@ namespace vsgUnity.Native
                     Material material = meshRenderer.sharedMaterial;
 
                     // gather textures
-                    Dictionary<string, Texture> textures = NativeUtils.GetTexturesForMaterial(material);
-                    
+                    Dictionary<string, Texture> allTextures = NativeUtils.GetTexturesForMaterial(material);
+                    List<Texture> textures = new List<Texture>();
+
+                    if (allTextures.Count > 0)
+                    {
+                        Texture maintex = allTextures.ContainsKey("_MainTex") ? allTextures["_MainTex"] : null;
+
+                        if (maintex)
+                        {
+                            NativeUtils.TextureSupportIssues issues = NativeUtils.GetSupportIssuesForTexture(maintex);
+                            if (issues != NativeUtils.TextureSupportIssues.None)
+                            {
+                                Debug.LogWarning(NativeUtils.GetTextureSupportReport(issues, maintex));
+                            }
+                            else
+                            {
+                                textures.Add(maintex);
+                            }
+                        }
+                    }
+
+
                     if (mesh != null && mesh.isReadable)
                     {
                         // create mesh data, if the mesh has already been created we only need to pass the ID to the addGeometry function
@@ -149,9 +169,9 @@ namespace vsgUnity.Native
                             meshdata.tangents.data = mesh.tangents;
                             meshdata.tangents.length = meshdata.tangents.data.Length;*/
 
-                            meshdata.colors = new ColorArray();
+                            /*meshdata.colors = new ColorArray();
                             meshdata.colors.data = mesh.colors;
-                            meshdata.colors.length = meshdata.colors.data.Length;
+                            meshdata.colors.length = meshdata.colors.data.Length;*/
 
                             meshdata.uv0 = new Vec2Array();
                             meshdata.uv0.data = mesh.uv;
@@ -174,33 +194,25 @@ namespace vsgUnity.Native
                         // add textures
                         if(textures.Count > 0)
                         {
-                            Texture maintex = textures.ContainsKey("_MainTex") ? textures["_MainTex"] : null;
+                            Texture maintex = textures[0];
 
                             if (maintex)
                             {
-                                NativeUtils.TextureSupportIssues issues = NativeUtils.GetSupportIssuesForTexture(maintex);
-                                if (issues != NativeUtils.TextureSupportIssues.None)
+                                TextureData texdata;
+                                if (textureCache.ContainsKey(maintex.GetInstanceID()))
                                 {
-                                    Debug.LogWarning(NativeUtils.GetTextureSupportReport(issues, maintex));
+                                    texdata = new TextureData();
+                                    texdata.id = maintex.GetInstanceID();
                                 }
                                 else
                                 {
-                                    TextureData texdata;
-                                    if (textureCache.ContainsKey(maintex.GetInstanceID()))
-                                    {
-                                        texdata = new TextureData();
-                                        texdata.id = maintex.GetInstanceID();
-                                    }
-                                    else
-                                    {
-                                        texdata = NativeUtils.CreateTextureData(maintex);
-                                        textureCache.Add(maintex.GetInstanceID(), texdata);
-                                    }
-                                    texdata.channel = 0;
-                                    GraphBuilder.unity2vsg_AddTexture(texdata);
-
-                                    GraphBuilder.unity2vsg_BindDescriptors();
+                                    texdata = NativeUtils.CreateTextureData(maintex);
+                                    textureCache.Add(maintex.GetInstanceID(), texdata);
                                 }
+                                texdata.channel = 0;
+                                GraphBuilder.unity2vsg_AddTexture(texdata);
+
+                                GraphBuilder.unity2vsg_BindDescriptors();
                             }
                         }
 
@@ -225,13 +237,10 @@ namespace vsgUnity.Native
                 }
             };
 
-           // Matrix4x4 convert = Matrix4x4.identity;
-           // convert[1, 1] = -1.0f;
-           // convert[2, 2] = -1.0f;
-           // Matrix4x4 matrix = Matrix4x4.TRS(gameObject.transform.localPosition, gameObject.transform.localRotation, gameObject.transform.localScale) * convert;
-           // gameObject.transform.localScale = new Vector3(1.0f, -1.0f, -1.0f);
-
-            processGameObject(gameObject);
+            foreach (GameObject go in gameObjects)
+            {
+                processGameObject(go);
+            }
 
             //GraphBuilder.unity2vsg_EndNode(); // step out of convert coord system node
 
