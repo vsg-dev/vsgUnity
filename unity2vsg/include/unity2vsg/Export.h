@@ -12,12 +12,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
-#if defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined( __BCPLUSPLUS__)  || defined( __MWERKS__)
-#  if defined( UNITY2VSG_SHARED_LIBRARY )
-#    define UNITY2VSG_EXPORT   __declspec(dllexport)
-#  else
-#    define UNITY2VSG_EXPORT   __declspec(dllimport)
-#  endif
+#if defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BCPLUSPLUS__) || defined(__MWERKS__)
+#    if defined(UNITY2VSG_SHARED_LIBRARY)
+#        define UNITY2VSG_EXPORT __declspec(dllexport)
+#    else
+#        define UNITY2VSG_EXPORT __declspec(dllimport)
+#    endif
 #else
-#  define UNITY2VSG_EXPORT
+#    define UNITY2VSG_EXPORT
 #endif

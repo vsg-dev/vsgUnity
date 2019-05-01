@@ -14,85 +14,85 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <unity2vsg/Export.h>
 
+#include <vsg/core/Array.h>
 #include <vsg/maths/vec2.h>
 #include <vsg/maths/vec3.h>
 #include <vsg/maths/vec4.h>
-#include <vsg/core/Array.h>
 
 namespace unity2vsg
 {
     // types used to pass data from Unity C# to native code
-	struct ByteArray
-	{
-		uint8_t* ptr;
-		uint32_t length;
-	};
+    struct ByteArray
+    {
+        uint8_t* ptr;
+        uint32_t length;
+    };
 
-	struct ShortArray
-	{
-		int16_t* ptr;
-		uint32_t length;
-	};
+    struct ShortArray
+    {
+        int16_t* ptr;
+        uint32_t length;
+    };
 
-	struct UShortArray
-	{
-		uint16_t* ptr;
-		uint32_t length;
-	};
+    struct UShortArray
+    {
+        uint16_t* ptr;
+        uint32_t length;
+    };
 
-	struct IntArray
-	{
-		int32_t* ptr;
-		uint32_t length;
-	};
+    struct IntArray
+    {
+        int32_t* ptr;
+        uint32_t length;
+    };
 
-	struct UIntArray
-	{
-		uint32_t* ptr;
-		uint32_t length;
-	};
+    struct UIntArray
+    {
+        uint32_t* ptr;
+        uint32_t length;
+    };
 
-	struct FloatArray
-	{
-		float* ptr;
-		uint32_t length;
-	};
+    struct FloatArray
+    {
+        float* ptr;
+        uint32_t length;
+    };
 
-	struct DoubleArray
-	{
-		double* ptr;
-		uint32_t length;
-	};
+    struct DoubleArray
+    {
+        double* ptr;
+        uint32_t length;
+    };
 
-	struct Vec2Array
-	{
-		vsg::vec2* ptr;
-		uint32_t length;
-	};
+    struct Vec2Array
+    {
+        vsg::vec2* ptr;
+        uint32_t length;
+    };
 
-	struct Vec3Array
-	{
-		vsg::vec3* ptr;
-		uint32_t length;
-	};
+    struct Vec3Array
+    {
+        vsg::vec3* ptr;
+        uint32_t length;
+    };
 
-	struct Vec4Array
-	{
-		vsg::vec4* ptr;
-		uint32_t length;
-	};
+    struct Vec4Array
+    {
+        vsg::vec4* ptr;
+        uint32_t length;
+    };
 
-	struct MeshData
-	{
+    struct MeshData
+    {
         uint32_t id;
-		Vec3Array verticies;
-		IntArray triangles;
-		Vec3Array normals;
+        Vec3Array verticies;
+        IntArray triangles;
+        Vec3Array normals;
         Vec3Array tangents;
         Vec4Array colors;
-		Vec2Array uv0;
+        Vec2Array uv0;
         Vec2Array uv1;
-	};
+    };
 
     enum TexFormat
     {
@@ -100,7 +100,7 @@ namespace unity2vsg
         R8G8_UNORM = 1,
         R8G8B8_UNORM = 2,
         R8G8B8A8_UNORM = 3,
-        BC1_RGB_UNORM = 4, //dxt1
+        BC1_RGB_UNORM = 4,  //dxt1
         BC1_RGBA_UNORM = 5, //dxt1
         UnsupportedFormat = 9999
     };
@@ -181,32 +181,30 @@ namespace unity2vsg
         return vsg::ref_ptr<vsg::Array<T>>(new vsg::Array<T>(static_cast<size_t>(length), ptr));
     }
 
-    
     VkFormat vkFormatForTexFormat(TexFormat format)
     {
         switch (format)
         {
-            case TexFormat::R8_UNORM: return VkFormat::VK_FORMAT_R8_UNORM;
-            case TexFormat::R8G8_UNORM: return VkFormat::VK_FORMAT_R8G8_UNORM;
-            case TexFormat::R8G8B8_UNORM: return VkFormat::VK_FORMAT_R8G8B8_UNORM;
-            case TexFormat::R8G8B8A8_UNORM: return VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
-            case TexFormat::BC1_RGB_UNORM: return VkFormat::VK_FORMAT_BC1_RGB_UNORM_BLOCK;
-            case TexFormat::BC1_RGBA_UNORM: return VkFormat::VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
-            default: break;
+        case TexFormat::R8_UNORM: return VkFormat::VK_FORMAT_R8_UNORM;
+        case TexFormat::R8G8_UNORM: return VkFormat::VK_FORMAT_R8G8_UNORM;
+        case TexFormat::R8G8B8_UNORM: return VkFormat::VK_FORMAT_R8G8B8_UNORM;
+        case TexFormat::R8G8B8A8_UNORM: return VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
+        case TexFormat::BC1_RGB_UNORM: return VkFormat::VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+        case TexFormat::BC1_RGBA_UNORM: return VkFormat::VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+        default: break;
         }
         return VkFormat::VK_FORMAT_R8_UNORM;
     }
-
 
     VkSamplerAddressMode vkSamplerAddressModeForWrapMode(WrapMode wrap)
     {
         switch (wrap)
         {
-            case WrapMode::Repeat: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            case WrapMode::Clamp: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            case WrapMode::Mirror:
-            case WrapMode::MirrorOnce: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-            default: break;
+        case WrapMode::Repeat: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        case WrapMode::Clamp: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        case WrapMode::Mirror:
+        case WrapMode::MirrorOnce: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        default: break;
         }
         return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM; // unknown
     }
@@ -215,12 +213,12 @@ namespace unity2vsg
     {
         switch (filtermode)
         {
-            case MipmapFilterMode::Point: return { VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST };
-            case MipmapFilterMode::Bilinear: return { VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST };
-            case MipmapFilterMode::Trilinear: return { VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR };
-            default: break;
+        case MipmapFilterMode::Point: return {VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST};
+        case MipmapFilterMode::Bilinear: return {VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST};
+        case MipmapFilterMode::Trilinear: return {VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR};
+        default: break;
         }
-        return { VK_FILTER_MAX_ENUM, VK_SAMPLER_MIPMAP_MODE_MAX_ENUM }; // unknown
+        return {VK_FILTER_MAX_ENUM, VK_SAMPLER_MIPMAP_MODE_MAX_ENUM}; // unknown
     }
 
     VkSamplerCreateInfo vkSamplerCreateInfoForTextureData(const TextureData& data)
@@ -262,5 +260,4 @@ namespace unity2vsg
 
         return samplerInfo;
     }
-}
-
+} // namespace unity2vsg

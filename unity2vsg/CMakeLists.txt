@@ -69,5 +69,13 @@ add_custom_target(clobber
     COMMAND git clean -d -f -x
 )
 
+# add clang-foramt build target to enforce a standard code style guide.
+find_program(CLANGFORMAT clang-format)
+if (CLANGFORMAT)
+    add_custom_target(clang-format
+        COMMAND ${CLANGFORMAT} -i ${PATH_TO_SOURCE}include/vsg/*/*.h ${PATH_TO_SOURCE}src/vsg/*/*.cpp
+    )
+endif()
+
 # src contains unity2vsg project source code and cmakelists
 add_subdirectory(src/unity2vsg)

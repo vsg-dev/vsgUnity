@@ -3,17 +3,16 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-
 namespace vsgUnity.Native
 {
     public static class GraphBuilder
     {
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_BeginExport")]
-        private static extern void unity2vsg_BeginExport();
+        private static extern void
+        unity2vsg_BeginExport();
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_EndExport")]
-        private static extern void unity2vsg_EndExport([MarshalAs(UnmanagedType.LPStr)] string saveFileName);
-
+        private static extern void unity2vsg_EndExport([ MarshalAs(UnmanagedType.LPStr) ] string saveFileName);
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddGroup")]
         private static extern void unity2vsg_AddGroup();
@@ -25,7 +24,7 @@ namespace vsgUnity.Native
         private static extern void unity2vsg_AddGeometry(MeshData mesh);
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddStringValue")]
-        private static extern void unity2vsg_AddStringValue([MarshalAs(UnmanagedType.LPStr)] string name, [MarshalAs(UnmanagedType.LPStr)] string value);
+        private static extern void unity2vsg_AddStringValue([ MarshalAs(UnmanagedType.LPStr) ] string name, [ MarshalAs(UnmanagedType.LPStr) ] string value);
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddStateGroup")]
         private static extern void unity2vsg_AddStateGroup();
@@ -43,14 +42,12 @@ namespace vsgUnity.Native
         private static extern void unity2vsg_EndNode();
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_LaunchViewer")]
-        private static extern void unity2vsg_LaunchViewer([MarshalAs(UnmanagedType.LPStr)] string fileName, int useCamData, CameraData camdata);
-
+        private static extern void unity2vsg_LaunchViewer([ MarshalAs(UnmanagedType.LPStr) ] string fileName, int useCamData, CameraData camdata);
 
         public static void LaunchViewer(string fileName, bool useCamData, Camera camera)
         {
             unity2vsg_LaunchViewer(fileName, useCamData ? 1 : 0, NativeUtils.CreateCameraData(camera));
         }
-
 
         public static void Export(GameObject[] gameObjects, string saveFileName)
         {
@@ -72,10 +69,10 @@ namespace vsgUnity.Native
             GraphBuilder.unity2vsg_AddTransform(convertData);
             */
 
-            Dictionary<int, MeshData> meshCache = new Dictionary<int, MeshData>();
-            Dictionary<int, TextureData> textureCache = new Dictionary<int, TextureData>();
+            Dictionary<int, MeshData>meshCache = new Dictionary<int, MeshData>();
+            Dictionary<int, TextureData>textureCache = new Dictionary<int, TextureData>();
 
-            System.Action<GameObject> processGameObject = null;
+            System.Action<GameObject>processGameObject = null;
             processGameObject = (GameObject go) =>
             {
                 // determine the gameObject type
@@ -92,13 +89,11 @@ namespace vsgUnity.Native
 
                     TransformData transformdata = new TransformData();
                     Matrix4x4 matrix = Matrix4x4.TRS(gotrans.localPosition, gotrans.localRotation, gotrans.localScale) * convert;
-                    transformdata.matrix.data = new float[]
-                    {
+                    transformdata.matrix.data = new float[]{
                         matrix[0, 0], matrix[0, 1], matrix[0, 2], matrix[0, 3],
                         matrix[1, 0], matrix[1, 1], matrix[1, 2], matrix[1, 3],
                         matrix[2, 0], matrix[2, 1], matrix[2, 2], matrix[2, 3],
-                        matrix[3, 0], matrix[3, 1], matrix[3, 2], matrix[3, 3]
-                    };
+                        matrix[3, 0], matrix[3, 1], matrix[3, 2], matrix[3, 3]};
                     transformdata.matrix.length = transformdata.matrix.data.Length;
 
                     // add as a transform
@@ -123,8 +118,8 @@ namespace vsgUnity.Native
                     Material material = meshRenderer.sharedMaterial;
 
                     // gather textures
-                    Dictionary<string, Texture> allTextures = NativeUtils.GetTexturesForMaterial(material);
-                    List<Texture> textures = new List<Texture>();
+                    Dictionary<string, Texture>allTextures = NativeUtils.GetTexturesForMaterial(material);
+                    List<Texture>textures = new List<Texture>();
 
                     if (allTextures.Count > 0)
                     {
@@ -143,7 +138,6 @@ namespace vsgUnity.Native
                             }
                         }
                     }
-
 
                     if (mesh != null && mesh.isReadable)
                     {
@@ -192,7 +186,7 @@ namespace vsgUnity.Native
                         GraphBuilder.unity2vsg_EndNode(); // step out of geometry
 
                         // add textures
-                        if(textures.Count > 0)
+                        if (textures.Count > 0)
                         {
                             Texture maintex = textures[0];
 
@@ -237,7 +231,7 @@ namespace vsgUnity.Native
                 }
             };
 
-            foreach (GameObject go in gameObjects)
+            foreach(GameObject go in gameObjects)
             {
                 processGameObject(go);
             }

@@ -19,13 +19,12 @@ namespace vsg
     class GraphicsPipelineBuilder : public Inherit<Object, GraphicsPipelineBuilder>
     {
     public:
-
         class Traits : public Inherit<Object, Traits>
         {
         public:
             ShaderModules shaderModules;
 
-            using VertexInputAttributeDescription = std::pair<uint32_t, VkFormat>; // location index, format
+            using VertexInputAttributeDescription = std::pair<uint32_t, VkFormat>;                // location index, format
             using StructInputAttributeDescription = std::vector<VertexInputAttributeDescription>; // list of vertex input desccriptions making an entire struct for a single binding
             using InputAttributeDescriptions = std::vector<StructInputAttributeDescription>;
 
@@ -42,7 +41,7 @@ namespace vsg
         };
 
         GraphicsPipelineBuilder();
-        
+
         virtual void build(ref_ptr<Traits> traits);
 
         ref_ptr<GraphicsPipeline> getGraphicsPipeline() const { return _graphicsPipeline; }
@@ -54,4 +53,4 @@ namespace vsg
         ref_ptr<GraphicsPipeline> _graphicsPipeline;
     };
     VSG_type_name(vsg::GraphicsPipelineBuilder)
-}
+} // namespace vsg

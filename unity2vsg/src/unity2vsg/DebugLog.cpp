@@ -18,12 +18,10 @@ StringArgFuncPtr s_DebugLog = nullptr;
 
 void unity2vsg::DebugLog(const std::string& msg)
 {
-    if(s_DebugLog != nullptr) s_DebugLog(msg.c_str());
+    if (s_DebugLog != nullptr) s_DebugLog(msg.c_str());
 }
 
 void unity2vsg_Debug_SetDebugLogCallback(StringArgFuncPtr aFunctionPointer)
 {
     s_DebugLog = aFunctionPointer;
 }
-
-

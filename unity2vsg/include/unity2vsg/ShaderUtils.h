@@ -60,10 +60,10 @@ namespace unity2vsg
     class ShaderCompiler : public vsg::Object
     {
     public:
-        ShaderCompiler(vsg::Allocator* allocator=nullptr);
+        ShaderCompiler(vsg::Allocator* allocator = nullptr);
         virtual ~ShaderCompiler();
 
         bool compile(vsg::ShaderModule* shader);
         bool compile(vsg::ShaderModules& shaders);
     };
-}
+} // namespace unity2vsg

@@ -33,25 +33,25 @@ namespace vsgUnity.Native
     }
 
     [StructLayout(LayoutKind.Sequential)]
-	public struct IntArray
-	{
-		public int[] data;
-		public int length;
-	}
+    public struct IntArray
+    {
+        public int[] data;
+        public int length;
+    }
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct FloatArray
-	{
-		public float[] data;
-		public int length;
-	}
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FloatArray
+    {
+        public float[] data;
+        public int length;
+    }
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct Vec2Array
-	{
-		public Vector2[] data;
-		public int length;
-	}
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Vec2Array
+    {
+        public Vector2[] data;
+        public int length;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Vec3Array
@@ -87,27 +87,24 @@ namespace vsgUnity.Native
         public Vec2Array uv1;
     }
 
-    public enum TexFormat
-    {
+    public enum TexFormat {
         R8_UNORM = 0,
         R8G8_UNORM = 1,
         R8G8B8_UNORM = 2,
         R8G8B8A8_UNORM = 3,
-        BC1_RGB_UNORM = 4, //dxt1
+        BC1_RGB_UNORM = 4,  //dxt1
         BC1_RGBA_UNORM = 5, //dxt1
         Unsupported = 9999
     }
 
-    public enum MipmapFilterMode
-    {
+    public enum MipmapFilterMode {
         Point = 0,
         Bilinear = 1,
         Trilinear = 2,
         Unsupported = 9999
     }
 
-    public enum WrapMode
-    {
+    public enum WrapMode {
         Repeat = 0,
         Clamp = 1,
         Mirror = 2,
@@ -168,25 +165,25 @@ namespace vsgUnity.Native
     //
 
     [StructLayout(LayoutKind.Sequential)]
-	public struct NativeIntArray
-	{
-		public IntPtr ptr;
-		public int length;
-	}
+    public struct NativeIntArray
+    {
+        public IntPtr ptr;
+        public int length;
+    }
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct NativeFloatArray
-	{
-		public IntPtr ptr;
-		public int length;
-	}
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NativeFloatArray
+    {
+        public IntPtr ptr;
+        public int length;
+    }
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct NativeVec2Array
-	{
-		public IntPtr ptr;
-		public int length;
-	}
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NativeVec2Array
+    {
+        public IntPtr ptr;
+        public int length;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct NativeVec3Array
@@ -206,26 +203,26 @@ namespace vsgUnity.Native
     {
         public static TexFormat GetTextureFormat(GraphicsFormat format)
         {
-            switch(format)
+            switch (format)
             {
-                case GraphicsFormat.R8_UNorm: return TexFormat.R8_UNORM;
-                case GraphicsFormat.R8G8_UNorm: return TexFormat.R8G8_UNORM;
-                case GraphicsFormat.R8G8B8A8_UNorm: return TexFormat.R8G8B8A8_UNORM;
-                //case GraphicsFormat.RGBA_DXT1_UNorm: return TexFormat.BC1_RGBA_UNORM;
-                //case TextureFormat.DXT5: return TexFormat.BC1_RGBA_UNORM;
-                default: break;
+            case GraphicsFormat.R8_UNorm: return TexFormat.R8_UNORM;
+            case GraphicsFormat.R8G8_UNorm: return TexFormat.R8G8_UNORM;
+            case GraphicsFormat.R8G8B8A8_UNorm: return TexFormat.R8G8B8A8_UNORM;
+            //case GraphicsFormat.RGBA_DXT1_UNorm: return TexFormat.BC1_RGBA_UNORM;
+            //case TextureFormat.DXT5: return TexFormat.BC1_RGBA_UNORM;
+            default: break;
             }
             return TexFormat.Unsupported;
         }
 
         public static MipmapFilterMode GetTextureFilterMode(FilterMode filter)
         {
-            switch(filter)
+            switch (filter)
             {
-                case FilterMode.Point: return MipmapFilterMode.Point;
-                case FilterMode.Bilinear: return MipmapFilterMode.Bilinear;
-                case FilterMode.Trilinear: return MipmapFilterMode.Trilinear;
-                default: break;
+            case FilterMode.Point: return MipmapFilterMode.Point;
+            case FilterMode.Bilinear: return MipmapFilterMode.Bilinear;
+            case FilterMode.Trilinear: return MipmapFilterMode.Trilinear;
+            default: break;
             }
             return MipmapFilterMode.Unsupported;
         }
@@ -234,11 +231,11 @@ namespace vsgUnity.Native
         {
             switch (wrap)
             {
-                case TextureWrapMode.Repeat: return WrapMode.Repeat;
-                case TextureWrapMode.Clamp: return WrapMode.Clamp;
-                case TextureWrapMode.Mirror: return WrapMode.Mirror;
-                case TextureWrapMode.MirrorOnce: return WrapMode.MirrorOnce;
-                default: break;
+            case TextureWrapMode.Repeat: return WrapMode.Repeat;
+            case TextureWrapMode.Clamp: return WrapMode.Clamp;
+            case TextureWrapMode.Mirror: return WrapMode.Mirror;
+            case TextureWrapMode.MirrorOnce: return WrapMode.MirrorOnce;
+            default: break;
             }
             return WrapMode.Unsupported;
         }
@@ -247,11 +244,11 @@ namespace vsgUnity.Native
         {
             TextureData texdata = new TextureData();
 
-            switch(texture.dimension)
+            switch (texture.dimension)
             {
-                case TextureDimension.Tex2D: PopulateTextureData(texture as Texture2D, ref texdata); break;
-                case TextureDimension.Tex3D: PopulateTextureData(texture as Texture3D, ref texdata); break;
-                default: break;
+            case TextureDimension.Tex2D: PopulateTextureData(texture as Texture2D, ref texdata); break;
+            case TextureDimension.Tex3D: PopulateTextureData(texture as Texture3D, ref texdata); break;
+            default: break;
             }
 
             return texdata;
@@ -261,7 +258,7 @@ namespace vsgUnity.Native
         {
             if (!PopulateTextureData(texture as Texture, ref texdata)) return false;
             texdata.depth = 1;
-            texdata.pixels.data = Color32ArrayToByteArray(texture.GetPixels32());// texture.GetRawTextureData();
+            texdata.pixels.data = Color32ArrayToByteArray(texture.GetPixels32()); // texture.GetRawTextureData();
             texdata.pixels.length = texdata.pixels.data.Length;
             return true;
         }
@@ -314,9 +311,9 @@ namespace vsgUnity.Native
             return camdata;
         }
 
-        public static Dictionary<string, Texture> GetTexturesForMaterial(Material mat)
+        public static Dictionary<string, Texture>GetTexturesForMaterial(Material mat)
         {
-            Dictionary<string, Texture> textures = new Dictionary<string, Texture>();
+            Dictionary<string, Texture>textures = new Dictionary<string, Texture>();
 
             if (mat == null) return textures;
 
@@ -333,9 +330,9 @@ namespace vsgUnity.Native
             return textures;
         }
 
-        public static Dictionary<string, Texture> GetValidTexturesForMaterial(Material mat)
+        public static Dictionary<string, Texture>GetValidTexturesForMaterial(Material mat)
         {
-            Dictionary<string, Texture> textures = new Dictionary<string, Texture>();
+            Dictionary<string, Texture>textures = new Dictionary<string, Texture>();
 
             if (mat == null) return textures;
 
@@ -346,7 +343,7 @@ namespace vsgUnity.Native
                 {
                     string propname = ShaderUtil.GetPropertyName(shader, i);
                     Texture texture = mat.GetTexture(propname);
-                    if(texture != null) textures.Add(propname, texture);
+                    if (texture != null) textures.Add(propname, texture);
                 }
             }
             return textures;
@@ -357,7 +354,7 @@ namespace vsgUnity.Native
             if (colors == null || colors.Length == 0)
                 return null;
 
-            int lengthOfColor32 = Marshal.SizeOf(typeof(Color32));
+            int lengthOfColor32 = Marshal.SizeOf(typeof (Color32));
             int length = lengthOfColor32 * colors.Length;
             byte[] bytes = new byte[length];
 
@@ -378,8 +375,7 @@ namespace vsgUnity.Native
         }
 
         [Flags]
-        public enum TextureSupportIssues
-        {
+        public enum TextureSupportIssues {
             None = 0,
             Dimensions = 1,
             Format = 2,
@@ -418,7 +414,7 @@ namespace vsgUnity.Native
             if ((issues & TextureSupportIssues.Format) == TextureSupportIssues.Format) report += "Format '" + texture.graphicsFormat.ToString() + "' unsupported. Please select a supported format (RGBA32) in import settings.\n";
             if ((issues & TextureSupportIssues.Dimensions) == TextureSupportIssues.Dimensions) report += "Unsupported Texture dimension '" + texture.dimension.ToString() + "'. Try selecting another 'Texture Shape' (2D) in immport settings.\n";
 
-            if(!string.IsNullOrEmpty(report))
+            if (!string.IsNullOrEmpty(report))
             {
                 report = texture.name + " has the following issues:\n" + report;
             }
@@ -428,66 +424,72 @@ namespace vsgUnity.Native
     }
 
     public static class Memory
-	{
+    {
 #if UNITY_IPHONE
-		[DllImport ("__Internal")]
+        [DllImport("__Internal")]
 #else
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_DataTypes_DeleteNativeObject")]
 #endif
-        private static extern void unity2vsg_DataTypes_DeleteNativeObject(IntPtr anObjectPointer, bool isArray);
+        private static extern void
+        unity2vsg_DataTypes_DeleteNativeObject(IntPtr anObjectPointer, bool isArray);
 
-		public static void DeleteNativeObject(IntPtr anObjectPointer, bool isArray)
-		{
+        public static void DeleteNativeObject(IntPtr anObjectPointer, bool isArray)
+        {
             unity2vsg_DataTypes_DeleteNativeObject(anObjectPointer, isArray);
-		}
-	}
+        }
+    }
 
     public static class Convert
-	{
-	 	private static T[] CreateArray<T>(IntPtr array, int length)
-		{
-	         T[] result = new T[length];
-	         int size = Marshal.SizeOf(typeof(T));
-	 
-	         if (IntPtr.Size == 4) {
-	             // 32-bit system
-	             for (int i = 0; i < result.Length; i++) {
-	                 result [i] = (T)Marshal.PtrToStructure (array, typeof(T));
-	                 array = new IntPtr (array.ToInt32 () + size);
-	             }
-	         } else {
-	             // probably 64-bit system
-	             for (int i = 0; i < result.Length; i++) {
-	                 result [i] = (T)Marshal.PtrToStructure (array, typeof(T));
-	                 array = new IntPtr(array.ToInt64 () + size);
-	             }
-	         }
-	         return result;
-     	}
+    {
+        private static T[] CreateArray<T>(IntPtr array, int length)
+        {
+            T[] result = new T[length];
+            int size = Marshal.SizeOf(typeof (T));
 
-		public static IntArray FromLocal(int[] anArray)
-		{
-			IntArray result;
-			result.data = anArray;
-			result.length = anArray.Length;
-			return result;
-		}
+            if (IntPtr.Size == 4)
+            {
+                // 32-bit system
+                for (int i = 0; i < result.Length; i++)
+                {
+                    result[i] = (T) Marshal.PtrToStructure(array, typeof (T));
+                    array = new IntPtr(array.ToInt32() + size);
+                }
+            }
+            else
+            {
+                // probably 64-bit system
+                for (int i = 0; i < result.Length; i++)
+                {
+                    result[i] = (T) Marshal.PtrToStructure(array, typeof (T));
+                    array = new IntPtr(array.ToInt64() + size);
+                }
+            }
+            return result;
+        }
 
-		public static FloatArray FromLocal(float[] anArray)
-		{
-			FloatArray result;
-			result.data = anArray;
-			result.length = anArray.Length;
-			return result;
-		}
+        public static IntArray FromLocal(int[] anArray)
+        {
+            IntArray result;
+            result.data = anArray;
+            result.length = anArray.Length;
+            return result;
+        }
 
-		public static Vec2Array FromLocal(Vector2[] anArray)
-		{
-			Vec2Array result;
-			result.data = anArray;
-			result.length = anArray.Length;
-			return result;
-		}
+        public static FloatArray FromLocal(float[] anArray)
+        {
+            FloatArray result;
+            result.data = anArray;
+            result.length = anArray.Length;
+            return result;
+        }
+
+        public static Vec2Array FromLocal(Vector2[] anArray)
+        {
+            Vec2Array result;
+            result.data = anArray;
+            result.length = anArray.Length;
+            return result;
+        }
 
         public static Vec3Array FromLocal(Vector3[] anArray)
         {
@@ -506,28 +508,28 @@ namespace vsgUnity.Native
         }
 
         public static IntArray FromNative(NativeIntArray aNativeArray)
-		{
-			IntArray result;
-			result.data = CreateArray<int>(aNativeArray.ptr, aNativeArray.length);
-			result.length = result.data.Length;
-			return result;
-		}
+        {
+            IntArray result;
+            result.data = CreateArray<int>(aNativeArray.ptr, aNativeArray.length);
+            result.length = result.data.Length;
+            return result;
+        }
 
-		public static FloatArray FromNative(NativeFloatArray aNativeArray)
-		{
-			FloatArray result;
-			result.data = CreateArray<float>(aNativeArray.ptr, aNativeArray.length);
-			result.length = result.data.Length;
-			return result;
-		}
+        public static FloatArray FromNative(NativeFloatArray aNativeArray)
+        {
+            FloatArray result;
+            result.data = CreateArray<float>(aNativeArray.ptr, aNativeArray.length);
+            result.length = result.data.Length;
+            return result;
+        }
 
-		public static Vec2Array FromNative(NativeVec2Array aNativeArray)
-		{
-			Vec2Array result;
-			result.data = CreateArray<Vector2>(aNativeArray.ptr, aNativeArray.length);
-			result.length = result.data.Length;
-			return result;
-		}
+        public static Vec2Array FromNative(NativeVec2Array aNativeArray)
+        {
+            Vec2Array result;
+            result.data = CreateArray<Vector2>(aNativeArray.ptr, aNativeArray.length);
+            result.length = result.data.Length;
+            return result;
+        }
 
         public static Vec3Array FromNative(NativeVec3Array aNativeArray)
         {

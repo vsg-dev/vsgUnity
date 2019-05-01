@@ -20,18 +20,19 @@ namespace vsgUnity.Editor
         public static bool _matchSceneCamera = true;
 
         public static int _cameraSelectionIndex = 0;
-        public static List<Camera> _previewCameras = new List<Camera>();
-        public static List<string> _previewCameraNames = new List<string>();
+        public static List<Camera>_previewCameras = new List<Camera>();
+        public static List<string>_previewCameraNames = new List<string>();
 
         string _feedbackText = "Select an export object.";
         bool _isExporting = false;
 
         // open window
         [MenuItem("Window/VulkanSceneGraph/Exporter")]
-        static void Init()
+        static void
+        Init()
         {
             // Get existing open window or if none, make a new one:
-            ExportWindow window = (ExportWindow)EditorWindow.GetWindow(typeof(ExportWindow), true, "vsgUnity");
+            ExportWindow window = (ExportWindow) EditorWindow.GetWindow(typeof (ExportWindow), true, "vsgUnity");
 
             if (string.IsNullOrEmpty(_exportDirectory))
             {
@@ -58,11 +59,12 @@ namespace vsgUnity.Editor
             float starttick = Time.realtimeSinceStartup;
 
             string exportname = string.IsNullOrEmpty(_exportFileName) ? "export" : Path.GetFileNameWithoutExtension(_exportFileName);
-            string finalSaveFileName = Path.Combine(_exportDirectory, exportname) + (_binaryExport ? ".vsgb" : ".vsga");
+            string finalSaveFileName = Path.Combine(_exportDirectory, exportname) + (_binaryExport ? ".vsgb"
+                                                                                     : ".vsga");
 
             if (_exportTarget != null)
             {
-                GraphBuilder.Export(new GameObject[] { _exportTarget }, finalSaveFileName);
+                GraphBuilder.Export(new GameObject[]{_exportTarget}, finalSaveFileName);
             }
             else
             {
@@ -73,7 +75,7 @@ namespace vsgUnity.Editor
             _feedbackText = "Exported in " + (Time.realtimeSinceStartup - starttick) + " seconds";
             EditorUtility.SetDirty(this);
 
-            if(_showPreview) GraphBuilder.LaunchViewer(finalSaveFileName, _matchSceneCamera, _previewCameras[_cameraSelectionIndex]); // this currently blocks
+            if (_showPreview) GraphBuilder.LaunchViewer(finalSaveFileName, _matchSceneCamera, _previewCameras[_cameraSelectionIndex]); // this currently blocks
 
             _isExporting = false;
         }
@@ -86,7 +88,7 @@ namespace vsgUnity.Editor
             EditorGUILayout.Separator();
 
             // target object
-            _exportTarget = (GameObject)EditorGUILayout.ObjectField("Specific Object", _exportTarget, typeof(GameObject), true);
+            _exportTarget = (GameObject) EditorGUILayout.ObjectField("Specific Object", _exportTarget, typeof (GameObject), true);
 
             EditorGUILayout.Separator();
 
@@ -105,7 +107,7 @@ namespace vsgUnity.Editor
 
                     string selectedfolder = EditorUtility.OpenFolderPanel("Select export file path", defaultFolder, "");
 
-                    if(!string.IsNullOrEmpty(selectedfolder))
+                    if (!string.IsNullOrEmpty(selectedfolder))
                     {
                         _exportDirectory = selectedfolder;
                         EditorUtility.SetDirty(this);
@@ -165,7 +167,7 @@ namespace vsgUnity.Editor
 
         static void FixImportSettings()
         {
-            if(_exportTarget != null)
+            if (_exportTarget != null)
             {
                 FixImportSettings(_exportTarget);
             }
@@ -185,20 +187,20 @@ namespace vsgUnity.Editor
             MeshRenderer[] renderers = gameObject.GetComponentsInChildren<MeshRenderer>();
             MeshFilter[] filters = gameObject.GetComponentsInChildren<MeshFilter>();
 
-            List<Texture> allTextures = new List<Texture>();
+            List<Texture>allTextures = new List<Texture>();
             foreach(MeshRenderer renderer in renderers)
             {
                 Material[] sharedMaterials = renderer.sharedMaterials;
 
-                foreach (Material m in sharedMaterials)
+                foreach(Material m in sharedMaterials)
                 {
                     if (m == null) continue;
-                    Dictionary<string, Texture> textures = NativeUtils.GetValidTexturesForMaterial(m);
+                    Dictionary<string, Texture>textures = NativeUtils.GetValidTexturesForMaterial(m);
                     allTextures.AddRange(textures.Values);
                 }
             }
 
-            List<Mesh> allMeshes = new List<Mesh>();
+            List<Mesh>allMeshes = new List<Mesh>();
             foreach(MeshFilter filter in filters)
             {
                 if (filter.sharedMesh != null) allMeshes.Add(filter.sharedMesh);
@@ -209,17 +211,17 @@ namespace vsgUnity.Editor
 
             string report = string.Empty;
 
-            foreach (Texture tex in allTextures)
+            foreach(Texture tex in allTextures)
             {
                 NativeUtils.TextureSupportIssues issues = NativeUtils.GetSupportIssuesForTexture(tex);
-                if(issues != NativeUtils.TextureSupportIssues.None && (issues & NativeUtils.TextureSupportIssues.Dimensions) != NativeUtils.TextureSupportIssues.Dimensions)
+                if (issues != NativeUtils.TextureSupportIssues.None && (issues & NativeUtils.TextureSupportIssues.Dimensions) != NativeUtils.TextureSupportIssues.Dimensions)
                 {
                     report += NativeUtils.GetTextureSupportReport(issues, tex);
 
-                    EditorUtility.DisplayProgressBar("Fixing Textures", "Processing " + tex.name, (float)((float)progress/(float)allTextures.Count));
+                    EditorUtility.DisplayProgressBar("Fixing Textures", "Processing " + tex.name, (float)((float) progress / (float) allTextures.Count));
 
                     string path = AssetDatabase.GetAssetPath(tex);
-                    TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(path);
+                    TextureImporter importer = (TextureImporter) TextureImporter.GetAtPath(path);
                     if (importer == null) continue;
 
                     if ((issues & NativeUtils.TextureSupportIssues.ReadWrite) == NativeUtils.TextureSupportIssues.ReadWrite)
@@ -236,11 +238,10 @@ namespace vsgUnity.Editor
                     }
                     if ((issues & NativeUtils.TextureSupportIssues.Dimensions) == NativeUtils.TextureSupportIssues.Dimensions)
                     {
-
                     }
                     importer.SaveAndReimport();
                 }
-                else if((issues & NativeUtils.TextureSupportIssues.Dimensions) == NativeUtils.TextureSupportIssues.Dimensions)
+                else if ((issues & NativeUtils.TextureSupportIssues.Dimensions) == NativeUtils.TextureSupportIssues.Dimensions)
                 {
                     Debug.Log("Texture '" + tex.name + "' is using an unspported dimension '" + tex.dimension.ToString() + "' an cannot be converted.");
                 }
@@ -250,15 +251,15 @@ namespace vsgUnity.Editor
             EditorUtility.DisplayProgressBar("Fixing Meshes", "", 0.0f);
             progress = 0;
 
-            foreach (Mesh mesh in allMeshes)
+            foreach(Mesh mesh in allMeshes)
             {
-                EditorUtility.DisplayProgressBar("Fixing Meshes", "Processing " + mesh.name, (float)((float)progress / (float)allMeshes.Count));
+                EditorUtility.DisplayProgressBar("Fixing Meshes", "Processing " + mesh.name, (float)((float) progress / (float) allMeshes.Count));
 
                 if (!mesh.isReadable)
                 {
                     report += "Mesh '" + mesh.name + "' is not readable.\n";
                     string path = AssetDatabase.GetAssetPath(mesh);
-                    ModelImporter importer = (ModelImporter)ModelImporter.GetAtPath(path);
+                    ModelImporter importer = (ModelImporter) ModelImporter.GetAtPath(path);
                     importer.isReadable = true;
                     importer.SaveAndReimport();
                 }

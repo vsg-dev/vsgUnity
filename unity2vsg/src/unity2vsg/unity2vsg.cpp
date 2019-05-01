@@ -23,39 +23,39 @@ using namespace unity2vsg;
 
 void unity2vsg_ExportMesh(unity2vsg::MeshData mesh)
 {
-	vsg::ref_ptr<vsg::MatrixTransform> root = vsg::MatrixTransform::create();
+    vsg::ref_ptr<vsg::MatrixTransform> root = vsg::MatrixTransform::create();
 
     // setup the GraphicsPiplineBuilder
     vsg::ref_ptr<vsg::GraphicsPipelineBuilder> pipelinebuilder = vsg::GraphicsPipelineBuilder::create();
     vsg::ref_ptr<vsg::GraphicsPipelineBuilder::Traits> traits = vsg::GraphicsPipelineBuilder::Traits::create();
 
     // vertex input
-    auto inputarrays = vsg::DataList{ createVsgArray<vsg::vec3>(mesh.verticies.ptr, mesh.verticies.length) }; // always have verticies
-    vsg::GraphicsPipelineBuilder::Traits::InputAttributeDescriptions inputAttributes = { { { 0, VK_FORMAT_R32G32B32_SFLOAT } } };
+    auto inputarrays = vsg::DataList{createVsgArray<vsg::vec3>(mesh.verticies.ptr, mesh.verticies.length)}; // always have verticies
+    vsg::GraphicsPipelineBuilder::Traits::InputAttributeDescriptions inputAttributes = {{{0, VK_FORMAT_R32G32B32_SFLOAT}}};
     uint32_t inputshaderatts = VERTEX;
 
     if (mesh.normals.length > 0) // normals
     {
         inputarrays.push_back(createVsgArray<vsg::vec3>(mesh.normals.ptr, mesh.normals.length));
-        inputAttributes.push_back({ { 1, VK_FORMAT_R32G32B32_SFLOAT } });
+        inputAttributes.push_back({{1, VK_FORMAT_R32G32B32_SFLOAT}});
         inputshaderatts |= NORMAL;
     }
     if (mesh.tangents.length > 0) // normals
     {
         inputarrays.push_back(createVsgArray<vsg::vec3>(mesh.tangents.ptr, mesh.tangents.length));
-        inputAttributes.push_back({ { 2, VK_FORMAT_R32G32B32_SFLOAT } });
+        inputAttributes.push_back({{2, VK_FORMAT_R32G32B32_SFLOAT}});
         inputshaderatts |= TANGENT;
     }
     if (mesh.colors.length > 0) // colors
     {
         inputarrays.push_back(createVsgArray<vsg::vec4>(mesh.colors.ptr, mesh.colors.length));
-        inputAttributes.push_back({ { 3, VK_FORMAT_R32G32B32A32_SFLOAT } });
+        inputAttributes.push_back({{3, VK_FORMAT_R32G32B32A32_SFLOAT}});
         inputshaderatts |= COLOR;
     }
     if (mesh.uv0.length > 0) // uv set 0
     {
         inputarrays.push_back(createVsgArray<vsg::vec2>(mesh.uv0.ptr, mesh.uv0.length));
-        inputAttributes.push_back({ { 4, VK_FORMAT_R32G32_SFLOAT } });
+        inputAttributes.push_back({{4, VK_FORMAT_R32G32_SFLOAT}});
         inputshaderatts |= TEXCOORD0;
     }
 
@@ -78,8 +78,7 @@ void unity2vsg_ExportMesh(unity2vsg::MeshData mesh)
     // shaders
     vsg::ShaderModules shaders{
         vsg::ShaderModule::create(VK_SHADER_STAGE_VERTEX_BIT, "main", createFbxVertexSource(shaderMode, inputshaderatts)),
-        vsg::ShaderModule::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", createFbxFragmentSource(shaderMode, inputshaderatts))
-    };
+        vsg::ShaderModule::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", createFbxFragmentSource(shaderMode, inputshaderatts))};
 
     ShaderCompiler shaderCompiler;
     if (!shaderCompiler.compile(shaders))
@@ -120,7 +119,7 @@ void unity2vsg_ExportMesh(unity2vsg::MeshData mesh)
     }
 
     geometry->_indices = indiciesushort; //createVsgArray<uint16_t>(reinterpret_cast<uint16_t*>(mesh.triangles.ptr), mesh.triangles.length);
-    geometry->_commands = { vsg::DrawIndexed::create(mesh.triangles.length, 1, 0, 0, 0) };
+    geometry->_commands = {vsg::DrawIndexed::create(mesh.triangles.length, 1, 0, 0, 0)};
 
     // add the geometry
     stateGroup->addChild(geometry);
@@ -130,7 +129,7 @@ void unity2vsg_ExportMesh(unity2vsg::MeshData mesh)
     io.writeFile(root.get(), "C:\\Work\\VSG\\meshexport.vsga");
 
     // we're done so release the arrays before vsg ref_ptr tries to delete them (at the mo they are C# memory)
-    for(auto array : inputarrays)
+    for (auto array : inputarrays)
     {
         array->dataRelease();
     }
@@ -139,7 +138,6 @@ void unity2vsg_ExportMesh(unity2vsg::MeshData mesh)
 class LeafDataCollection : public vsg::Visitor
 {
 public:
-
     vsg::ref_ptr<vsg::Objects> objects;
 
     LeafDataCollection()
@@ -187,8 +185,7 @@ public:
 class LeafDataRelease : public vsg::Visitor
 {
 public:
-
-    LeafDataRelease() { }
+    LeafDataRelease() {}
 
     void apply(vsg::Object& object) override
     {
@@ -249,9 +246,9 @@ public:
     void addMatrixTrasform(const TransformData& data)
     {
         vsg::mat4 matrix = vsg::mat4(data.matrix.ptr[0], data.matrix.ptr[1], data.matrix.ptr[2], data.matrix.ptr[3],
-                                        data.matrix.ptr[4], data.matrix.ptr[5], data.matrix.ptr[6], data.matrix.ptr[7],
-                                        data.matrix.ptr[8], data.matrix.ptr[9], data.matrix.ptr[10], data.matrix.ptr[11],
-                                        data.matrix.ptr[12], data.matrix.ptr[13], data.matrix.ptr[14], data.matrix.ptr[15]);
+                                     data.matrix.ptr[4], data.matrix.ptr[5], data.matrix.ptr[6], data.matrix.ptr[7],
+                                     data.matrix.ptr[8], data.matrix.ptr[9], data.matrix.ptr[10], data.matrix.ptr[11],
+                                     data.matrix.ptr[12], data.matrix.ptr[13], data.matrix.ptr[14], data.matrix.ptr[15]);
 
         auto transform = vsg::MatrixTransform::create(matrix);
 
@@ -276,9 +273,9 @@ public:
             geometry = vsg::Geometry::create();
 
             // vertex inputs
-            auto inputarrays = vsg::DataList{ createVsgArray<vsg::vec3>(data.verticies.ptr, data.verticies.length) }; // always have verticies
+            auto inputarrays = vsg::DataList{createVsgArray<vsg::vec3>(data.verticies.ptr, data.verticies.length)}; // always have verticies
 
-            if (data.normals.length > 0)inputarrays.push_back(createVsgArray<vsg::vec3>(data.normals.ptr, data.normals.length));
+            if (data.normals.length > 0) inputarrays.push_back(createVsgArray<vsg::vec3>(data.normals.ptr, data.normals.length));
             if (data.uv0.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv0.ptr, data.uv0.length));
 
             geometry->_arrays = inputarrays;
@@ -291,7 +288,7 @@ public:
             }
 
             geometry->_indices = indiciesushort; //createVsgArray<uint16_t>(reinterpret_cast<uint16_t*>(mesh.triangles.ptr), mesh.triangles.length);
-            geometry->_commands = { vsg::DrawIndexed::create(static_cast<uint32_t>(indiciesushort->valueCount()), 1, 0, 0, 0) };
+            geometry->_commands = {vsg::DrawIndexed::create(static_cast<uint32_t>(indiciesushort->valueCount()), 1, 0, 0, 0)};
 
             _geometryCache[data.id] = geometry;
         }
@@ -326,27 +323,27 @@ public:
         vsg::ref_ptr<vsg::GraphicsPipelineBuilder::Traits> traits = vsg::GraphicsPipelineBuilder::Traits::create();
 
         // vertex input
-        vsg::GraphicsPipelineBuilder::Traits::InputAttributeDescriptions inputAttributes = { { { 0, VK_FORMAT_R32G32B32_SFLOAT } } };
+        vsg::GraphicsPipelineBuilder::Traits::InputAttributeDescriptions inputAttributes = {{{0, VK_FORMAT_R32G32B32_SFLOAT}}};
         uint32_t inputshaderatts = VERTEX;
 
         if (data.hasNormals)
         {
-            inputAttributes.push_back({ { 1, VK_FORMAT_R32G32B32_SFLOAT } });
+            inputAttributes.push_back({{1, VK_FORMAT_R32G32B32_SFLOAT}});
             inputshaderatts |= NORMAL;
         }
         if (data.hasTangents)
         {
-            inputAttributes.push_back({ { 2, VK_FORMAT_R32G32B32_SFLOAT } });
+            inputAttributes.push_back({{2, VK_FORMAT_R32G32B32_SFLOAT}});
             inputshaderatts |= TANGENT;
         }
         if (data.hasColors)
         {
-            inputAttributes.push_back({ { 3, VK_FORMAT_R32G32B32A32_SFLOAT } });
+            inputAttributes.push_back({{3, VK_FORMAT_R32G32B32A32_SFLOAT}});
             inputshaderatts |= COLOR;
         }
         if (data.uvChannelCount > 0) // uv set 0
         {
-            inputAttributes.push_back({ { 4, VK_FORMAT_R32G32_SFLOAT } });
+            inputAttributes.push_back({{4, VK_FORMAT_R32G32_SFLOAT}});
             inputshaderatts |= TEXCOORD0;
         }
 
@@ -355,30 +352,29 @@ public:
         // descriptor sets layout
         vsg::GraphicsPipelineBuilder::Traits::DescriptorBindingSet bindingSet;
         uint32_t shaderMode = LIGHTING;
-        if(data.fragmentImageSamplerCount > 0) shaderMode |= DIFFUSE_MAP;
+        if (data.fragmentImageSamplerCount > 0) shaderMode |= DIFFUSE_MAP;
 
         vsg::GraphicsPipelineBuilder::Traits::DescriptorBindngs vertexBindings;
         for (uint32_t i = 0; i < data.vertexImageSamplerCount; i++)
         {
-            vertexBindings.push_back({ i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER });
+            vertexBindings.push_back({i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER});
         }
         bindingSet[VK_SHADER_STAGE_VERTEX_BIT] = vertexBindings;
 
         vsg::GraphicsPipelineBuilder::Traits::DescriptorBindngs fragmentBindings;
         for (uint32_t i = 0; i < data.fragmentImageSamplerCount; i++)
         {
-            fragmentBindings.push_back({ i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER });
+            fragmentBindings.push_back({i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER});
         }
         bindingSet[VK_SHADER_STAGE_FRAGMENT_BIT] = fragmentBindings;
 
         traits->descriptorLayouts =
-        {
-            bindingSet
-        };
+            {
+                bindingSet};
 
         // shaders
         vsg::ShaderModules shaders;
-        
+
         uint32_t shaderkey = getShaderKey(shaderMode, inputshaderatts);
 
         if (_shaderModulesCache.find(shaderkey) != _shaderModulesCache.end())
@@ -389,8 +385,7 @@ public:
         {
             shaders = {
                 vsg::ShaderModule::create(VK_SHADER_STAGE_VERTEX_BIT, "main", createFbxVertexSource(shaderMode, inputshaderatts)),
-                vsg::ShaderModule::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", createFbxFragmentSource(shaderMode, inputshaderatts))
-            };
+                vsg::ShaderModule::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", createFbxFragmentSource(shaderMode, inputshaderatts))};
 
             ShaderCompiler shaderCompiler;
             if (!shaderCompiler.compile(shaders))
@@ -435,57 +430,49 @@ public:
 
             vsg::ref_ptr<vsg::Data> texdata;
             VkFormat format = vkFormatForTexFormat(data.format);
-            
-            if(data.depth == 1)
+
+            if (data.depth == 1)
             {
-                switch(format)
+                switch (format)
                 {
-                    case VK_FORMAT_R8_UNORM:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray2D(data.width, data.height, data.pixels.ptr));
-                        break;
-                    }
-                    case VK_FORMAT_R8G8_UNORM:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec2*>(data.pixels.ptr)));
-                        break;
-                    }
-                    case VK_FORMAT_R8G8B8A8_UNORM:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec4*>(data.pixels.ptr)));
-                        break;
-                    }
-                    default:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray2D(data.width, data.height, data.pixels.ptr));
-                        break;
-                    }
+                case VK_FORMAT_R8_UNORM: {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray2D(data.width, data.height, data.pixels.ptr));
+                    break;
+                }
+                case VK_FORMAT_R8G8_UNORM: {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec2*>(data.pixels.ptr)));
+                    break;
+                }
+                case VK_FORMAT_R8G8B8A8_UNORM: {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec4*>(data.pixels.ptr)));
+                    break;
+                }
+                default: {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray2D(data.width, data.height, data.pixels.ptr));
+                    break;
+                }
                 }
             }
             else if (data.depth > 1)
             {
                 switch (format)
                 {
-                    case VK_FORMAT_R8_UNORM:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray3D(data.width, data.height, data.depth, data.pixels.ptr));
-                        break;
-                    }
-                    case VK_FORMAT_R8G8_UNORM:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec2*>(data.pixels.ptr)));
-                        break;
-                    }
-                    case VK_FORMAT_R8G8B8A8_UNORM:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec4*>(data.pixels.ptr)));
-                        break;
-                    }
-                    default:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray3D(data.width, data.height, data.depth, data.pixels.ptr));
-                        break;
-                    }
+                case VK_FORMAT_R8_UNORM: {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray3D(data.width, data.height, data.depth, data.pixels.ptr));
+                    break;
+                }
+                case VK_FORMAT_R8G8_UNORM: {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec2*>(data.pixels.ptr)));
+                    break;
+                }
+                case VK_FORMAT_R8G8B8A8_UNORM: {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec4*>(data.pixels.ptr)));
+                    break;
+                }
+                default: {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray3D(data.width, data.height, data.depth, data.pixels.ptr));
+                    break;
+                }
                 }
             }
 
@@ -509,20 +496,20 @@ public:
             DebugLog("GraphBuilder Error: Can't bind descriptors until a stategroup and graphicspipeline has been added.");
             return;
         }
-        auto descriptorSet = vsg::DescriptorSet::create(_activeGraphicsPipeline->getPipelineLayout()->getDescriptorSetLayouts() , _descriptors);
+        auto descriptorSet = vsg::DescriptorSet::create(_activeGraphicsPipeline->getPipelineLayout()->getDescriptorSetLayouts(), _descriptors);
         auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, _activeGraphicsPipeline->getPipelineLayout(), 0, descriptorSet);
-        
+
         if (!addStateCommandToActiveStateGroup(bindDescriptorSet))
         {
             DebugLog("GraphBuilder Error: No Active StateGroup");
         }
-        
+
         _descriptors.clear();
     }
 
     vsg::Node* getHead()
     {
-        if(_nodeStack.size() == 0) return nullptr;
+        if (_nodeStack.size() == 0) return nullptr;
         return _nodeStack[_nodeStack.size() - 1];
     }
 
@@ -631,7 +618,7 @@ public:
 
     // map of textures to the TextureData ID they represent
     std::map<uint32_t, vsg::ref_ptr<vsg::Texture>> _textureCache;
-    
+
     std::string _saveFileName;
 };
 
@@ -711,7 +698,7 @@ void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg
     ss << "cam up: " << camdata.upDir.x << ", " << camdata.upDir.y << ", " << camdata.upDir.z << std::endl;
     DebugLog(ss.str());
 
-    if(!vsg_scene.valid()) return;
+    if (!vsg_scene.valid()) return;
 
     auto windowTraits = vsg::Window::Traits::create();
     windowTraits->windowTitle = "vsg export - " + std::string(filename);
@@ -734,22 +721,22 @@ void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     vsg_scene->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max)*0.5;
-    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min)*0.6;
+    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
     double nearFarRatio = 0.0001;
 
     // set up the camera
     vsg::ref_ptr<vsg::Perspective> perspective;
     vsg::ref_ptr<vsg::LookAt> lookAt;
 
-    if(useCamData == 1)
+    if (useCamData == 1)
     {
         perspective = vsg::ref_ptr<vsg::Perspective>(new vsg::Perspective(camdata.fov, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), camdata.nearZ, camdata.farZ));
         lookAt = vsg::ref_ptr<vsg::LookAt>(new vsg::LookAt(vsg::dvec3(camdata.position.x, camdata.position.y, camdata.position.z), vsg::dvec3(camdata.lookAt.x, camdata.lookAt.y, camdata.lookAt.z), vsg::dvec3(camdata.upDir.x, camdata.upDir.y, camdata.upDir.z)));
     }
     else
     {
-        perspective = vsg::ref_ptr<vsg::Perspective>(new vsg::Perspective(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 4.5));
+        perspective = vsg::ref_ptr<vsg::Perspective>(new vsg::Perspective(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5));
         lookAt = vsg::ref_ptr<vsg::LookAt>(new vsg::LookAt(centre + vsg::dvec3(0.0, 0.0, -radius * 3.5), centre, vsg::dvec3(0.0, 1.0, 0.0)));
     }
 

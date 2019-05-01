@@ -12,15 +12,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
-#include <unity2vsg/Export.h>
 #include <string>
+#include <unity2vsg/Export.h>
 
 namespace unity2vsg
 {
 
-    typedef void (*StringArgFuncPtr)( const char * );
+    typedef void (*StringArgFuncPtr)(const char*);
     extern void DebugLog(const std::string&);
-}
+} // namespace unity2vsg
 
 extern "C"
 {

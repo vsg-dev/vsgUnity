@@ -17,8 +17,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 extern "C"
 {
-	UNITY2VSG_EXPORT void unity2vsg_ExportMesh(unity2vsg::MeshData mesh);
-
+    UNITY2VSG_EXPORT void unity2vsg_ExportMesh(unity2vsg::MeshData mesh);
 
     UNITY2VSG_EXPORT void unity2vsg_BeginExport();
     UNITY2VSG_EXPORT void unity2vsg_EndExport(const char* saveFileName);
@@ -36,5 +35,5 @@ extern "C"
 
     UNITY2VSG_EXPORT void unity2vsg_EndNode();
 
-    UNITY2VSG_EXPORT void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg::CameraData  camdata);
+    UNITY2VSG_EXPORT void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg::CameraData camdata);
 }

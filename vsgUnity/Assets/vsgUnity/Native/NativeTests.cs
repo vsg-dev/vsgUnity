@@ -8,7 +8,8 @@ namespace vsgUnity.Native
     public static class NativeTests
     {
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_Tests_GetXValues")]
-        private static extern NativeFloatArray unity2vsg_Tests_GetXValues(Vec2Array points);
+        private static extern NativeFloatArray
+        unity2vsg_Tests_GetXValues(Vec2Array points);
 
         public static float[] GetXValues(Vector2[] points)
         {
@@ -18,16 +19,16 @@ namespace vsgUnity.Native
             return floatarray.data;
         }
 
-
         //
         // Convert a mesh
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_ExportMesh")]
-        private static extern void unity2vsg_ExportMesh(MeshData mesh);
+        private static extern void
+        unity2vsg_ExportMesh(MeshData mesh);
 
         public static void ExportMesh(Mesh umesh)
         {
-            if(!umesh.isReadable)
+            if (!umesh.isReadable)
             {
                 Debug.LogWarning("ExportMesh: Unable to export mesh, mesh is not readable. Please enabled read/write in the models import settings.");
                 return;
