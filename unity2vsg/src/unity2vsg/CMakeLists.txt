@@ -4,16 +4,15 @@ SET(HEADER_PATH ${CMAKE_SOURCE_DIR}/include/unity2vsg)
 set(HEADERS
     ${HEADER_PATH}/Export.h
     ${HEADER_PATH}/unity2vsg.h
-	${HEADER_PATH}/Debug.h
-	${HEADER_PATH}/DataTypes.h
+	${HEADER_PATH}/DebugLog.h
+	${HEADER_PATH}/NativeUtils.h
 	${HEADER_PATH}/GraphicsPipelineBuilder.h
 	${HEADER_PATH}/ShaderUtils.h	
 )
 
 set(SOURCES
     unity2vsg.cpp
-    Debug.cpp
-    DataTypes.cpp
+    DebugLog.cpp
 	GraphicsPipelineBuilder.cpp
 	ShaderUtils.cpp
     glsllang/ResourceLimits.cpp

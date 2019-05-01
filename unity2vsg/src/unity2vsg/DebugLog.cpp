@@ -10,15 +10,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
-#include <unity2vsg/Debug.h>
+#include <unity2vsg/DebugLog.h>
 
 using namespace unity2vsg;
 
-StringArgFuncPtr s_DebugLog;
+StringArgFuncPtr s_DebugLog = nullptr;
 
-void unity2vsg::DebugLog(const char* msg)
+void unity2vsg::DebugLog(const std::string& msg)
 {
-    s_DebugLog(msg);
+    if(s_DebugLog != nullptr) s_DebugLog(msg.c_str());
 }
 
 void unity2vsg_Debug_SetDebugLogCallback(StringArgFuncPtr aFunctionPointer)

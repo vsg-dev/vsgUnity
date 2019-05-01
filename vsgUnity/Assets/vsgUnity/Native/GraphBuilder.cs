@@ -12,7 +12,7 @@ namespace vsgUnity.Native
         private static extern void unity2vsg_BeginExport();
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_EndExport")]
-        private static extern void unity2vsg_EndExport([MarshalAs(UnmanagedType.LPStr)] string saveFileName, int useBinary, int launchViewer);
+        private static extern void unity2vsg_EndExport([MarshalAs(UnmanagedType.LPStr)] string saveFileName);
 
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddGroup")]
@@ -24,29 +24,56 @@ namespace vsgUnity.Native
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddGeometry")]
         private static extern void unity2vsg_AddGeometry(MeshData mesh);
 
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddStringValue")]
+        private static extern void unity2vsg_AddStringValue([MarshalAs(UnmanagedType.LPStr)] string name, [MarshalAs(UnmanagedType.LPStr)] string value);
+
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddStateGroup")]
         private static extern void unity2vsg_AddStateGroup();
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddBindGraphicsPipeline")]
         private static extern void unity2vsg_AddBindGraphicsPipeline(PipelineData pipeline);
 
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTexture")]
+        private static extern void unity2vsg_AddTexture(TextureData texture);
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_BindDescriptors")]
+        private static extern void unity2vsg_BindDescriptors();
+
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_EndNode")]
         private static extern void unity2vsg_EndNode();
 
-        public static PipelineData CreatePipeLineData(MeshData meshData)
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_LaunchViewer")]
+        private static extern void unity2vsg_LaunchViewer([MarshalAs(UnmanagedType.LPStr)] string fileName, int useCamData, CameraData camdata);
+
+
+        public static void LaunchViewer(string fileName, bool useCamData, Camera camera)
         {
-            PipelineData pipeline = new PipelineData();
-            pipeline.hasNormals = meshData.normals.length > 0 ? 1 : 0;
-            pipeline.hasColors = meshData.colors.length > 0 ? 1 : 0;
-            pipeline.uvChannelCount = meshData.uv0.length > 0 ? 1 : 0;
-            return pipeline;
+            unity2vsg_LaunchViewer(fileName, useCamData ? 1 : 0, NativeUtils.CreateCameraData(camera));
         }
 
-        public static void Export(GameObject gameObject, string saveFileName, bool useBinary, bool launchViewer)
+
+        public static void Export(GameObject gameObject, string saveFileName)
         {
             GraphBuilder.unity2vsg_BeginExport();
 
+            /*
+            // add a root node to convert coord system
+            TransformData convertData = new TransformData();
+            convertData.matrix.data = new float[]
+            {
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            };
+            convertData.matrix.length = convertData.matrix.data.Length;
+
+            // add root convert
+            GraphBuilder.unity2vsg_AddTransform(convertData);
+            */
+
             Dictionary<int, MeshData> meshCache = new Dictionary<int, MeshData>();
+            Dictionary<int, TextureData> textureCache = new Dictionary<int, TextureData>();
 
             System.Action<GameObject> processGameObject = null;
             processGameObject = (GameObject go) =>
@@ -59,14 +86,18 @@ namespace vsgUnity.Native
                 // does it have a none identiy local matrix
                 if (gotrans.localPosition != Vector3.zero || gotrans.localRotation != Quaternion.identity || gotrans.localScale != Vector3.one)
                 {
+                    Matrix4x4 convert = Matrix4x4.identity;
+                    //convert[1, 1] = -1.0f;
+                    //convert[2, 2] = -1.0f;
+
                     TransformData transformdata = new TransformData();
-                    Matrix4x4 matrix = Matrix4x4.TRS(gotrans.localPosition, gotrans.localRotation, gotrans.localScale);
+                    Matrix4x4 matrix = Matrix4x4.TRS(gotrans.localPosition, gotrans.localRotation, gotrans.localScale) * convert;
                     transformdata.matrix.data = new float[]
                     {
-                        matrix.m00, matrix.m01, matrix.m02, matrix.m03,
-                        matrix.m10, matrix.m11, matrix.m12, matrix.m13,
-                        matrix.m20, matrix.m21, matrix.m22, matrix.m23,
-                        matrix.m30, matrix.m31, matrix.m32, matrix.m33
+                        matrix[0, 0], matrix[0, 1], matrix[0, 2], matrix[0, 3],
+                        matrix[1, 0], matrix[1, 1], matrix[1, 2], matrix[1, 3],
+                        matrix[2, 0], matrix[2, 1], matrix[2, 2], matrix[2, 3],
+                        matrix[3, 0], matrix[3, 1], matrix[3, 2], matrix[3, 3]
                     };
                     transformdata.matrix.length = transformdata.matrix.data.Length;
 
@@ -89,7 +120,11 @@ namespace vsgUnity.Native
                 if (meshFilter && meshRenderer)
                 {
                     Mesh mesh = meshFilter.sharedMesh;
+                    Material material = meshRenderer.sharedMaterial;
 
+                    // gather textures
+                    Dictionary<string, Texture> textures = NativeUtils.GetTexturesForMaterial(material);
+                    
                     if (mesh != null && mesh.isReadable)
                     {
                         // create mesh data, if the mesh has already been created we only need to pass the ID to the addGeometry function
@@ -110,17 +145,64 @@ namespace vsgUnity.Native
                             meshdata.normals.data = mesh.normals;
                             meshdata.normals.length = meshdata.normals.data.Length;
 
+                            /*meshdata.tangents = new Vec3Array();
+                            meshdata.tangents.data = mesh.tangents;
+                            meshdata.tangents.length = meshdata.tangents.data.Length;*/
+
+                            meshdata.colors = new ColorArray();
+                            meshdata.colors.data = mesh.colors;
+                            meshdata.colors.length = meshdata.colors.data.Length;
+
+                            meshdata.uv0 = new Vec2Array();
+                            meshdata.uv0.data = mesh.uv;
+                            meshdata.uv0.length = meshdata.uv0.data.Length;
+
                             meshCache.Add(meshdata.id, meshdata);
                         }
 
                         // for now before we add a mesh insert a stategroup and add a pipeline
                         GraphBuilder.unity2vsg_AddStateGroup();
 
-                        PipelineData pipelineData = GraphBuilder.CreatePipeLineData(meshCache[meshdata.id]);
+                        PipelineData pipelineData = NativeUtils.CreatePipeLineData(meshCache[meshdata.id]);
+                        pipelineData.fragmentImageSamplerCount = textures.Count;
+
                         GraphBuilder.unity2vsg_AddBindGraphicsPipeline(pipelineData);
 
                         GraphBuilder.unity2vsg_AddGeometry(meshdata);
                         GraphBuilder.unity2vsg_EndNode(); // step out of geometry
+
+                        // add textures
+                        if(textures.Count > 0)
+                        {
+                            Texture maintex = textures.ContainsKey("_MainTex") ? textures["_MainTex"] : null;
+
+                            if (maintex)
+                            {
+                                string supported = NativeUtils.IsTextureSupported(maintex);
+                                if (!string.IsNullOrEmpty(supported))
+                                {
+                                    Debug.LogWarning(supported);
+                                }
+                                else
+                                {
+                                    TextureData texdata;
+                                    if (textureCache.ContainsKey(maintex.GetInstanceID()))
+                                    {
+                                        texdata = new TextureData();
+                                        texdata.id = maintex.GetInstanceID();
+                                    }
+                                    else
+                                    {
+                                        texdata = NativeUtils.CreateTextureData(maintex);
+                                        textureCache.Add(maintex.GetInstanceID(), texdata);
+                                    }
+                                    texdata.channel = 0;
+                                    GraphBuilder.unity2vsg_AddTexture(texdata);
+
+                                    GraphBuilder.unity2vsg_BindDescriptors();
+                                }
+                            }
+                        }
 
                         GraphBuilder.unity2vsg_EndNode(); // step out of stategroup
                     }
@@ -143,9 +225,17 @@ namespace vsgUnity.Native
                 }
             };
 
+           // Matrix4x4 convert = Matrix4x4.identity;
+           // convert[1, 1] = -1.0f;
+           // convert[2, 2] = -1.0f;
+           // Matrix4x4 matrix = Matrix4x4.TRS(gameObject.transform.localPosition, gameObject.transform.localRotation, gameObject.transform.localScale) * convert;
+           // gameObject.transform.localScale = new Vector3(1.0f, -1.0f, -1.0f);
+
             processGameObject(gameObject);
 
-            GraphBuilder.unity2vsg_EndExport(saveFileName, useBinary ? 1 : 0, launchViewer ? 1 : 0);
+            //GraphBuilder.unity2vsg_EndNode(); // step out of convert coord system node
+
+            GraphBuilder.unity2vsg_EndExport(saveFileName);
         }
     }
 

@@ -3,7 +3,47 @@ guid: 196cdbdd1e3a57c478a4b4bf2755a4e9
 ModelImporter:
   serializedVersion: 25
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Material-01
+    second: {fileID: 2100000, guid: eb090f851af779946a0d15bc376ab73e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Material-02
+    second: {fileID: 2100000, guid: 973e0c36b47f0954c96042fd175645c2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Material-03
+    second: {fileID: 2100000, guid: 9a99db9f30bef2b45ac4f304a52fdbee, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Material-04
+    second: {fileID: 2100000, guid: bd8782ae573d9c740b534d5b288b1f52, type: 2}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: checker-black+blue-2x2
+    second: {fileID: 2800000, guid: 2d28a082f6e917c40b2fa704927a5c3e, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: checker-black+green-2x2
+    second: {fileID: 2800000, guid: 8fba01a34d9dc08408ff6ca966860574, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: checker-black+red-2x2
+    second: {fileID: 2800000, guid: b4b76bff13bba6443a4e676990294ffe, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: checker-black+white-2x2
+    second: {fileID: 2800000, guid: 7be2f42f35bc8864f95c38213eff4869, type: 3}
   materials:
     importMaterials: 1
     materialName: 0

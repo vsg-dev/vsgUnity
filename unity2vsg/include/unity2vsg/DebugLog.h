@@ -13,12 +13,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 </editor-fold> */
 
 #include <unity2vsg/Export.h>
+#include <string>
 
 namespace unity2vsg
 {
 
     typedef void (*StringArgFuncPtr)( const char * );
-    extern void DebugLog(const char*);
+    extern void DebugLog(const std::string&);
 }
 
 extern "C"

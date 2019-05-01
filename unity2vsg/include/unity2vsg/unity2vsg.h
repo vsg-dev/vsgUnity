@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 </editor-fold> */
 
 #include <unity2vsg/Export.h>
-#include <unity2vsg/DataTypes.h>
+#include <unity2vsg/NativeUtils.h>
 
 extern "C"
 {
@@ -21,13 +21,20 @@ extern "C"
 
 
     UNITY2VSG_EXPORT void unity2vsg_BeginExport();
-    UNITY2VSG_EXPORT void unity2vsg_EndExport(const char* saveFileName, uint32_t useBinary, uint32_t launchViewer);
+    UNITY2VSG_EXPORT void unity2vsg_EndExport(const char* saveFileName);
 
     UNITY2VSG_EXPORT void unity2vsg_AddGroup();
     UNITY2VSG_EXPORT void unity2vsg_AddTransform(unity2vsg::TransformData transform);
     UNITY2VSG_EXPORT void unity2vsg_AddGeometry(unity2vsg::MeshData mesh);
+
+    UNITY2VSG_EXPORT void unity2vsg_AddStringValue(const char* name, const char* value);
+
     UNITY2VSG_EXPORT void unity2vsg_AddStateGroup();
     UNITY2VSG_EXPORT void unity2vsg_AddBindGraphicsPipeline(unity2vsg::PipelineData pipeline);
+    UNITY2VSG_EXPORT void unity2vsg_AddTexture(unity2vsg::TextureData texture);
+    UNITY2VSG_EXPORT void unity2vsg_BindDescriptors();
 
     UNITY2VSG_EXPORT void unity2vsg_EndNode();
+
+    UNITY2VSG_EXPORT void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg::CameraData  camdata);
 }

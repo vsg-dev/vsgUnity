@@ -32,14 +32,15 @@ void GraphicsPipelineBuilder::build(ref_ptr<Traits> traits)
 
     for (uint32_t i = 0; i < traits->descriptorLayouts.size(); i++)
     {
-        Traits::BindingSet bindingSet = traits->descriptorLayouts[i];
+        Traits::DescriptorBindingSet bindingSet = traits->descriptorLayouts[i];
+
         DescriptorSetLayoutBindings setLayoutBindings;
         for(VkShaderStageFlags stage : { VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT } )
         {
-            Traits::BindingTypes descriptorTypes = bindingSet[stage];
-            for(uint32_t b = 0; b < descriptorTypes.size(); b++)
+            Traits::DescriptorBindngs stageBindings = bindingSet[stage];
+            for(uint32_t b = 0; b < stageBindings.size(); b++)
             {
-                setLayoutBindings.push_back({ bindingIndex, descriptorTypes[b], 1, stage, nullptr });
+                setLayoutBindings.push_back({ stageBindings[b].first, stageBindings[b].second, 1, stage, nullptr });
                 bindingIndex++;
             }
         }
@@ -54,21 +55,21 @@ void GraphicsPipelineBuilder::build(ref_ptr<Traits> traits)
 
     for (auto& rate : { VK_VERTEX_INPUT_RATE_VERTEX, VK_VERTEX_INPUT_RATE_INSTANCE })
     {
-        Traits::BindingFormats rateFormats = traits->vertexAttributes[rate];
+        Traits::InputAttributeDescriptions rateDescriptions = traits->vertexAttributeDescriptions[rate];
 
-        for (uint32_t i = 0; i < rateFormats.size(); i++)
+        for (uint32_t i = 0; i < rateDescriptions.size(); i++)
         {
-            Traits::BindingFormat& format = rateFormats[i];
-            // sum the size of this object
-            uint32_t totalsize = static_cast<uint32_t>(sizeOf(format));
+            Traits::StructInputAttributeDescription& structDescription = rateDescriptions[i];
+            // sum the size of this struct
+            uint32_t totalsize = static_cast<uint32_t>(sizeOf(structDescription));
 
             vertexBindingsDescriptions.push_back(VkVertexInputBindingDescription{ bindingIndex, totalsize, rate });
 
             uint32_t offset = 0;
-            for (uint32_t l = 0; l < format.size(); l++)
+            for (uint32_t l = 0; l < structDescription.size(); l++)
             {
-                vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{ locationIndex, bindingIndex, format[l], offset });
-                offset += static_cast<uint32_t>(sizeOf(format[l]));
+                vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{ structDescription[l].first, bindingIndex, structDescription[l].second, offset });
+                offset += static_cast<uint32_t>(sizeOf(structDescription[l].second));
                 locationIndex++;
             }
 
@@ -123,12 +124,12 @@ size_t GraphicsPipelineBuilder::sizeOf(VkFormat format)
     }
     return 0;
 }
-size_t GraphicsPipelineBuilder::sizeOf(const std::vector<VkFormat>& formats)
+size_t GraphicsPipelineBuilder::sizeOf(const Traits::StructInputAttributeDescription& structDescription)
 {
     size_t size = 0;
-    for (auto& format : formats)
+    for (const auto& vid : structDescription)
     {
-        size += sizeOf(format);
+        size += sizeOf(vid.second);
     }
     return size;
 }
