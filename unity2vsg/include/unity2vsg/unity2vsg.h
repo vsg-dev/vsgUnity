@@ -22,16 +22,27 @@ extern "C"
     UNITY2VSG_EXPORT void unity2vsg_BeginExport();
     UNITY2VSG_EXPORT void unity2vsg_EndExport(const char* saveFileName);
 
-    UNITY2VSG_EXPORT void unity2vsg_AddGroup();
-    UNITY2VSG_EXPORT void unity2vsg_AddTransform(unity2vsg::TransformData transform);
-    UNITY2VSG_EXPORT void unity2vsg_AddGeometry(unity2vsg::MeshData mesh);
+    // add nodes
+    UNITY2VSG_EXPORT void unity2vsg_AddGroupNode();
+    UNITY2VSG_EXPORT void unity2vsg_AddTransformNode(unity2vsg::TransformData transform);
+    UNITY2VSG_EXPORT void unity2vsg_AddStateGroupNode();
+    UNITY2VSG_EXPORT void unity2vsg_AddCommandsNode();
+    UNITY2VSG_EXPORT void unity2vsg_AddVertexIndexDrawNode(unity2vsg::MeshData mesh);
+    UNITY2VSG_EXPORT void unity2vsg_AddGeometryNode(unity2vsg::MeshData mesh);
 
+    // add meta data to nodes
     UNITY2VSG_EXPORT void unity2vsg_AddStringValue(const char* name, const char* value);
 
-    UNITY2VSG_EXPORT void unity2vsg_AddStateGroup();
-    UNITY2VSG_EXPORT void unity2vsg_AddBindGraphicsPipeline(unity2vsg::PipelineData pipeline);
-    UNITY2VSG_EXPORT void unity2vsg_AddTexture(unity2vsg::TextureData texture);
-    UNITY2VSG_EXPORT void unity2vsg_BindDescriptors();
+    // add command to commands node if one is current head or last stategroup node
+    UNITY2VSG_EXPORT void unity2vsg_AddBindGraphicsPipelineCommand(unity2vsg::PipelineData pipeline, uint32_t addToStateGroup);
+    UNITY2VSG_EXPORT void unity2vsg_AddBindIndexBufferCommand(unity2vsg::IndexBufferData data);
+    UNITY2VSG_EXPORT void unity2vsg_AddBindVertexBuffersCommand(unity2vsg::VertexBuffersData data);
+    UNITY2VSG_EXPORT void unity2vsg_AddDrawIndexedCommand(unity2vsg::DrawIndexedData data);
+    // create and add a binddescriptorset command using the current list of descriptors
+    UNITY2VSG_EXPORT void unity2vsg_CreateBindDescriptorSetCommand(uint32_t addToStateGroup);
+
+    // add descriptor to current descriptors list that will be bound by BindDescriptors call
+    UNITY2VSG_EXPORT void unity2vsg_AddTextureDescriptor(unity2vsg::TextureData texture);
 
     UNITY2VSG_EXPORT void unity2vsg_EndNode();
 

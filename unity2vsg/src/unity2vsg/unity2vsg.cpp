@@ -233,6 +233,10 @@ public:
         pushNodeToStack(_root);
     }
 
+    //
+    // Nodes
+    //
+
     void addGroup()
     {
         auto group = vsg::Group::create();
@@ -259,18 +263,87 @@ public:
         pushNodeToStack(transform);
     }
 
-    void addGeometry(const MeshData& data)
+    void addStateGroup()
     {
-        vsg::ref_ptr<vsg::Geometry> geometry;
+        auto stategroup = vsg::StateGroup::create();
+        if (!addChildToHead(stategroup))
+        {
+            DebugLog("GraphBuilder Error: Current head is not a group");
+        }
+        pushNodeToStack(stategroup);
+        _activeStateGroup = stategroup;
+    }
+
+    void addCommands()
+    {
+        auto commands = vsg::Commands::create();
+        if (!addChildToHead(commands))
+        {
+            DebugLog("GraphBuilder Error: Current head is not a group");
+        }
+        pushNodeToStack(commands);
+    }
+
+    void addVertexIndexDraw(const MeshData& data)
+    {
+        vsg::ref_ptr<vsg::Node> geomNode;
 
         // has a geometry with this ID already been created
-        if (_geometryCache.find(data.id) != _geometryCache.end())
+        std::string idstr = std::string(data.id);
+
+        if (_geometryCache.find(idstr) != _geometryCache.end())
         {
-            geometry = _geometryCache[data.id];
+            geomNode = _geometryCache[idstr];
         }
         else
         {
-            geometry = vsg::Geometry::create();
+            auto geometry = vsg::VertexIndexDraw::create();
+
+            // vertex inputs
+            auto inputarrays = vsg::DataList{createVsgArray<vsg::vec3>(data.verticies.ptr, data.verticies.length)}; // always have verticies
+
+            if (data.normals.length > 0) inputarrays.push_back(createVsgArray<vsg::vec3>(data.normals.ptr, data.normals.length));
+            if (data.uv0.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv0.ptr, data.uv0.length));
+
+            geometry->_arrays = inputarrays;
+
+            // for now convert the int32 array indicies to uint16
+            vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
+            for (uint32_t i = 0; i < data.triangles.length; i++)
+            {
+                indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
+            }
+
+            geometry->_indices = indiciesushort; //createVsgArray<uint16_t>(reinterpret_cast<uint16_t*>(mesh.triangles.ptr), mesh.triangles.length);
+            geometry->indexCount = static_cast<uint32_t>(indiciesushort->valueCount());
+            geometry->instanceCount = 1;
+
+            _geometryCache[idstr] = geometry;
+            geomNode = geometry;
+        }
+
+        if (!addChildToHead(geomNode))
+        {
+            DebugLog("GraphBuilder Error: Current head is not a group");
+        }
+
+        pushNodeToStack(geomNode);
+    }
+
+    void addGeometry(const MeshData& data)
+    {
+        vsg::ref_ptr<vsg::Node> geomNode;
+
+        // has a geometry with this ID already been created
+        std::string idstr = std::string(data.id);
+
+        if (_geometryCache.find(idstr) != _geometryCache.end())
+        {
+            geomNode = _geometryCache[idstr];
+        }
+        else
+        {
+            auto geometry = vsg::Geometry::create();
 
             // vertex inputs
             auto inputarrays = vsg::DataList{createVsgArray<vsg::vec3>(data.verticies.ptr, data.verticies.length)}; // always have verticies
@@ -290,34 +363,32 @@ public:
             geometry->_indices = indiciesushort; //createVsgArray<uint16_t>(reinterpret_cast<uint16_t*>(mesh.triangles.ptr), mesh.triangles.length);
             geometry->_commands = {vsg::DrawIndexed::create(static_cast<uint32_t>(indiciesushort->valueCount()), 1, 0, 0, 0)};
 
-            _geometryCache[data.id] = geometry;
+            _geometryCache[idstr] = geometry;
+            geomNode = geometry;
         }
 
-        if (!addChildToHead(geometry))
+        if (!addChildToHead(geomNode))
         {
             DebugLog("GraphBuilder Error: Current head is not a group");
         }
 
-        pushNodeToStack(geometry);
+        pushNodeToStack(geomNode);
     }
+
+    //
+    // Meta data
+    //
 
     void addStringValue(std::string name, std::string value)
     {
         getHead()->setValue(name, value.c_str());
     }
 
-    void addStateGroup()
-    {
-        auto stategroup = vsg::StateGroup::create();
-        if (!addChildToHead(stategroup))
-        {
-            DebugLog("GraphBuilder Error: Current head is not a group");
-        }
-        pushNodeToStack(stategroup);
-        _activeStateGroup = stategroup;
-    }
+    //
+    // Commands
+    //
 
-    void addBindGraphicsPipeline(const PipelineData& data)
+    void addBindGraphicsPipelineCommand(const PipelineData& data, bool addToActiveStateGroup)
     {
         vsg::ref_ptr<vsg::GraphicsPipelineBuilder> pipelinebuilder = vsg::GraphicsPipelineBuilder::create();
         vsg::ref_ptr<vsg::GraphicsPipelineBuilder::Traits> traits = vsg::GraphicsPipelineBuilder::Traits::create();
@@ -407,22 +478,138 @@ public:
 
         auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(pipelinebuilder->getGraphicsPipeline());
 
-        if (!addStateCommandToHead(bindGraphicsPipeline))
+        if (addToActiveStateGroup)
         {
-            DebugLog("GraphBuilder Error: Current head is StateGroup");
+            if (!addStateCommandToActiveStateGroup(bindGraphicsPipeline))
+            {
+                DebugLog("GraphBuilder Error: No active StateGroup");
+            }
+        }
+        else
+        {
+            if (!addCommandToHead(bindGraphicsPipeline))
+            {
+                DebugLog("GraphBuilder Error: Current head is not a Commands node");
+            }
         }
 
         _activeGraphicsPipeline = pipelinebuilder->getGraphicsPipeline();
     }
 
+    void addBindIndexBufferCommand(unity2vsg::IndexBufferData data)
+    {
+        std::string idstr = std::string(data.id);
+
+        vsg::ref_ptr<vsg::Command> cmd;
+
+        if (_bindIndexBufferCache.find(idstr) != _bindIndexBufferCache.end())
+        {
+            cmd = _bindIndexBufferCache[idstr];
+        }
+        else
+        {
+            // for now convert the int32 array indicies to uint16
+            vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
+            for (uint32_t i = 0; i < data.triangles.length; i++)
+            {
+                indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
+            }
+            cmd = vsg::BindIndexBuffer::create(indiciesushort);
+            _bindIndexBufferCache[idstr] = cmd;
+        }
+        addCommandToHead(cmd);
+    }
+
+    void addBindVertexBuffersCommand(unity2vsg::VertexBuffersData data)
+    {
+        std::string idstr = std::string(data.id);
+
+        vsg::ref_ptr<vsg::Command> cmd;
+
+        if (_bindVertexBuffersCache.find(idstr) != _bindVertexBuffersCache.end())
+        {
+            cmd = _bindVertexBuffersCache[idstr];
+        }
+        else
+        {
+            auto inputarrays = vsg::DataList{createVsgArray<vsg::vec3>(data.verticies.ptr, data.verticies.length)}; // always have verticies
+
+            if (data.normals.length > 0) inputarrays.push_back(createVsgArray<vsg::vec3>(data.normals.ptr, data.normals.length));
+            if (data.uv0.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv0.ptr, data.uv0.length));
+
+            cmd = vsg::BindVertexBuffers::create(0, inputarrays);
+            _bindVertexBuffersCache[idstr] = cmd;
+        }
+
+        addCommandToHead(cmd);
+    }
+
+    void addDrawIndexedCommand(unity2vsg::DrawIndexedData data)
+    {
+        std::string idstr = std::string(data.id);
+
+        vsg::ref_ptr<vsg::Command> cmd;
+
+        if (_drawIndexedCache.find(idstr) != _drawIndexedCache.end())
+        {
+            cmd = _drawIndexedCache[idstr];
+        }
+        else
+        {
+            cmd = vsg::DrawIndexed::create(data.indexCount, data.instanceCount, data.firstIndex, data.vertexOffset, data.firstInstance);
+            _drawIndexedCache[idstr] = cmd;
+        }
+        addCommandToHead(cmd);
+    }
+
+    void createBindDescriptorSetCommand(uint32_t addToStateGroup)
+    {
+        if (!_activeGraphicsPipeline.valid() || !_activeStateGroup.valid())
+        {
+            DebugLog("GraphBuilder Error: Can't bind descriptors until a stategroup and graphicspipeline has been added.");
+            return;
+        }
+        if (_descriptors.empty())
+        {
+            DebugLog("GraphBuilder Error: No descriptors to bind.");
+            return;
+        }
+
+        auto descriptorSet = vsg::DescriptorSet::create(_activeGraphicsPipeline->getPipelineLayout()->getDescriptorSetLayouts(), _descriptors);
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, _activeGraphicsPipeline->getPipelineLayout(), 0, descriptorSet);
+
+        if (addToStateGroup)
+        {
+            if (!addStateCommandToActiveStateGroup(bindDescriptorSet))
+            {
+                DebugLog("GraphBuilder Error: No Active StateGroup");
+            }
+        }
+        else
+        {
+            if (!addCommandToHead(bindDescriptorSet))
+            {
+                DebugLog("GraphBuilder Error: Current head is not a Commands node");
+            }        
+        }
+
+        _descriptors.clear();
+    }
+
+    //
+    // Descriptors
+    //
+
     void addTexture(const TextureData& data)
     {
         vsg::ref_ptr<vsg::Texture> texture;
 
+        std::string idstr = std::string(data.id);
+
         // has a geometry with this ID already been created
-        if (_textureCache.find(data.id) != _textureCache.end())
+        if (_textureCache.find(idstr) != _textureCache.end())
         {
-            texture = _textureCache[data.id];
+            texture = _textureCache[idstr];
         }
         else
         {
@@ -481,7 +668,7 @@ public:
             texture->_textureData = texdata;
             texture->_samplerInfo = vkSamplerCreateInfoForTextureData(data);
 
-            _textureCache[data.id] = texture;
+            _textureCache[idstr] = texture;
         }
 
         texture->_dstBinding = data.channel;
@@ -489,23 +676,9 @@ public:
         _descriptors.push_back(texture);
     }
 
-    void bindDescriptors()
-    {
-        if (!_activeGraphicsPipeline.valid() || !_activeStateGroup.valid() || _descriptors.empty())
-        {
-            DebugLog("GraphBuilder Error: Can't bind descriptors until a stategroup and graphicspipeline has been added.");
-            return;
-        }
-        auto descriptorSet = vsg::DescriptorSet::create(_activeGraphicsPipeline->getPipelineLayout()->getDescriptorSetLayouts(), _descriptors);
-        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, _activeGraphicsPipeline->getPipelineLayout(), 0, descriptorSet);
-
-        if (!addStateCommandToActiveStateGroup(bindDescriptorSet))
-        {
-            DebugLog("GraphBuilder Error: No Active StateGroup");
-        }
-
-        _descriptors.clear();
-    }
+    //
+    // Helpers
+    //
 
     vsg::Node* getHead()
     {
@@ -525,6 +698,12 @@ public:
         return dynamic_cast<vsg::StateGroup*>(_nodeStack[_nodeStack.size() - 1].get());
     }
 
+    vsg::Commands* getHeadAsCommandsNode()
+    {
+        if (_nodeStack.size() == 0) return nullptr;
+        return dynamic_cast<vsg::Commands*>(_nodeStack[_nodeStack.size() - 1].get());
+    }
+
     bool addChildToHead(vsg::ref_ptr<vsg::Node> node)
     {
         vsg::Group* headGroup = getHeadAsGroup();
@@ -536,12 +715,12 @@ public:
         return false;
     }
 
-    bool addStateCommandToHead(vsg::ref_ptr<vsg::StateCommand> command)
+    bool addCommandToHead(vsg::ref_ptr<vsg::Command> command)
     {
-        vsg::StateGroup* headStateGroup = getHeadAsStateGroup();
-        if (headStateGroup != nullptr)
+        vsg::Commands* headCommands = getHeadAsCommandsNode();
+        if (headCommands != nullptr)
         {
-            headStateGroup->add(command);
+            headCommands->addChild(command);
             return true;
         }
         return false;
@@ -610,14 +789,18 @@ public:
     // the current set of descriptors being built
     vsg::Descriptors _descriptors;
 
-    // map of exisitng Geometryies to the MeshData ID they represent
-    std::map<uint32_t, vsg::ref_ptr<vsg::Geometry>> _geometryCache;
+    // map of exisitng Geometryies/VertexIndexedDraws to the MeshData ID they represent
+    std::map<std::string, vsg::ref_ptr<vsg::Node>> _geometryCache;
+
+    std::map<std::string, vsg::ref_ptr<vsg::Command>> _bindVertexBuffersCache;
+    std::map<std::string, vsg::ref_ptr<vsg::Command>> _bindIndexBufferCache;
+    std::map<std::string, vsg::ref_ptr<vsg::Command>> _drawIndexedCache;
 
     // map of shader modules to the masks used to create them
     std::map<uint32_t, vsg::ShaderModules> _shaderModulesCache;
 
     // map of textures to the TextureData ID they represent
-    std::map<uint32_t, vsg::ref_ptr<vsg::Texture>> _textureCache;
+    std::map<std::string, vsg::ref_ptr<vsg::Texture>> _textureCache;
 
     std::string _saveFileName;
 };
@@ -642,44 +825,81 @@ void unity2vsg_EndExport(const char* saveFileName)
     _builder = nullptr;
 }
 
-void unity2vsg_AddGroup()
+void unity2vsg_AddGroupNode()
 {
     _builder->addGroup();
 }
 
-void unity2vsg_AddTransform(unity2vsg::TransformData transform)
+void unity2vsg_AddTransformNode(unity2vsg::TransformData transform)
 {
     _builder->addMatrixTrasform(transform);
 }
 
-void unity2vsg_AddGeometry(unity2vsg::MeshData mesh)
+void unity2vsg_AddStateGroupNode()
+{
+    _builder->addStateGroup();
+}
+
+void unity2vsg_AddCommandsNode()
+{
+    _builder->addCommands();
+}
+
+void unity2vsg_AddVertexIndexDrawNode(unity2vsg::MeshData mesh)
+{
+    _builder->addVertexIndexDraw(mesh);
+}
+
+void unity2vsg_AddGeometryNode(unity2vsg::MeshData mesh)
 {
     _builder->addGeometry(mesh);
 }
+
+//
+// Meta data
+//
 
 void unity2vsg_AddStringValue(const char* name, const char* value)
 {
     _builder->addStringValue(std::string(name), std::string(value));
 }
 
-void unity2vsg_AddStateGroup()
+//
+// Commands
+//
+
+void unity2vsg_AddBindGraphicsPipelineCommand(unity2vsg::PipelineData pipeline, uint32_t addToStateGroup)
 {
-    _builder->addStateGroup();
+    _builder->addBindGraphicsPipelineCommand(pipeline, addToStateGroup == 1);
 }
 
-void unity2vsg_AddBindGraphicsPipeline(unity2vsg::PipelineData pipeline)
+void unity2vsg_AddBindIndexBufferCommand(unity2vsg::IndexBufferData data)
 {
-    _builder->addBindGraphicsPipeline(pipeline);
+    _builder->addBindIndexBufferCommand(data);
 }
 
-void unity2vsg_AddTexture(unity2vsg::TextureData texture)
+void unity2vsg_AddBindVertexBuffersCommand(unity2vsg::VertexBuffersData data)
+{
+    _builder->addBindVertexBuffersCommand(data);
+}
+
+void unity2vsg_AddDrawIndexedCommand(unity2vsg::DrawIndexedData data)
+{
+    _builder->addDrawIndexedCommand(data);
+}
+
+void unity2vsg_CreateBindDescriptorSetCommand(uint32_t addToStateGroup)
+{
+    _builder->createBindDescriptorSetCommand(addToStateGroup == 1);
+}
+
+//
+// Desccriptos
+//
+
+void unity2vsg_AddTextureDescriptor(unity2vsg::TextureData texture)
 {
     _builder->addTexture(texture);
-}
-
-void unity2vsg_BindDescriptors()
-{
-    _builder->bindDescriptors();
 }
 
 void unity2vsg_EndNode()

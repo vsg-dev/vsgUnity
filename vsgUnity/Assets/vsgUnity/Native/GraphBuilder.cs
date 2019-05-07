@@ -11,32 +11,65 @@ namespace vsgUnity.Native
         private static extern void
         unity2vsg_BeginExport();
 
+        //
+        // Nodes
+        //
+
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_EndExport")]
         private static extern void unity2vsg_EndExport([ MarshalAs(UnmanagedType.LPStr) ] string saveFileName);
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddGroup")]
-        private static extern void unity2vsg_AddGroup();
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddGroupNode")]
+        private static extern void unity2vsg_AddGroupNode();
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTransform")]
-        private static extern void unity2vsg_AddTransform(TransformData transform);
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTransformNode")]
+        private static extern void unity2vsg_AddTransformNode(TransformData transform);
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddGeometry")]
-        private static extern void unity2vsg_AddGeometry(MeshData mesh);
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddStateGroupNode")]
+        private static extern void unity2vsg_AddStateGroupNode();
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddCommandsNode")]
+        private static extern void unity2vsg_AddCommandsNode();
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddVertexIndexDrawNode")]
+        private static extern void unity2vsg_AddVertexIndexDrawNode(MeshData mesh);
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddGeometryNode")]
+        private static extern void unity2vsg_AddGeometryNode(MeshData mesh);
+
+        //
+        // Meta Data
+        //
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddStringValue")]
         private static extern void unity2vsg_AddStringValue([ MarshalAs(UnmanagedType.LPStr) ] string name, [ MarshalAs(UnmanagedType.LPStr) ] string value);
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddStateGroup")]
-        private static extern void unity2vsg_AddStateGroup();
+        //
+        // Commands
+        //
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddBindGraphicsPipeline")]
-        private static extern void unity2vsg_AddBindGraphicsPipeline(PipelineData pipeline);
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddBindGraphicsPipelineCommand")]
+        private static extern void unity2vsg_AddBindGraphicsPipelineCommand(PipelineData pipeline, int addToStateGroup);
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTexture")]
-        private static extern void unity2vsg_AddTexture(TextureData texture);
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddBindIndexBufferCommand")]
+        private static extern void unity2vsg_AddBindIndexBufferCommand(IndexBufferData data);
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_BindDescriptors")]
-        private static extern void unity2vsg_BindDescriptors();
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddBindVertexBuffersCommand")]
+        private static extern void unity2vsg_AddBindVertexBuffersCommand(VertexBuffersData data);
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDrawIndexedCommand")]
+        private static extern void unity2vsg_AddDrawIndexedCommand(DrawIndexedData data);
+
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_CreateBindDescriptorSetCommand")]
+        private static extern void unity2vsg_CreateBindDescriptorSetCommand(int addToStateGroup);
+
+        //
+        // Descriptors
+        //
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTextureDescriptor")]
+        private static extern void unity2vsg_AddTextureDescriptor(TextureData texture);
+
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_EndNode")]
         private static extern void unity2vsg_EndNode();
@@ -69,8 +102,9 @@ namespace vsgUnity.Native
             GraphBuilder.unity2vsg_AddTransform(convertData);
             */
 
-            Dictionary<int, MeshData>meshCache = new Dictionary<int, MeshData>();
-            Dictionary<int, TextureData>textureCache = new Dictionary<int, TextureData>();
+            Dictionary<string, MeshData> meshCache = new Dictionary<string, MeshData>();
+            Dictionary<string, TextureData> textureCache = new Dictionary<string, TextureData>();
+            Dictionary<string, MaterialData> materialCache = new Dictionary<string, MaterialData>();
 
             System.Action<GameObject>processGameObject = null;
             processGameObject = (GameObject go) =>
@@ -97,7 +131,7 @@ namespace vsgUnity.Native
                     transformdata.matrix.length = transformdata.matrix.data.Length;
 
                     // add as a transform
-                    GraphBuilder.unity2vsg_AddTransform(transformdata);
+                    GraphBuilder.unity2vsg_AddTransformNode(transformdata);
                     nodeAdded = true;
                 }
 
@@ -105,112 +139,116 @@ namespace vsgUnity.Native
                 if (!nodeAdded && gotrans.childCount > 0)
                 {
                     //add as a group
-                    GraphBuilder.unity2vsg_AddGroup();
+                    GraphBuilder.unity2vsg_AddGroupNode();
                     nodeAdded = true;
                 }
 
                 // does it have a mesh
                 MeshFilter meshFilter = go.GetComponent<MeshFilter>();
                 MeshRenderer meshRenderer = go.GetComponent<MeshRenderer>();
+
                 if (meshFilter && meshRenderer)
                 {
                     Mesh mesh = meshFilter.sharedMesh;
-                    Material material = meshRenderer.sharedMaterial;
-
-                    // gather textures
-                    Dictionary<string, Texture>allTextures = NativeUtils.GetTexturesForMaterial(material);
-                    List<Texture>textures = new List<Texture>();
-
-                    if (allTextures.Count > 0)
-                    {
-                        Texture maintex = allTextures.ContainsKey("_MainTex") ? allTextures["_MainTex"] : null;
-
-                        if (maintex)
-                        {
-                            NativeUtils.TextureSupportIssues issues = NativeUtils.GetSupportIssuesForTexture(maintex);
-                            if (issues != NativeUtils.TextureSupportIssues.None)
-                            {
-                                Debug.LogWarning(NativeUtils.GetTextureSupportReport(issues, maintex));
-                            }
-                            else
-                            {
-                                textures.Add(maintex);
-                            }
-                        }
-                    }
+                    Material[] materials = meshRenderer.sharedMaterials;
 
                     if (mesh != null && mesh.isReadable)
                     {
-                        // create mesh data, if the mesh has already been created we only need to pass the ID to the addGeometry function
-                        MeshData meshdata = new MeshData();
-                        meshdata.id = mesh.GetInstanceID();
+                        MeshData fullMeshData = NativeUtils.CreateMeshData(mesh, -1);
 
-                        if (!meshCache.ContainsKey(meshdata.id))
+                        int subMeshCount = mesh.subMeshCount;
+
+                        // shader instance id, Material Data, sub mesh indicies
+                        Dictionary<int, Dictionary<MaterialData, List<int>>> meshMaterials = new Dictionary<int, Dictionary<MaterialData, List<int>>>();
+                        for (int matindex = 0; matindex < materials.Length && matindex < subMeshCount; matindex++)
                         {
-                            meshdata.verticies = new Vec3Array();
-                            meshdata.verticies.data = mesh.vertices;
-                            meshdata.verticies.length = mesh.vertexCount;
+                            Material mat = materials[matindex];
+                            if (mat == null) continue;
 
-                            meshdata.triangles = new IntArray();
-                            meshdata.triangles.data = mesh.triangles;
-                            meshdata.triangles.length = meshdata.triangles.data.Length;
+                            string matid = mat.GetInstanceID().ToString();
+                            MaterialData matdata;
 
-                            meshdata.normals = new Vec3Array();
-                            meshdata.normals.data = mesh.normals;
-                            meshdata.normals.length = meshdata.normals.data.Length;
+                            if (materialCache.ContainsKey(matid))
+                            {
+                                matdata = materialCache[matid];
+                            }
+                            else
+                            {
+                                matdata = NativeUtils.CreateMaterialData(mat, ref textureCache);
+                            }
 
-                            /*meshdata.tangents = new Vec3Array();
-                            meshdata.tangents.data = mesh.tangents;
-                            meshdata.tangents.length = meshdata.tangents.data.Length;*/
+                            if (!meshMaterials.ContainsKey(mat.shader.GetInstanceID())) meshMaterials.Add(mat.shader.GetInstanceID(), new Dictionary<MaterialData, List<int>>());
+                            if (!meshMaterials[mat.shader.GetInstanceID()].ContainsKey(matdata)) meshMaterials[mat.shader.GetInstanceID()].Add(matdata, new List<int>());
 
-                            /*meshdata.colors = new ColorArray();
-                            meshdata.colors.data = mesh.colors;
-                            meshdata.colors.length = meshdata.colors.data.Length;*/
-
-                            meshdata.uv0 = new Vec2Array();
-                            meshdata.uv0.data = mesh.uv;
-                            meshdata.uv0.length = meshdata.uv0.data.Length;
-
-                            meshCache.Add(meshdata.id, meshdata);
+                            meshMaterials[mat.shader.GetInstanceID()][matdata].Add(matindex);
                         }
 
-                        // for now before we add a mesh insert a stategroup and add a pipeline
-                        GraphBuilder.unity2vsg_AddStateGroup();
-
-                        PipelineData pipelineData = NativeUtils.CreatePipeLineData(meshCache[meshdata.id]);
-                        pipelineData.fragmentImageSamplerCount = textures.Count;
-
-                        GraphBuilder.unity2vsg_AddBindGraphicsPipeline(pipelineData);
-
-                        GraphBuilder.unity2vsg_AddGeometry(meshdata);
-                        GraphBuilder.unity2vsg_EndNode(); // step out of geometry
-
-                        // add textures
-                        if (textures.Count > 0)
+                        if (subMeshCount > 0)
                         {
-                            Texture maintex = textures[0];
-
-                            if (maintex)
+                            // create mesh data, if the mesh has already been created we only need to pass the ID to the addGeometry function
+                            foreach (int shaderkey in meshMaterials.Keys)
                             {
-                                TextureData texdata;
-                                if (textureCache.ContainsKey(maintex.GetInstanceID()))
-                                {
-                                    texdata = new TextureData();
-                                    texdata.id = maintex.GetInstanceID();
-                                }
-                                else
-                                {
-                                    texdata = NativeUtils.CreateTextureData(maintex);
-                                    textureCache.Add(maintex.GetInstanceID(), texdata);
-                                }
-                                texdata.channel = 0;
-                                GraphBuilder.unity2vsg_AddTexture(texdata);
+                                List<MaterialData> mds = new List<MaterialData>(meshMaterials[shaderkey].Keys);
 
-                                GraphBuilder.unity2vsg_BindDescriptors();
+                                if (mds.Count == 0) continue;
+
+                                // add stategroup and pipeline for shader
+                                GraphBuilder.unity2vsg_AddStateGroupNode();
+
+                                PipelineData pipelineData = NativeUtils.CreatePipeLineData(fullMeshData);    //WE NEED INFO ABOUT THE SHADER SO WE CAN BUILD A PIPLE LINE
+                                pipelineData.fragmentImageSamplerCount = mds[0].textures.Length;
+
+                                GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1);
+
+                                foreach (MaterialData md in mds)
+                                {
+                                    foreach (TextureData t in md.textures)
+                                    {
+                                        GraphBuilder.unity2vsg_AddTextureDescriptor(t);
+                                    }
+                                    if (md.textures.Length > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
+
+                                    foreach (int submeshIndex in meshMaterials[shaderkey][md])
+                                    {
+                                        MeshData meshdata = new MeshData();
+                                        meshdata.id = mesh.GetInstanceID().ToString() + "-" + submeshIndex.ToString();
+
+                                        if (!meshCache.ContainsKey(meshdata.id))
+                                        {
+                                            meshdata.verticies = new Vec3Array();
+                                            meshdata.verticies.data = mesh.vertices;
+                                            meshdata.verticies.length = mesh.vertexCount;
+
+                                            meshdata.triangles = new IntArray();
+                                            meshdata.triangles.data = mesh.GetTriangles(submeshIndex);
+                                            meshdata.triangles.length = meshdata.triangles.data.Length;
+
+                                            meshdata.normals = new Vec3Array();
+                                            meshdata.normals.data = mesh.normals;
+                                            meshdata.normals.length = meshdata.normals.data.Length;
+
+                                            /*meshdata.tangents = new Vec3Array();
+                                            meshdata.tangents.data = mesh.tangents;
+                                            meshdata.tangents.length = meshdata.tangents.data.Length;*/
+
+                                            /*meshdata.colors = new ColorArray();
+                                            meshdata.colors.data = mesh.colors;
+                                            meshdata.colors.length = meshdata.colors.data.Length;*/
+
+                                            meshdata.uv0 = new Vec2Array();
+                                            meshdata.uv0.data = mesh.uv;
+                                            meshdata.uv0.length = meshdata.uv0.data.Length;
+
+                                            meshCache.Add(meshdata.id, meshdata);
+                                        }
+
+                                        GraphBuilder.unity2vsg_AddGeometryNode(meshdata);
+                                        GraphBuilder.unity2vsg_EndNode(); // step out of geometry
+                                    }
+                                }
+                                GraphBuilder.unity2vsg_EndNode(); // step out of stategroup
                             }
                         }
-
-                        GraphBuilder.unity2vsg_EndNode(); // step out of stategroup
                     }
                     else
                     {

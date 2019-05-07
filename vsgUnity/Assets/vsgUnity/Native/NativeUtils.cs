@@ -77,7 +77,7 @@ namespace vsgUnity.Native
     [StructLayout(LayoutKind.Sequential)]
     public struct MeshData
     {
-        public int id;
+        public string id;
         public Vec3Array verticies;
         public IntArray triangles;
         public Vec3Array normals;
@@ -85,6 +85,33 @@ namespace vsgUnity.Native
         public ColorArray colors;
         public Vec2Array uv0;
         public Vec2Array uv1;
+    }
+
+    public struct IndexBufferData
+    {
+        public string id; // same as mesh id
+        public IntArray triangles;
+    }
+
+    public struct VertexBuffersData
+    {
+        public string id; // same as mesh id
+        public Vec3Array verticies;
+        public Vec3Array normals;
+        public Vec3Array tangents;
+        public Vec4Array colors;
+        public Vec2Array uv0;
+        public Vec2Array uv1;
+    }
+
+    public struct DrawIndexedData
+    {
+        string id; // mesh id + sub mesh index
+        public int indexCount;
+        public int firstIndex;
+        public int vertexOffset;
+        public int instanceCount;
+        public int firstInstance;
     }
 
     public enum TexFormat {
@@ -115,7 +142,7 @@ namespace vsgUnity.Native
     [StructLayout(LayoutKind.Sequential)]
     public struct TextureData
     {
-        public int id;
+        public string id;
         public int channel;
         public ByteArray pixels;
         public TexFormat format;
@@ -127,6 +154,14 @@ namespace vsgUnity.Native
         public MipmapFilterMode filterMode;
         public int mipmapCount;
         public float mipmapBias;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MaterialData
+    {
+        public string id;
+        public TextureData[] textures;
+        public Vector4 diffuseColor;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -205,12 +240,12 @@ namespace vsgUnity.Native
         {
             switch (format)
             {
-            case GraphicsFormat.R8_UNorm: return TexFormat.R8_UNORM;
-            case GraphicsFormat.R8G8_UNorm: return TexFormat.R8G8_UNORM;
-            case GraphicsFormat.R8G8B8A8_UNorm: return TexFormat.R8G8B8A8_UNORM;
-            //case GraphicsFormat.RGBA_DXT1_UNorm: return TexFormat.BC1_RGBA_UNORM;
-            //case TextureFormat.DXT5: return TexFormat.BC1_RGBA_UNORM;
-            default: break;
+                case GraphicsFormat.R8_UNorm: return TexFormat.R8_UNORM;
+                case GraphicsFormat.R8G8_UNorm: return TexFormat.R8G8_UNORM;
+                case GraphicsFormat.R8G8B8A8_UNorm: return TexFormat.R8G8B8A8_UNORM;
+                //case GraphicsFormat.RGBA_DXT1_UNorm: return TexFormat.BC1_RGBA_UNORM;
+                //case TextureFormat.DXT5: return TexFormat.BC1_RGBA_UNORM;
+                default: break;
             }
             return TexFormat.Unsupported;
         }
@@ -219,10 +254,10 @@ namespace vsgUnity.Native
         {
             switch (filter)
             {
-            case FilterMode.Point: return MipmapFilterMode.Point;
-            case FilterMode.Bilinear: return MipmapFilterMode.Bilinear;
-            case FilterMode.Trilinear: return MipmapFilterMode.Trilinear;
-            default: break;
+                case FilterMode.Point: return MipmapFilterMode.Point;
+                case FilterMode.Bilinear: return MipmapFilterMode.Bilinear;
+                case FilterMode.Trilinear: return MipmapFilterMode.Trilinear;
+                default: break;
             }
             return MipmapFilterMode.Unsupported;
         }
@@ -231,24 +266,25 @@ namespace vsgUnity.Native
         {
             switch (wrap)
             {
-            case TextureWrapMode.Repeat: return WrapMode.Repeat;
-            case TextureWrapMode.Clamp: return WrapMode.Clamp;
-            case TextureWrapMode.Mirror: return WrapMode.Mirror;
-            case TextureWrapMode.MirrorOnce: return WrapMode.MirrorOnce;
-            default: break;
+                case TextureWrapMode.Repeat: return WrapMode.Repeat;
+                case TextureWrapMode.Clamp: return WrapMode.Clamp;
+                case TextureWrapMode.Mirror: return WrapMode.Mirror;
+                case TextureWrapMode.MirrorOnce: return WrapMode.MirrorOnce;
+                default: break;
             }
             return WrapMode.Unsupported;
         }
 
-        public static TextureData CreateTextureData(Texture texture)
+        public static TextureData CreateTextureData(Texture texture, int channel)
         {
             TextureData texdata = new TextureData();
+            texdata.channel = channel;
 
             switch (texture.dimension)
             {
-            case TextureDimension.Tex2D: PopulateTextureData(texture as Texture2D, ref texdata); break;
-            case TextureDimension.Tex3D: PopulateTextureData(texture as Texture3D, ref texdata); break;
-            default: break;
+                case TextureDimension.Tex2D: PopulateTextureData(texture as Texture2D, ref texdata); break;
+                case TextureDimension.Tex3D: PopulateTextureData(texture as Texture3D, ref texdata); break;
+                default: break;
             }
 
             return texdata;
@@ -277,7 +313,7 @@ namespace vsgUnity.Native
         //
         public static bool PopulateTextureData(Texture texture, ref TextureData texdata)
         {
-            texdata.id = texture.GetInstanceID();
+            texdata.id = texture.GetInstanceID().ToString();
             texdata.format = GetTextureFormat(texture.graphicsFormat);
             texdata.width = texture.width;
             texdata.height = texture.height;
@@ -311,9 +347,9 @@ namespace vsgUnity.Native
             return camdata;
         }
 
-        public static Dictionary<string, Texture>GetTexturesForMaterial(Material mat)
+        public static Dictionary<string, Texture> GetTexturesForMaterial(Material mat)
         {
-            Dictionary<string, Texture>textures = new Dictionary<string, Texture>();
+            Dictionary<string, Texture> textures = new Dictionary<string, Texture>();
 
             if (mat == null) return textures;
 
@@ -330,9 +366,9 @@ namespace vsgUnity.Native
             return textures;
         }
 
-        public static Dictionary<string, Texture>GetValidTexturesForMaterial(Material mat)
+        public static Dictionary<string, Texture> GetValidTexturesForMaterial(Material mat)
         {
-            Dictionary<string, Texture>textures = new Dictionary<string, Texture>();
+            Dictionary<string, Texture> textures = new Dictionary<string, Texture>();
 
             if (mat == null) return textures;
 
@@ -347,6 +383,100 @@ namespace vsgUnity.Native
                 }
             }
             return textures;
+        }
+
+        public static MeshData CreateMeshData(Mesh mesh, int subMeshIndex = -1)
+        {
+            MeshData meshdata = new MeshData();
+            meshdata.id = mesh.GetInstanceID().ToString() + (subMeshIndex >= 0 ? subMeshIndex.ToString() : "");
+
+            meshdata.verticies = new Vec3Array();
+            meshdata.verticies.data = mesh.vertices;
+            meshdata.verticies.length = mesh.vertexCount;
+
+            meshdata.triangles = new IntArray();
+            meshdata.triangles.data = subMeshIndex >= 0 ? mesh.GetTriangles(subMeshIndex) : mesh.triangles;
+            meshdata.triangles.length = meshdata.triangles.data.Length;
+
+            meshdata.normals = new Vec3Array();
+            meshdata.normals.data = mesh.normals;
+            meshdata.normals.length = meshdata.normals.data.Length;
+
+            /*meshdata.tangents = new Vec3Array();
+            meshdata.tangents.data = mesh.tangents;
+            meshdata.tangents.length = meshdata.tangents.data.Length;*/
+
+            /*meshdata.colors = new ColorArray();
+            meshdata.colors.data = mesh.colors;
+            meshdata.colors.length = meshdata.colors.data.Length;*/
+
+            meshdata.uv0 = new Vec2Array();
+            meshdata.uv0.data = mesh.uv;
+            meshdata.uv0.length = meshdata.uv0.data.Length;
+
+            return meshdata;
+        }
+
+        public static Dictionary<string, int> _StandardMaterialChannelLookupDictionary = new Dictionary<string, int>()
+        {
+            { "_MainTex", 0 }/*,
+            { "_BumpMap", 1 },
+            { "_Occlusion", 2 },
+            { "_SpecGlossMap", 3 }*/
+        };
+
+        public static MaterialData CreateMaterialData(Material material, ref Dictionary<string, TextureData> cache, Dictionary<string, int> channelLookup = null)
+        {
+            if(channelLookup == null)
+            {
+                channelLookup = _StandardMaterialChannelLookupDictionary;
+            }
+
+            MaterialData matdata = new MaterialData();
+            matdata.id = material.GetInstanceID().ToString();
+
+            Dictionary<string, Texture> texturemap = GetValidTexturesForMaterial(material);
+
+            List<TextureData> texdatas = new List<TextureData>();
+
+            foreach (string key in channelLookup.Keys)
+            {
+                if (texturemap.ContainsKey(key))
+                {
+                    Texture tex = texturemap[key];
+                    string texid = tex.GetInstanceID().ToString();
+
+                    TextureData texdata = new TextureData();
+
+                    // is it in the cache
+                    if (cache.ContainsKey(texid))
+                    {
+                        texdata.channel = channelLookup[key];
+                        texdata.id = texid;
+                    }
+                    else
+                    {
+                        TextureSupportIssues issues = GetSupportIssuesForTexture(tex);
+                        if (issues == TextureSupportIssues.None)
+                        {
+                            texdata = CreateTextureData(texturemap[key], channelLookup[key]);
+                        }
+                        else
+                        {
+                            texdata = CreateTextureData(Texture2D.whiteTexture, channelLookup[key]);
+
+                            Debug.LogWarning(NativeUtils.GetTextureSupportReport(issues, tex));
+                        }
+                        cache.Add(texid, texdata);
+                    }
+                    texdatas.Add(texdata);
+                }
+            }
+
+            matdata.textures = texdatas.ToArray();
+            matdata.diffuseColor = material.color;
+
+            return matdata;
         }
 
         private static byte[] Color32ArrayToByteArray(Color32[] colors)

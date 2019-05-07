@@ -84,7 +84,7 @@ namespace unity2vsg
 
     struct MeshData
     {
-        uint32_t id;
+        const char* id;
         Vec3Array verticies;
         IntArray triangles;
         Vec3Array normals;
@@ -92,6 +92,33 @@ namespace unity2vsg
         Vec4Array colors;
         Vec2Array uv0;
         Vec2Array uv1;
+    };
+
+    struct IndexBufferData
+    {
+        const char* id; // same as mesh id
+        IntArray triangles;
+    };
+
+    struct VertexBuffersData
+    {
+        const char* id; // same as mesh id
+        Vec3Array verticies;
+        Vec3Array normals;
+        Vec3Array tangents;
+        Vec4Array colors;
+        Vec2Array uv0;
+        Vec2Array uv1;
+    };
+
+    struct DrawIndexedData
+    {
+        const char* id; // mesh id + sub mesh index
+        uint32_t indexCount;
+        uint32_t firstIndex;
+        int32_t vertexOffset;
+        uint32_t instanceCount;
+        uint32_t firstInstance;
     };
 
     enum TexFormat
@@ -124,7 +151,7 @@ namespace unity2vsg
 
     struct TextureData
     {
-        uint32_t id;
+        const char* id;
         uint32_t channel;
         ByteArray pixels;
         TexFormat format;
