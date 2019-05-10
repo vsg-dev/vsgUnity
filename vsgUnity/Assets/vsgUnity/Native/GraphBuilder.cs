@@ -155,7 +155,7 @@ namespace vsgUnity.Native
                     Mesh mesh = meshFilter.sharedMesh;
                     Material[] materials = meshRenderer.sharedMaterials;
 
-                    if (mesh != null && mesh.isReadable)
+                    if (mesh != null && mesh.isReadable && mesh.vertexCount > 0 && mesh.GetIndexCount(0) > 0)
                     {
                         string meshidstr = mesh.GetInstanceID().ToString();
 
