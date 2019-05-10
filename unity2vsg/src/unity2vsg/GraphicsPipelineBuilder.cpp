@@ -87,7 +87,7 @@ void GraphicsPipelineBuilder::build(ref_ptr<Traits> traits)
         DepthStencilState::create()};
 
     PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 196} // projection view, and model matrices
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices
     };
 
     auto pipelineLayout = PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);

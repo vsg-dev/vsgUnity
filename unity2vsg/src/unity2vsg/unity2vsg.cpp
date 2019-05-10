@@ -171,6 +171,34 @@ public:
         }
     }
 
+    void apply(vsg::VertexIndexDraw& vid) override
+    {
+        for (auto& data : vid._arrays)
+        {
+            objects->addChild(data);
+        }
+        if (vid._indices)
+        {
+            objects->addChild(vid._indices);
+        }
+    }
+
+    void apply(vsg::BindVertexBuffers& bvb) override
+    {
+        for (auto& data : bvb.getArrays())
+        {
+            objects->addChild(data);
+        }
+    }
+
+    void apply(vsg::BindIndexBuffer& bib) override
+    {
+        if (bib.getIndices())
+        {
+            objects->addChild(vsg::ref_ptr<vsg::Data>(bib.getIndices()));
+        }
+    }
+
     void apply(vsg::StateGroup& stategroup) override
     {
         for (auto& command : stategroup.getStateCommands())
@@ -210,6 +238,34 @@ public:
         if (geometry._indices)
         {
             geometry._indices->dataRelease();
+        }
+    }
+
+    void apply(vsg::VertexIndexDraw& vid) override
+    {
+        for (auto& data : vid._arrays)
+        {
+            data->dataRelease();
+        }
+        if (vid._indices)
+        {
+            vid._indices->dataRelease();
+        }
+    }
+
+    void apply(vsg::BindVertexBuffers& bvb) override
+    {
+        for (auto& data : bvb.getArrays())
+        {
+            data->dataRelease();
+        }
+    }
+
+    void apply(vsg::BindIndexBuffer& bib) override
+    {
+        if (bib.getIndices())
+        {
+            bib.getIndices()->dataRelease();
         }
     }
 
@@ -562,11 +618,17 @@ public:
         addCommandToHead(cmd);
     }
 
-    void createBindDescriptorSetCommand(uint32_t addToStateGroup)
+    void createBindDescriptorSetCommand(bool addToStateGroup)
     {
-        if (!_activeGraphicsPipeline.valid() || !_activeStateGroup.valid())
+        if (addToStateGroup && !_activeStateGroup.valid())
         {
-            DebugLog("GraphBuilder Error: Can't bind descriptors until a stategroup and graphicspipeline has been added.");
+            DebugLog("GraphBuilder Error: Can't bind descriptors no StateGroup active.");
+            return;
+        }
+
+        if (!_activeGraphicsPipeline.valid())
+        {
+            DebugLog("GraphBuilder Error: Can't bind descriptors until a graphicspipeline has been added.");
             return;
         }
         if (_descriptors.empty())

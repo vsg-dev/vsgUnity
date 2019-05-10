@@ -106,7 +106,7 @@ namespace vsgUnity.Native
 
     public struct DrawIndexedData
     {
-        string id; // mesh id + sub mesh index
+        public string id; // mesh id + sub mesh index
         public int indexCount;
         public int firstIndex;
         public int vertexOffset;
@@ -347,6 +347,42 @@ namespace vsgUnity.Native
             return camdata;
         }
 
+        public static MeshData CreateMeshData(Mesh mesh, int subMeshIndex = -1)
+        {
+            MeshData meshdata = new MeshData();
+            meshdata.id = mesh.GetInstanceID().ToString() + (subMeshIndex >= 0 ? subMeshIndex.ToString() : "");
+
+            meshdata.verticies = new Vec3Array();
+            meshdata.verticies.data = mesh.vertices;
+            meshdata.verticies.length = mesh.vertexCount;
+
+            meshdata.triangles = new IntArray();
+            meshdata.triangles.data = subMeshIndex >= 0 ? mesh.GetTriangles(subMeshIndex) : mesh.triangles;
+            meshdata.triangles.length = meshdata.triangles.data.Length;
+
+            meshdata.normals = new Vec3Array();
+            meshdata.normals.data = mesh.normals;
+            meshdata.normals.length = meshdata.normals.data.Length;
+
+            /*meshdata.tangents = new Vec3Array();
+            meshdata.tangents.data = mesh.tangents;
+            meshdata.tangents.length = meshdata.tangents.data.Length;*/
+
+            /*meshdata.colors = new ColorArray();
+            meshdata.colors.data = mesh.colors;
+            meshdata.colors.length = meshdata.colors.data.Length;*/
+
+            meshdata.uv0 = new Vec2Array();
+            meshdata.uv0.data = mesh.uv;
+            meshdata.uv0.length = meshdata.uv0.data.Length;
+
+            return meshdata;
+        }
+
+        //
+        // Materials
+        //
+
         public static Dictionary<string, Texture> GetTexturesForMaterial(Material mat)
         {
             Dictionary<string, Texture> textures = new Dictionary<string, Texture>();
@@ -385,36 +421,23 @@ namespace vsgUnity.Native
             return textures;
         }
 
-        public static MeshData CreateMeshData(Mesh mesh, int subMeshIndex = -1)
+        public static string[] GetUsedTextureNames(Material mat)
         {
-            MeshData meshdata = new MeshData();
-            meshdata.id = mesh.GetInstanceID().ToString() + (subMeshIndex >= 0 ? subMeshIndex.ToString() : "");
+            List<string> names = new List<string>();
 
-            meshdata.verticies = new Vec3Array();
-            meshdata.verticies.data = mesh.vertices;
-            meshdata.verticies.length = mesh.vertexCount;
+            if (mat == null) return names.ToArray();
 
-            meshdata.triangles = new IntArray();
-            meshdata.triangles.data = subMeshIndex >= 0 ? mesh.GetTriangles(subMeshIndex) : mesh.triangles;
-            meshdata.triangles.length = meshdata.triangles.data.Length;
-
-            meshdata.normals = new Vec3Array();
-            meshdata.normals.data = mesh.normals;
-            meshdata.normals.length = meshdata.normals.data.Length;
-
-            /*meshdata.tangents = new Vec3Array();
-            meshdata.tangents.data = mesh.tangents;
-            meshdata.tangents.length = meshdata.tangents.data.Length;*/
-
-            /*meshdata.colors = new ColorArray();
-            meshdata.colors.data = mesh.colors;
-            meshdata.colors.length = meshdata.colors.data.Length;*/
-
-            meshdata.uv0 = new Vec2Array();
-            meshdata.uv0.data = mesh.uv;
-            meshdata.uv0.length = meshdata.uv0.data.Length;
-
-            return meshdata;
+            Shader shader = mat.shader;
+            for (int i = 0; i < ShaderUtil.GetPropertyCount(shader); i++)
+            {
+                if (ShaderUtil.GetPropertyType(shader, i) == ShaderUtil.ShaderPropertyType.TexEnv)
+                {
+                    string propname = ShaderUtil.GetPropertyName(shader, i);
+                    Texture texture = mat.GetTexture(propname);
+                    if (texture != null) names.Add(propname);
+                }
+            }
+            return names.ToArray();
         }
 
         public static Dictionary<string, int> _StandardMaterialChannelLookupDictionary = new Dictionary<string, int>()
@@ -477,6 +500,18 @@ namespace vsgUnity.Native
             matdata.diffuseColor = material.color;
 
             return matdata;
+        }
+
+        // shader id consists of "(shader instance id)-(shader key words)-(used texture names)
+
+        public static string GetShaderIDForMaterial(Material mat)
+        {
+            string idstr = mat.shader != null ? mat.shader.GetInstanceID().ToString() : "null";
+            idstr += "-" + (mat.shaderKeywords.Length > 0 ? String.Join("|", mat.shaderKeywords) : "none");
+            string[] texnames = GetUsedTextureNames(mat);
+            idstr += "-" + (texnames.Length > 0 ? String.Join("|", texnames) : "none");
+
+            return idstr;
         }
 
         private static byte[] Color32ArrayToByteArray(Color32[] colors)

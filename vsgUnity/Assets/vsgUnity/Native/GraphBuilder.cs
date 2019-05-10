@@ -103,6 +103,9 @@ namespace vsgUnity.Native
             */
 
             Dictionary<string, MeshData> meshCache = new Dictionary<string, MeshData>();
+            Dictionary<string, IndexBufferData> indexCache = new Dictionary<string, IndexBufferData>();
+            Dictionary<string, VertexBuffersData> vertexCache = new Dictionary<string, VertexBuffersData>();
+            Dictionary<string, DrawIndexedData> drawCache = new Dictionary<string, DrawIndexedData>();
             Dictionary<string, TextureData> textureCache = new Dictionary<string, TextureData>();
             Dictionary<string, MaterialData> materialCache = new Dictionary<string, MaterialData>();
 
@@ -154,18 +157,31 @@ namespace vsgUnity.Native
 
                     if (mesh != null && mesh.isReadable)
                     {
-                        MeshData fullMeshData = NativeUtils.CreateMeshData(mesh, -1);
+                        string meshidstr = mesh.GetInstanceID().ToString();
+
+                        MeshData fullMeshData;
+                        if (meshCache.ContainsKey(meshidstr))
+                        {
+                            fullMeshData = meshCache[meshidstr];
+                        }
+                        else
+                        {
+                            fullMeshData = NativeUtils.CreateMeshData(mesh, -1);
+                            meshCache.Add(meshidstr, fullMeshData);
+                        }
 
                         int subMeshCount = mesh.subMeshCount;
 
                         // shader instance id, Material Data, sub mesh indicies
-                        Dictionary<int, Dictionary<MaterialData, List<int>>> meshMaterials = new Dictionary<int, Dictionary<MaterialData, List<int>>>();
+                        Dictionary<string, Dictionary<MaterialData, List<int>>> meshMaterials = new Dictionary<string, Dictionary<MaterialData, List<int>>>();
                         for (int matindex = 0; matindex < materials.Length && matindex < subMeshCount; matindex++)
                         {
                             Material mat = materials[matindex];
                             if (mat == null) continue;
 
                             string matid = mat.GetInstanceID().ToString();
+                            string matshaderid = NativeUtils.GetShaderIDForMaterial(mat);
+
                             MaterialData matdata;
 
                             if (materialCache.ContainsKey(matid))
@@ -177,16 +193,16 @@ namespace vsgUnity.Native
                                 matdata = NativeUtils.CreateMaterialData(mat, ref textureCache);
                             }
 
-                            if (!meshMaterials.ContainsKey(mat.shader.GetInstanceID())) meshMaterials.Add(mat.shader.GetInstanceID(), new Dictionary<MaterialData, List<int>>());
-                            if (!meshMaterials[mat.shader.GetInstanceID()].ContainsKey(matdata)) meshMaterials[mat.shader.GetInstanceID()].Add(matdata, new List<int>());
+                            if (!meshMaterials.ContainsKey(matshaderid)) meshMaterials.Add(matshaderid, new Dictionary<MaterialData, List<int>>());
+                            if (!meshMaterials[matshaderid].ContainsKey(matdata)) meshMaterials[matshaderid].Add(matdata, new List<int>());
 
-                            meshMaterials[mat.shader.GetInstanceID()][matdata].Add(matindex);
+                            meshMaterials[matshaderid][matdata].Add(matindex);
                         }
 
                         if (subMeshCount > 0)
                         {
                             // create mesh data, if the mesh has already been created we only need to pass the ID to the addGeometry function
-                            foreach (int shaderkey in meshMaterials.Keys)
+                            foreach (string shaderkey in meshMaterials.Keys)
                             {
                                 List<MaterialData> mds = new List<MaterialData>(meshMaterials[shaderkey].Keys);
 
@@ -200,17 +216,63 @@ namespace vsgUnity.Native
 
                                 GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1);
 
+                                GraphBuilder.unity2vsg_AddCommandsNode();
+
+                                VertexBuffersData vertexBuffersData;
+                                if (vertexCache.ContainsKey(meshidstr))
+                                {
+                                    vertexBuffersData = vertexCache[meshidstr];
+                                }
+                                else
+                                {
+                                    vertexBuffersData = new VertexBuffersData();
+                                    vertexBuffersData.id = mesh.GetInstanceID().ToString();
+                                    vertexBuffersData.verticies = fullMeshData.verticies;
+                                    vertexBuffersData.normals = fullMeshData.normals;
+                                    vertexBuffersData.uv0 = fullMeshData.uv0;
+                                    vertexCache.Add(meshidstr, vertexBuffersData);
+                                }
+
+                                GraphBuilder.unity2vsg_AddBindVertexBuffersCommand(vertexBuffersData);
+
+
+                                IndexBufferData indexBufferData;
+
+                                if (indexCache.ContainsKey(meshidstr))
+                                {
+                                    indexBufferData = indexCache[meshidstr];
+                                }
+                                else
+                                {
+                                    indexBufferData = new IndexBufferData();
+                                    indexBufferData.id = mesh.GetInstanceID().ToString();
+                                    indexBufferData.triangles.data = mesh.triangles;
+                                    indexBufferData.triangles.length = indexBufferData.triangles.data.Length;
+                                    indexCache.Add(meshidstr, indexBufferData);
+                                }
+
+                                GraphBuilder.unity2vsg_AddBindIndexBufferCommand(indexBufferData);
+
                                 foreach (MaterialData md in mds)
                                 {
                                     foreach (TextureData t in md.textures)
                                     {
                                         GraphBuilder.unity2vsg_AddTextureDescriptor(t);
                                     }
-                                    if (md.textures.Length > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
+                                    if (md.textures.Length > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(0);
 
                                     foreach (int submeshIndex in meshMaterials[shaderkey][md])
                                     {
-                                        MeshData meshdata = new MeshData();
+                                        DrawIndexedData drawIndexedData = new DrawIndexedData();
+                                        drawIndexedData.id = mesh.GetInstanceID().ToString() + "-" + submeshIndex.ToString();
+                                        drawIndexedData.indexCount = (int)mesh.GetIndexCount(submeshIndex);
+                                        drawIndexedData.firstIndex = (int)mesh.GetIndexStart(submeshIndex);
+                                        Debug.Log("index count: " + mesh.GetIndexCount(submeshIndex).ToString() + " first index: " + mesh.GetIndexStart(submeshIndex).ToString() + " total indicies " + indexBufferData.triangles.length);
+                                        drawIndexedData.instanceCount = 1;
+
+                                        GraphBuilder.unity2vsg_AddDrawIndexedCommand(drawIndexedData);
+
+                                        /*MeshData meshdata = new MeshData();
                                         meshdata.id = mesh.GetInstanceID().ToString() + "-" + submeshIndex.ToString();
 
                                         if (!meshCache.ContainsKey(meshdata.id))
@@ -231,22 +293,23 @@ namespace vsgUnity.Native
                                             meshdata.tangents.data = mesh.tangents;
                                             meshdata.tangents.length = meshdata.tangents.data.Length;*/
 
-                                            /*meshdata.colors = new ColorArray();
-                                            meshdata.colors.data = mesh.colors;
-                                            meshdata.colors.length = meshdata.colors.data.Length;*/
+                                        /*meshdata.colors = new ColorArray();
+                                        meshdata.colors.data = mesh.colors;
+                                        meshdata.colors.length = meshdata.colors.data.Length;*/
 
-                                            meshdata.uv0 = new Vec2Array();
-                                            meshdata.uv0.data = mesh.uv;
-                                            meshdata.uv0.length = meshdata.uv0.data.Length;
+                                        /*     meshdata.uv0 = new Vec2Array();
+                                             meshdata.uv0.data = mesh.uv;
+                                             meshdata.uv0.length = meshdata.uv0.data.Length;
 
-                                            meshCache.Add(meshdata.id, meshdata);
-                                        }
+                                             meshCache.Add(meshdata.id, meshdata);
+                                         }*/
 
-                                        GraphBuilder.unity2vsg_AddGeometryNode(meshdata);
-                                        GraphBuilder.unity2vsg_EndNode(); // step out of geometry
+                                        //GraphBuilder.unity2vsg_AddGeometryNode(meshdata);
+                                        //GraphBuilder.unity2vsg_EndNode(); // step out of geometry
                                     }
                                 }
-                                GraphBuilder.unity2vsg_EndNode(); // step out of stategroup
+                                GraphBuilder.unity2vsg_EndNode(); // step out of stategroup/commands node
+                                GraphBuilder.unity2vsg_EndNode(); // step out of stategroup/commands node
                             }
                         }
                     }
