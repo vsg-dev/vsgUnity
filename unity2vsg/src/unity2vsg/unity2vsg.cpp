@@ -814,6 +814,7 @@ public:
         data.hasNormals = mesh.normals.length > 0;
         data.hasColors = mesh.colors.length > 0;
         data.uvChannelCount = mesh.uv0.length > 0 ? 1 : 0;
+        return data;
     }
 
     uint32_t getShaderKey(uint32_t x, uint32_t y)
