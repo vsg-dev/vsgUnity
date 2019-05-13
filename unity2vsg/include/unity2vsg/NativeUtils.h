@@ -92,12 +92,14 @@ namespace unity2vsg
         Vec4Array colors;
         Vec2Array uv0;
         Vec2Array uv1;
+        uint32_t use32BitIndicies;
     };
 
     struct IndexBufferData
     {
         const char* id; // same as mesh id
         IntArray triangles;
+        uint32_t use32BitIndicies;
     };
 
     struct VertexBuffersData
@@ -259,7 +261,7 @@ namespace unity2vsg
     {
         auto minFilterMipmapMode = vkFilterAndSamplerMipmapModeForMipmapFilterMode(data.filterMode);
         auto magFilterMipmapMode = vkFilterAndSamplerMipmapModeForMipmapFilterMode(data.filterMode);
-        bool mipmappingRequired = data.filterMode == MipmapFilterMode::Trilinear;
+        bool mipmappingRequired = data.mipmapCount > 1;
 
         VkSamplerCreateInfo samplerInfo = {};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

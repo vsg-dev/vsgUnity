@@ -85,12 +85,14 @@ namespace vsgUnity.Native
         public ColorArray colors;
         public Vec2Array uv0;
         public Vec2Array uv1;
+        public int use32BitIndicies;
     }
 
     public struct IndexBufferData
     {
         public string id; // same as mesh id
         public IntArray triangles;
+        public int use32BitIndicies;
     }
 
     public struct VertexBuffersData
@@ -245,6 +247,80 @@ namespace vsgUnity.Native
 
     public static class NativeUtils
     {
+        public static PipelineData CreatePipelineData(MeshData meshData)
+        {
+            PipelineData pipeline = new PipelineData();
+            pipeline.hasNormals = meshData.normals.length > 0 ? 1 : 0;
+            pipeline.hasTangents = meshData.tangents.length > 0 ? 1 : 0;
+            pipeline.hasColors = meshData.colors.length > 0 ? 1 : 0;
+            pipeline.uvChannelCount = meshData.uv0.length > 0 ? 1 : 0;
+            return pipeline;
+        }
+
+        public static string GetIDForPipeline(PipelineData data)
+        {
+            string idstr = "";
+            idstr += data.hasNormals == 1 ? "1" : "0";
+            idstr += data.hasTangents == 1 ? "1" : "0";
+            idstr += data.hasColors == 1 ? "1" : "0";
+            idstr += data.uvChannelCount.ToString();
+            idstr += data.vertexImageSamplerCount.ToString();
+            idstr += data.vertexUniformCount.ToString();
+            idstr += data.fragmentImageSamplerCount.ToString();
+            idstr += data.fragmentUniformCount.ToString();
+            idstr += data.useAlpha == 1 ? "1" : "0";
+            return idstr;
+        }
+
+        public static CameraData CreateCameraData(Camera camera)
+        {
+            CameraData camdata = new CameraData();
+            camdata.position = camera.gameObject.transform.position;
+            camdata.lookAt = camdata.position + camera.gameObject.transform.forward;
+            camdata.upDir = camera.gameObject.transform.up;
+            camdata.fov = camera.fieldOfView;
+            camdata.nearZ = camera.nearClipPlane;
+            camdata.farZ = camera.farClipPlane;
+            return camdata;
+        }
+
+        public static MeshData CreateMeshData(Mesh mesh, int subMeshIndex = -1)
+        {
+            MeshData meshdata = new MeshData();
+            meshdata.id = mesh.GetInstanceID().ToString() + (subMeshIndex >= 0 ? subMeshIndex.ToString() : "");
+
+            meshdata.verticies = new Vec3Array();
+            meshdata.verticies.data = mesh.vertices;
+            meshdata.verticies.length = mesh.vertexCount;
+
+            meshdata.triangles = new IntArray();
+            meshdata.triangles.data = subMeshIndex >= 0 ? mesh.GetTriangles(subMeshIndex) : mesh.triangles;
+            meshdata.triangles.length = meshdata.triangles.data.Length;
+            meshdata.use32BitIndicies = mesh.indexFormat == IndexFormat.UInt32 ? 1 : 0;
+
+            meshdata.normals = new Vec3Array();
+            meshdata.normals.data = mesh.normals;
+            meshdata.normals.length = meshdata.normals.data.Length;
+
+            /*meshdata.tangents = new Vec3Array();
+            meshdata.tangents.data = mesh.tangents;
+            meshdata.tangents.length = meshdata.tangents.data.Length;*/
+
+            /*meshdata.colors = new ColorArray();
+            meshdata.colors.data = mesh.colors;
+            meshdata.colors.length = meshdata.colors.data.Length;*/
+
+            meshdata.uv0 = new Vec2Array();
+            meshdata.uv0.data = mesh.uv;
+            meshdata.uv0.length = meshdata.uv0.data.Length;
+
+            return meshdata;
+        }
+
+        //
+        // Textures
+        //
+
         public static TexFormat GetTextureFormat(GraphicsFormat format)
         {
             switch (format)
@@ -305,6 +381,8 @@ namespace vsgUnity.Native
             texdata.depth = 1;
             texdata.pixels.data = Color32ArrayToByteArray(texture.GetPixels32()); // texture.GetRawTextureData();
             texdata.pixels.length = texdata.pixels.data.Length;
+            texdata.mipmapCount = texture.mipmapCount;
+            texdata.mipmapBias = texture.mipMapBias;
             return true;
         }
 
@@ -328,79 +406,10 @@ namespace vsgUnity.Native
             texdata.height = texture.height;
             texdata.anisoLevel = texture.anisoLevel;
             texdata.wrapMode = GetTextureWrapMode(texture.wrapMode);
-            texdata.filterMode = MipmapFilterMode.Point;
-            texdata.mipmapCount = 0;
+            texdata.filterMode = GetTextureFilterMode(texture.filterMode);
+            texdata.mipmapCount = 1;
             texdata.mipmapBias = 0.0f;
             return true;
-        }
-
-        public static PipelineData CreatePipelineData(MeshData meshData)
-        {
-            PipelineData pipeline = new PipelineData();
-            pipeline.hasNormals = meshData.normals.length > 0 ? 1 : 0;
-            pipeline.hasTangents = meshData.tangents.length > 0 ? 1 : 0;
-            pipeline.hasColors = meshData.colors.length > 0 ? 1 : 0;
-            pipeline.uvChannelCount = meshData.uv0.length > 0 ? 1 : 0;
-            return pipeline;
-        }
-
-        public static string GetIDForPipeline(PipelineData data)
-        {
-            string idstr = "";
-            idstr += data.hasNormals == 1 ? "1" : "0";
-            idstr += data.hasTangents == 1 ? "1" : "0";
-            idstr += data.hasColors == 1 ? "1" : "0";
-            idstr += data.uvChannelCount.ToString();
-            idstr += data.vertexImageSamplerCount.ToString();
-            idstr += data.vertexUniformCount.ToString();
-            idstr += data.fragmentImageSamplerCount.ToString();
-            idstr += data.fragmentUniformCount.ToString();
-            idstr += data.useAlpha == 1 ? "1" : "0";
-            return idstr;
-        }
-
-        public static CameraData CreateCameraData(Camera camera)
-        {
-            CameraData camdata = new CameraData();
-            camdata.position = camera.gameObject.transform.position;
-            camdata.lookAt = camdata.position + camera.gameObject.transform.forward;
-            camdata.upDir = camera.gameObject.transform.up;
-            camdata.fov = camera.fieldOfView;
-            camdata.nearZ = camera.nearClipPlane;
-            camdata.farZ = camera.farClipPlane;
-            return camdata;
-        }
-
-        public static MeshData CreateMeshData(Mesh mesh, int subMeshIndex = -1)
-        {
-            MeshData meshdata = new MeshData();
-            meshdata.id = mesh.GetInstanceID().ToString() + (subMeshIndex >= 0 ? subMeshIndex.ToString() : "");
-
-            meshdata.verticies = new Vec3Array();
-            meshdata.verticies.data = mesh.vertices;
-            meshdata.verticies.length = mesh.vertexCount;
-
-            meshdata.triangles = new IntArray();
-            meshdata.triangles.data = subMeshIndex >= 0 ? mesh.GetTriangles(subMeshIndex) : mesh.triangles;
-            meshdata.triangles.length = meshdata.triangles.data.Length;
-
-            meshdata.normals = new Vec3Array();
-            meshdata.normals.data = mesh.normals;
-            meshdata.normals.length = meshdata.normals.data.Length;
-
-            /*meshdata.tangents = new Vec3Array();
-            meshdata.tangents.data = mesh.tangents;
-            meshdata.tangents.length = meshdata.tangents.data.Length;*/
-
-            /*meshdata.colors = new ColorArray();
-            meshdata.colors.data = mesh.colors;
-            meshdata.colors.length = meshdata.colors.data.Length;*/
-
-            meshdata.uv0 = new Vec2Array();
-            meshdata.uv0.data = mesh.uv;
-            meshdata.uv0.length = meshdata.uv0.data.Length;
-
-            return meshdata;
         }
 
         //

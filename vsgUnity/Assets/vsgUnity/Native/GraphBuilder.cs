@@ -255,6 +255,7 @@ namespace vsgUnity.Native
                                 indexBufferData.id = mesh.GetInstanceID().ToString();
                                 indexBufferData.triangles.data = mesh.triangles;
                                 indexBufferData.triangles.length = indexBufferData.triangles.data.Length;
+                                indexBufferData.use32BitIndicies = fullMeshData.use32BitIndicies;
                                 indexCache.Add(meshidstr, indexBufferData);
                             }
 

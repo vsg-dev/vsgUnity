@@ -38,7 +38,7 @@ namespace vsgUnity.Editor
 
             if(!_hasInited)
             {
-                _settings.autoAddCullNodes = true;
+                _settings.autoAddCullNodes = false;
                 _hasInited = true;
             }
 

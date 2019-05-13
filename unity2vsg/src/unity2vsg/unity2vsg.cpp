@@ -237,7 +237,7 @@ public:
         }
         if (geometry._indices)
         {
-            geometry._indices->dataRelease();
+            //geometry._indices->dataRelease();
         }
     }
 
@@ -249,7 +249,7 @@ public:
         }
         if (vid._indices)
         {
-            vid._indices->dataRelease();
+            //vid._indices->dataRelease();
         }
     }
 
@@ -265,7 +265,7 @@ public:
     {
         if (bib.getIndices())
         {
-            bib.getIndices()->dataRelease();
+            //bib.getIndices()->dataRelease();
         }
     }
 
@@ -383,15 +383,31 @@ public:
 
             geometry->_arrays = inputarrays;
 
-            // for now convert the int32 array indicies to uint16
-            vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
-            for (uint32_t i = 0; i < data.triangles.length; i++)
+            if (data.use32BitIndicies == 0)
             {
-                indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
+                // for now convert the int32 array indicies to uint16
+                vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
+                for (uint32_t i = 0; i < data.triangles.length; i++)
+                {
+                    indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
+                }
+
+                geometry->_indices = indiciesushort;
+                geometry->_indexType = VK_INDEX_TYPE_UINT16;
+            }
+            else
+            {
+                vsg::ref_ptr<vsg::uintArray> indiciesuint(new vsg::uintArray(data.triangles.length));
+                for (uint32_t i = 0; i < data.triangles.length; i++)
+                {
+                    indiciesuint->set(i, static_cast<uint32_t>(data.triangles.ptr[i]));
+                }
+
+                geometry->_indices = indiciesuint;
+                geometry->_indexType = VK_INDEX_TYPE_UINT32;
             }
 
-            geometry->_indices = indiciesushort; //createVsgArray<uint16_t>(reinterpret_cast<uint16_t*>(mesh.triangles.ptr), mesh.triangles.length);
-            geometry->indexCount = static_cast<uint32_t>(indiciesushort->valueCount());
+            geometry->indexCount = data.triangles.length;
             geometry->instanceCount = 1;
 
             _geometryCache[idstr] = geometry;
@@ -429,15 +445,30 @@ public:
 
             geometry->_arrays = inputarrays;
 
-            // for now convert the int32 array indicies to uint16
-            vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
-            for (uint32_t i = 0; i < data.triangles.length; i++)
+            if (data.use32BitIndicies == 0)
             {
-                indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
-            }
+                // for now convert the int32 array indicies to uint16
+                vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
+                for (uint32_t i = 0; i < data.triangles.length; i++)
+                {
+                    indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
+                }
 
-            geometry->_indices = indiciesushort; //createVsgArray<uint16_t>(reinterpret_cast<uint16_t*>(mesh.triangles.ptr), mesh.triangles.length);
-            geometry->_commands = {vsg::DrawIndexed::create(static_cast<uint32_t>(indiciesushort->valueCount()), 1, 0, 0, 0)};
+                geometry->_indices = indiciesushort;
+                geometry->_indexType = VK_INDEX_TYPE_UINT16;
+            }
+            else
+            {
+                vsg::ref_ptr<vsg::uintArray> indiciesuint(new vsg::uintArray(data.triangles.length));
+                for (uint32_t i = 0; i < data.triangles.length; i++)
+                {
+                    indiciesuint->set(i, static_cast<uint32_t>(data.triangles.ptr[i]));
+                }
+
+                geometry->_indices = indiciesuint;
+                geometry->_indexType = VK_INDEX_TYPE_UINT32;
+            }
+            geometry->_commands = {vsg::DrawIndexed::create(data.triangles.length, 1, 0, 0, 0)};
 
             _geometryCache[idstr] = geometry;
             geomNode = geometry;
@@ -614,13 +645,26 @@ public:
         }
         else
         {
-            // for now convert the int32 array indicies to uint16
-            vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
-            for (uint32_t i = 0; i < data.triangles.length; i++)
+            if (data.use32BitIndicies == 0)
             {
-                indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
+                // for now convert the int32 array indicies to uint16
+                vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
+                for (uint32_t i = 0; i < data.triangles.length; i++)
+                {
+                    indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
+                }
+                cmd = vsg::BindIndexBuffer::create(indiciesushort, VK_INDEX_TYPE_UINT16);
             }
-            cmd = vsg::BindIndexBuffer::create(indiciesushort);
+            else
+            {
+                vsg::ref_ptr<vsg::uintArray> indiciesuint(new vsg::uintArray(data.triangles.length));
+                for (uint32_t i = 0; i < data.triangles.length; i++)
+                {
+                    indiciesuint->set(i, static_cast<uint32_t>(data.triangles.ptr[i]));
+                }
+
+                cmd = vsg::BindIndexBuffer::create(indiciesuint, VK_INDEX_TYPE_UINT32);
+            }
             _bindIndexBufferCache[idstr] = cmd;
         }
         addCommandToHead(cmd);
