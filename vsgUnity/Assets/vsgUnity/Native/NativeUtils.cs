@@ -167,7 +167,7 @@ namespace vsgUnity.Native
     [StructLayout(LayoutKind.Sequential)]
     public struct PipelineData
     {
-        public int id;
+        public string id;
         public int hasNormals;
         public int hasTangents;
         public int hasColors;
@@ -176,6 +176,7 @@ namespace vsgUnity.Native
         public int fragmentImageSamplerCount;
         public int vertexUniformCount;
         public int fragmentUniformCount;
+        public int useAlpha;
     };
 
     [StructLayout(LayoutKind.Sequential)]
@@ -325,7 +326,7 @@ namespace vsgUnity.Native
             return true;
         }
 
-        public static PipelineData CreatePipeLineData(MeshData meshData)
+        public static PipelineData CreatePipelineData(MeshData meshData)
         {
             PipelineData pipeline = new PipelineData();
             pipeline.hasNormals = meshData.normals.length > 0 ? 1 : 0;
@@ -333,6 +334,21 @@ namespace vsgUnity.Native
             pipeline.hasColors = meshData.colors.length > 0 ? 1 : 0;
             pipeline.uvChannelCount = meshData.uv0.length > 0 ? 1 : 0;
             return pipeline;
+        }
+
+        public static string GetIDForPipeline(PipelineData data)
+        {
+            string idstr = "";
+            idstr += data.hasNormals == 1 ? "1" : "0";
+            idstr += data.hasTangents == 1 ? "1" : "0";
+            idstr += data.hasColors == 1 ? "1" : "0";
+            idstr += data.uvChannelCount.ToString();
+            idstr += data.vertexImageSamplerCount.ToString();
+            idstr += data.vertexUniformCount.ToString();
+            idstr += data.fragmentImageSamplerCount.ToString();
+            idstr += data.fragmentUniformCount.ToString();
+            idstr += data.useAlpha == 1 ? "1" : "0";
+            return idstr;
         }
 
         public static CameraData CreateCameraData(Camera camera)

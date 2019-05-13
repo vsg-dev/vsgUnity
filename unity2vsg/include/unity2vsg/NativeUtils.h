@@ -167,7 +167,7 @@ namespace unity2vsg
 
     struct PipelineData
     {
-        uint32_t id;
+        const char* id;
         uint32_t hasNormals;
         uint32_t hasTangents;
         uint32_t hasColors;
@@ -176,6 +176,7 @@ namespace unity2vsg
         uint32_t fragmentImageSamplerCount;
         uint32_t vertexUniformCount;
         uint32_t fragmentUniformCount;
+        uint32_t useAlpha;
     };
 
     struct TransformData

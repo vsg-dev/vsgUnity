@@ -24,6 +24,12 @@ namespace vsgUnity.Native
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTransformNode")]
         private static extern void unity2vsg_AddTransformNode(TransformData transform);
 
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddCullNode")]
+        private static extern void unity2vsg_AddCullNode();
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddCullGroupNode")]
+        private static extern void unity2vsg_AddCullGroupNode();
+
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddStateGroupNode")]
         private static extern void unity2vsg_AddStateGroupNode();
 
@@ -59,7 +65,6 @@ namespace vsgUnity.Native
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDrawIndexedCommand")]
         private static extern void unity2vsg_AddDrawIndexedCommand(DrawIndexedData data);
 
-
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_CreateBindDescriptorSetCommand")]
         private static extern void unity2vsg_CreateBindDescriptorSetCommand(int addToStateGroup);
 
@@ -69,7 +74,6 @@ namespace vsgUnity.Native
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTextureDescriptor")]
         private static extern void unity2vsg_AddTextureDescriptor(TextureData texture);
-
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_EndNode")]
         private static extern void unity2vsg_EndNode();
@@ -102,12 +106,12 @@ namespace vsgUnity.Native
             GraphBuilder.unity2vsg_AddTransform(convertData);
             */
 
-            Dictionary<string, MeshData> meshCache = new Dictionary<string, MeshData>();
-            Dictionary<string, IndexBufferData> indexCache = new Dictionary<string, IndexBufferData>();
-            Dictionary<string, VertexBuffersData> vertexCache = new Dictionary<string, VertexBuffersData>();
-            Dictionary<string, DrawIndexedData> drawCache = new Dictionary<string, DrawIndexedData>();
-            Dictionary<string, TextureData> textureCache = new Dictionary<string, TextureData>();
-            Dictionary<string, MaterialData> materialCache = new Dictionary<string, MaterialData>();
+            Dictionary<string, MeshData>meshCache = new Dictionary<string, MeshData>();
+            Dictionary<string, IndexBufferData>indexCache = new Dictionary<string, IndexBufferData>();
+            Dictionary<string, VertexBuffersData>vertexCache = new Dictionary<string, VertexBuffersData>();
+            Dictionary<string, DrawIndexedData>drawCache = new Dictionary<string, DrawIndexedData>();
+            Dictionary<string, TextureData>textureCache = new Dictionary<string, TextureData>();
+            Dictionary<string, MaterialData>materialCache = new Dictionary<string, MaterialData>();
 
             System.Action<GameObject>processGameObject = null;
             processGameObject = (GameObject go) =>
@@ -173,7 +177,7 @@ namespace vsgUnity.Native
                         int subMeshCount = mesh.subMeshCount;
 
                         // shader instance id, Material Data, sub mesh indicies
-                        Dictionary<string, Dictionary<MaterialData, List<int>>> meshMaterials = new Dictionary<string, Dictionary<MaterialData, List<int>>>();
+                        Dictionary<string, Dictionary<MaterialData, List<int>>>meshMaterials = new Dictionary<string, Dictionary<MaterialData, List<int>>>();
                         for (int matindex = 0; matindex < materials.Length && matindex < subMeshCount; matindex++)
                         {
                             Material mat = materials[matindex];
@@ -196,23 +200,26 @@ namespace vsgUnity.Native
                             if (!meshMaterials.ContainsKey(matshaderid)) meshMaterials.Add(matshaderid, new Dictionary<MaterialData, List<int>>());
                             if (!meshMaterials[matshaderid].ContainsKey(matdata)) meshMaterials[matshaderid].Add(matdata, new List<int>());
 
-                            meshMaterials[matshaderid][matdata].Add(matindex);
+                            meshMaterials [matshaderid]
+                            [matdata]
+                                .Add(matindex);
                         }
 
                         if (subMeshCount > 0)
                         {
                             // create mesh data, if the mesh has already been created we only need to pass the ID to the addGeometry function
-                            foreach (string shaderkey in meshMaterials.Keys)
+                            foreach(string shaderkey in meshMaterials.Keys)
                             {
-                                List<MaterialData> mds = new List<MaterialData>(meshMaterials[shaderkey].Keys);
+                                List<MaterialData>mds = new List<MaterialData>(meshMaterials[shaderkey].Keys);
 
                                 if (mds.Count == 0) continue;
 
                                 // add stategroup and pipeline for shader
                                 GraphBuilder.unity2vsg_AddStateGroupNode();
 
-                                PipelineData pipelineData = NativeUtils.CreatePipeLineData(fullMeshData);    //WE NEED INFO ABOUT THE SHADER SO WE CAN BUILD A PIPLE LINE
+                                PipelineData pipelineData = NativeUtils.CreatePipelineData(fullMeshData); //WE NEED INFO ABOUT THE SHADER SO WE CAN BUILD A PIPLE LINE
                                 pipelineData.fragmentImageSamplerCount = mds[0].textures.Length;
+                                pipelineData.id = NativeUtils.GetIDForPipeline(pipelineData);
 
                                 GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1);
 
@@ -235,7 +242,6 @@ namespace vsgUnity.Native
 
                                 GraphBuilder.unity2vsg_AddBindVertexBuffersCommand(vertexBuffersData);
 
-
                                 IndexBufferData indexBufferData;
 
                                 if (indexCache.ContainsKey(meshidstr))
@@ -253,21 +259,22 @@ namespace vsgUnity.Native
 
                                 GraphBuilder.unity2vsg_AddBindIndexBufferCommand(indexBufferData);
 
-                                foreach (MaterialData md in mds)
+                                foreach(MaterialData md in mds)
                                 {
-                                    foreach (TextureData t in md.textures)
+                                    foreach(TextureData t in md.textures)
                                     {
                                         GraphBuilder.unity2vsg_AddTextureDescriptor(t);
                                     }
                                     if (md.textures.Length > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(0);
 
-                                    foreach (int submeshIndex in meshMaterials[shaderkey][md])
+                                    foreach(int submeshIndex in meshMaterials [shaderkey]
+                                            [md])
                                     {
                                         DrawIndexedData drawIndexedData = new DrawIndexedData();
                                         drawIndexedData.id = mesh.GetInstanceID().ToString() + "-" + submeshIndex.ToString();
-                                        drawIndexedData.indexCount = (int)mesh.GetIndexCount(submeshIndex);
-                                        drawIndexedData.firstIndex = (int)mesh.GetIndexStart(submeshIndex);
-                                        Debug.Log("index count: " + mesh.GetIndexCount(submeshIndex).ToString() + " first index: " + mesh.GetIndexStart(submeshIndex).ToString() + " total indicies " + indexBufferData.triangles.length);
+                                        drawIndexedData.indexCount = (int) mesh.GetIndexCount(submeshIndex);
+                                        drawIndexedData.firstIndex = (int) mesh.GetIndexStart(submeshIndex);
+                                        //Debug.Log("index count: " + mesh.GetIndexCount(submeshIndex).ToString() + " first index: " + mesh.GetIndexStart(submeshIndex).ToString() + " total indicies " + indexBufferData.triangles.length);
                                         drawIndexedData.instanceCount = 1;
 
                                         GraphBuilder.unity2vsg_AddDrawIndexedCommand(drawIndexedData);

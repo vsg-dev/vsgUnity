@@ -25,6 +25,8 @@ extern "C"
     // add nodes
     UNITY2VSG_EXPORT void unity2vsg_AddGroupNode();
     UNITY2VSG_EXPORT void unity2vsg_AddTransformNode(unity2vsg::TransformData transform);
+    UNITY2VSG_EXPORT void unity2vsg_AddCullNode();
+    UNITY2VSG_EXPORT void unity2vsg_AddCullGroupNode();
     UNITY2VSG_EXPORT void unity2vsg_AddStateGroupNode();
     UNITY2VSG_EXPORT void unity2vsg_AddCommandsNode();
     UNITY2VSG_EXPORT void unity2vsg_AddVertexIndexDrawNode(unity2vsg::MeshData mesh);
