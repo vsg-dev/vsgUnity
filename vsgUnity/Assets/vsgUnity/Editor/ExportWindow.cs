@@ -14,6 +14,8 @@ namespace vsgUnity.Editor
         public static string _exportFileName = "export";
 
         public static GameObject _exportTarget = null;
+        public static GraphBuilder.ExportSettings _settings = new GraphBuilder.ExportSettings();
+        protected static bool _hasInited = false;
 
         public static bool _binaryExport = true;
         public static bool _showPreview = true;
@@ -33,6 +35,12 @@ namespace vsgUnity.Editor
         {
             // Get existing open window or if none, make a new one:
             ExportWindow window = (ExportWindow) EditorWindow.GetWindow(typeof (ExportWindow), true, "vsgUnity");
+
+            if(!_hasInited)
+            {
+                _settings.autoAddCullNodes = true;
+                _hasInited = true;
+            }
 
             if (string.IsNullOrEmpty(_exportDirectory))
             {
@@ -64,12 +72,12 @@ namespace vsgUnity.Editor
 
             if (_exportTarget != null)
             {
-                GraphBuilder.Export(new GameObject[]{_exportTarget}, finalSaveFileName);
+                GraphBuilder.Export(new GameObject[]{_exportTarget}, finalSaveFileName, _settings);
             }
             else
             {
                 Scene scene = SceneManager.GetActiveScene();
-                GraphBuilder.Export(scene.GetRootGameObjects(), finalSaveFileName);
+                GraphBuilder.Export(scene.GetRootGameObjects(), finalSaveFileName, _settings);
             }
 
             _feedbackText = "Exported in " + (Time.realtimeSinceStartup - starttick) + " seconds";
@@ -117,6 +125,8 @@ namespace vsgUnity.Editor
             EditorGUILayout.EndHorizontal();
 
             _binaryExport = EditorGUILayout.Toggle("Binary", _binaryExport);
+
+            _settings.autoAddCullNodes = EditorGUILayout.Toggle("Add Cull Nodes", _settings.autoAddCullNodes);
 
             EditorGUILayout.Separator();
 

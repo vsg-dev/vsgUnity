@@ -25,10 +25,10 @@ namespace vsgUnity.Native
         private static extern void unity2vsg_AddTransformNode(TransformData transform);
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddCullNode")]
-        private static extern void unity2vsg_AddCullNode();
+        private static extern void unity2vsg_AddCullNode(CullData cull);
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddCullGroupNode")]
-        private static extern void unity2vsg_AddCullGroupNode();
+        private static extern void unity2vsg_AddCullGroupNode(CullData cull);
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddStateGroupNode")]
         private static extern void unity2vsg_AddStateGroupNode();
@@ -86,7 +86,12 @@ namespace vsgUnity.Native
             unity2vsg_LaunchViewer(fileName, useCamData ? 1 : 0, NativeUtils.CreateCameraData(camera));
         }
 
-        public static void Export(GameObject[] gameObjects, string saveFileName)
+        public struct ExportSettings
+        {
+            public bool autoAddCullNodes;
+        }
+
+        public static void Export(GameObject[] gameObjects, string saveFileName, ExportSettings settings)
         {
             GraphBuilder.unity2vsg_BeginExport();
 
@@ -113,7 +118,7 @@ namespace vsgUnity.Native
             Dictionary<string, TextureData>textureCache = new Dictionary<string, TextureData>();
             Dictionary<string, MaterialData>materialCache = new Dictionary<string, MaterialData>();
 
-            System.Action<GameObject>processGameObject = null;
+            System.Action<GameObject> processGameObject = null;
             processGameObject = (GameObject go) =>
             {
                 // determine the gameObject type
@@ -156,6 +161,17 @@ namespace vsgUnity.Native
 
                 if (meshFilter && meshRenderer)
                 {
+                    bool addedCullGroup = false;
+                    if (settings.autoAddCullNodes)
+                    {
+                        CullData culldata = new CullData();
+                        culldata.center = meshRenderer.bounds.center;
+                        culldata.radius = meshRenderer.bounds.size.magnitude;
+                        GraphBuilder.unity2vsg_AddCullGroupNode(culldata);
+                        addedCullGroup = true;
+                    }
+
+                    //
                     Mesh mesh = meshFilter.sharedMesh;
                     Material[] materials = meshRenderer.sharedMaterials;
 
@@ -177,7 +193,7 @@ namespace vsgUnity.Native
                         int subMeshCount = mesh.subMeshCount;
 
                         // shader instance id, Material Data, sub mesh indicies
-                        Dictionary<string, Dictionary<MaterialData, List<int>>>meshMaterials = new Dictionary<string, Dictionary<MaterialData, List<int>>>();
+                        Dictionary<string, Dictionary<MaterialData, List<int>>> meshMaterials = new Dictionary<string, Dictionary<MaterialData, List<int>>>();
                         for (int matindex = 0; matindex < materials.Length && matindex < subMeshCount; matindex++)
                         {
                             Material mat = materials[matindex];
@@ -200,17 +216,15 @@ namespace vsgUnity.Native
                             if (!meshMaterials.ContainsKey(matshaderid)) meshMaterials.Add(matshaderid, new Dictionary<MaterialData, List<int>>());
                             if (!meshMaterials[matshaderid].ContainsKey(matdata)) meshMaterials[matshaderid].Add(matdata, new List<int>());
 
-                            meshMaterials [matshaderid]
-                            [matdata]
-                                .Add(matindex);
+                            meshMaterials[matshaderid][matdata].Add(matindex);
                         }
 
-                        if (subMeshCount > 0)
+                        if (subMeshCount > 1)
                         {
                             // create mesh data, if the mesh has already been created we only need to pass the ID to the addGeometry function
                             foreach(string shaderkey in meshMaterials.Keys)
                             {
-                                List<MaterialData>mds = new List<MaterialData>(meshMaterials[shaderkey].Keys);
+                                List<MaterialData> mds = new List<MaterialData>(meshMaterials[shaderkey].Keys);
 
                                 if (mds.Count == 0) continue;
 
@@ -267,8 +281,7 @@ namespace vsgUnity.Native
                                     }
                                     if (md.textures.Length > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(0);
 
-                                    foreach(int submeshIndex in meshMaterials [shaderkey]
-                                            [md])
+                                    foreach(int submeshIndex in meshMaterials[shaderkey] [md])
                                     {
                                         DrawIndexedData drawIndexedData = new DrawIndexedData();
                                         drawIndexedData.id = mesh.GetInstanceID().ToString() + "-" + submeshIndex.ToString();
@@ -278,51 +291,52 @@ namespace vsgUnity.Native
                                         drawIndexedData.instanceCount = 1;
 
                                         GraphBuilder.unity2vsg_AddDrawIndexedCommand(drawIndexedData);
-
-                                        /*MeshData meshdata = new MeshData();
-                                        meshdata.id = mesh.GetInstanceID().ToString() + "-" + submeshIndex.ToString();
-
-                                        if (!meshCache.ContainsKey(meshdata.id))
-                                        {
-                                            meshdata.verticies = new Vec3Array();
-                                            meshdata.verticies.data = mesh.vertices;
-                                            meshdata.verticies.length = mesh.vertexCount;
-
-                                            meshdata.triangles = new IntArray();
-                                            meshdata.triangles.data = mesh.GetTriangles(submeshIndex);
-                                            meshdata.triangles.length = meshdata.triangles.data.Length;
-
-                                            meshdata.normals = new Vec3Array();
-                                            meshdata.normals.data = mesh.normals;
-                                            meshdata.normals.length = meshdata.normals.data.Length;
-
-                                            /*meshdata.tangents = new Vec3Array();
-                                            meshdata.tangents.data = mesh.tangents;
-                                            meshdata.tangents.length = meshdata.tangents.data.Length;*/
-
-                                        /*meshdata.colors = new ColorArray();
-                                        meshdata.colors.data = mesh.colors;
-                                        meshdata.colors.length = meshdata.colors.data.Length;*/
-
-                                        /*     meshdata.uv0 = new Vec2Array();
-                                             meshdata.uv0.data = mesh.uv;
-                                             meshdata.uv0.length = meshdata.uv0.data.Length;
-
-                                             meshCache.Add(meshdata.id, meshdata);
-                                         }*/
-
-                                        //GraphBuilder.unity2vsg_AddGeometryNode(meshdata);
-                                        //GraphBuilder.unity2vsg_EndNode(); // step out of geometry
                                     }
                                 }
-                                GraphBuilder.unity2vsg_EndNode(); // step out of stategroup/commands node
-                                GraphBuilder.unity2vsg_EndNode(); // step out of stategroup/commands node
+                                GraphBuilder.unity2vsg_EndNode(); // step out of stategroup node
+                                GraphBuilder.unity2vsg_EndNode(); // step out of commands node
+                            }
+                        }
+                        else
+                        {
+                            List<string> sids = new List<string>(meshMaterials.Keys);
+                            if (sids.Count > 0)
+                            {
+                                List<MaterialData> mds = new List<MaterialData>(meshMaterials[sids[0]].Keys);
+
+                                if (mds.Count > 0)
+                                {
+                                    // add stategroup and pipeline for shader
+                                    GraphBuilder.unity2vsg_AddStateGroupNode();
+
+                                    PipelineData pipelineData = NativeUtils.CreatePipelineData(fullMeshData); //WE NEED INFO ABOUT THE SHADER SO WE CAN BUILD A PIPLE LINE
+                                    pipelineData.fragmentImageSamplerCount = mds[0].textures.Length;
+                                    pipelineData.id = NativeUtils.GetIDForPipeline(pipelineData);
+
+                                    GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1);
+
+                                    foreach (TextureData t in mds[0].textures)
+                                    {
+                                        GraphBuilder.unity2vsg_AddTextureDescriptor(t);
+                                    }
+                                    if (mds[0].textures.Length > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
+
+                                    GraphBuilder.unity2vsg_AddVertexIndexDrawNode(fullMeshData);
+
+                                    GraphBuilder.unity2vsg_EndNode(); // step out of vertex index draw node
+                                    GraphBuilder.unity2vsg_EndNode(); // step out of stategroup node
+                                }
                             }
                         }
                     }
                     else
                     {
                         Debug.LogWarning("ExportMesh: Unable to export mesh, mesh is not readable. Please enabled read/write in the models import settings.");
+                    }
+
+                    if (addedCullGroup)
+                    {
+                        GraphBuilder.unity2vsg_EndNode();
                     }
                 }
 

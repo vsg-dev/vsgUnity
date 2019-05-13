@@ -319,9 +319,9 @@ public:
         pushNodeToStack(transform);
     }
 
-    void addCullNode()
+    void addCullNode(CullData cull)
     {
-        auto cullNode = vsg::CullNode::create();
+        auto cullNode = vsg::CullNode::create(vsg::sphere(cull.center, cull.radius), nullptr);
         if (!addChildToHead(cullNode))
         {
             DebugLog("GraphBuilder Error: Current head is not a group");
@@ -329,9 +329,9 @@ public:
         pushNodeToStack(cullNode);
     }
 
-    void addCullGroup()
+    void addCullGroup(CullData cull)
     {
-        auto cullGroup = vsg::CullGroup::create();
+        auto cullGroup = vsg::CullGroup::create(vsg::sphere(cull.center, cull.radius));
         if (!addChildToHead(cullGroup))
         {
             DebugLog("GraphBuilder Error: Current head is not a group");
@@ -985,14 +985,14 @@ void unity2vsg_AddTransformNode(unity2vsg::TransformData transform)
     _builder->addMatrixTrasform(transform);
 }
 
-void unity2vsg_AddCullNode()
+void unity2vsg_AddCullNode(unity2vsg::CullData cull)
 {
-    _builder->addCullNode();
+    _builder->addCullNode(cull);
 }
 
-void unity2vsg_AddCullGroupNode()
+void unity2vsg_AddCullGroupNode(unity2vsg::CullData cull)
 {
-    _builder->addCullGroup();
+    _builder->addCullGroup(cull);
 }
 
 void unity2vsg_AddStateGroupNode()

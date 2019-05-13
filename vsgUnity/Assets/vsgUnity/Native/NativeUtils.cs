@@ -186,6 +186,13 @@ namespace vsgUnity.Native
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    public struct CullData
+    {
+        public Vector3 center;
+        public float radius;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public struct CameraData
     {
         public Vector3 position;

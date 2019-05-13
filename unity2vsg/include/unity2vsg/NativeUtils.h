@@ -194,6 +194,12 @@ namespace unity2vsg
         float farZ;
     };
 
+    struct CullData
+    {
+        vsg::vec3 center;
+        float radius;
+    };
+
     struct LightData
     {
         vsg::vec4 color;
