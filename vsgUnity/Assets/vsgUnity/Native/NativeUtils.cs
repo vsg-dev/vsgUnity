@@ -162,6 +162,7 @@ namespace vsgUnity.Native
         public string id;
         public TextureData[] textures;
         public Vector4 diffuseColor;
+        public int useAlpha;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -473,7 +474,7 @@ namespace vsgUnity.Native
 
         public static MaterialData CreateMaterialData(Material material, ref Dictionary<string, TextureData> cache, Dictionary<string, int> channelLookup = null)
         {
-            if(channelLookup == null)
+            if (channelLookup == null)
             {
                 channelLookup = _StandardMaterialChannelLookupDictionary;
             }
@@ -520,7 +521,12 @@ namespace vsgUnity.Native
             }
 
             matdata.textures = texdatas.ToArray();
-            matdata.diffuseColor = material.color;
+
+            if (material.HasProperty("_Color")) matdata.diffuseColor = material.color;
+            else matdata.diffuseColor = Color.white;
+
+            string rendertype = material.GetTag("RenderType", true, "Opaque");
+            matdata.useAlpha = rendertype.Contains("Transparent") ? 1 : 0;
 
             return matdata;
         }

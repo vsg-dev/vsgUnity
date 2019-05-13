@@ -221,8 +221,49 @@ namespace vsgUnity.Native
 
                         if (subMeshCount > 1)
                         {
+                            // state group containing vertex and index buffers
+                            //GraphBuilder.unity2vsg_AddStateGroupNode();
+
+                            GraphBuilder.unity2vsg_AddCommandsNode();
+
+                            VertexBuffersData vertexBuffersData;
+                            if (vertexCache.ContainsKey(meshidstr))
+                            {
+                                vertexBuffersData = vertexCache[meshidstr];
+                            }
+                            else
+                            {
+                                vertexBuffersData = new VertexBuffersData();
+                                vertexBuffersData.id = mesh.GetInstanceID().ToString();
+                                vertexBuffersData.verticies = fullMeshData.verticies;
+                                vertexBuffersData.normals = fullMeshData.normals;
+                                vertexBuffersData.uv0 = fullMeshData.uv0;
+                                vertexCache.Add(meshidstr, vertexBuffersData);
+                            }
+
+                            GraphBuilder.unity2vsg_AddBindVertexBuffersCommand(vertexBuffersData);
+
+                            IndexBufferData indexBufferData;
+
+                            if (indexCache.ContainsKey(meshidstr))
+                            {
+                                indexBufferData = indexCache[meshidstr];
+                            }
+                            else
+                            {
+                                indexBufferData = new IndexBufferData();
+                                indexBufferData.id = mesh.GetInstanceID().ToString();
+                                indexBufferData.triangles.data = mesh.triangles;
+                                indexBufferData.triangles.length = indexBufferData.triangles.data.Length;
+                                indexCache.Add(meshidstr, indexBufferData);
+                            }
+
+                            GraphBuilder.unity2vsg_AddBindIndexBufferCommand(indexBufferData);
+
+                            GraphBuilder.unity2vsg_EndNode();
+
                             // create mesh data, if the mesh has already been created we only need to pass the ID to the addGeometry function
-                            foreach(string shaderkey in meshMaterials.Keys)
+                            foreach (string shaderkey in meshMaterials.Keys)
                             {
                                 List<MaterialData> mds = new List<MaterialData>(meshMaterials[shaderkey].Keys);
 
@@ -233,45 +274,12 @@ namespace vsgUnity.Native
 
                                 PipelineData pipelineData = NativeUtils.CreatePipelineData(fullMeshData); //WE NEED INFO ABOUT THE SHADER SO WE CAN BUILD A PIPLE LINE
                                 pipelineData.fragmentImageSamplerCount = mds[0].textures.Length;
+                                pipelineData.useAlpha = mds[0].useAlpha;
                                 pipelineData.id = NativeUtils.GetIDForPipeline(pipelineData);
 
                                 GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1);
 
                                 GraphBuilder.unity2vsg_AddCommandsNode();
-
-                                VertexBuffersData vertexBuffersData;
-                                if (vertexCache.ContainsKey(meshidstr))
-                                {
-                                    vertexBuffersData = vertexCache[meshidstr];
-                                }
-                                else
-                                {
-                                    vertexBuffersData = new VertexBuffersData();
-                                    vertexBuffersData.id = mesh.GetInstanceID().ToString();
-                                    vertexBuffersData.verticies = fullMeshData.verticies;
-                                    vertexBuffersData.normals = fullMeshData.normals;
-                                    vertexBuffersData.uv0 = fullMeshData.uv0;
-                                    vertexCache.Add(meshidstr, vertexBuffersData);
-                                }
-
-                                GraphBuilder.unity2vsg_AddBindVertexBuffersCommand(vertexBuffersData);
-
-                                IndexBufferData indexBufferData;
-
-                                if (indexCache.ContainsKey(meshidstr))
-                                {
-                                    indexBufferData = indexCache[meshidstr];
-                                }
-                                else
-                                {
-                                    indexBufferData = new IndexBufferData();
-                                    indexBufferData.id = mesh.GetInstanceID().ToString();
-                                    indexBufferData.triangles.data = mesh.triangles;
-                                    indexBufferData.triangles.length = indexBufferData.triangles.data.Length;
-                                    indexCache.Add(meshidstr, indexBufferData);
-                                }
-
-                                GraphBuilder.unity2vsg_AddBindIndexBufferCommand(indexBufferData);
 
                                 foreach(MaterialData md in mds)
                                 {
@@ -293,9 +301,10 @@ namespace vsgUnity.Native
                                         GraphBuilder.unity2vsg_AddDrawIndexedCommand(drawIndexedData);
                                     }
                                 }
-                                GraphBuilder.unity2vsg_EndNode(); // step out of stategroup node
-                                GraphBuilder.unity2vsg_EndNode(); // step out of commands node
+                                GraphBuilder.unity2vsg_EndNode(); // step out of stategroup node for shader
+                                GraphBuilder.unity2vsg_EndNode(); // step out of commands node for descriptors and draw indexed commands
                             }
+                            //GraphBuilder.unity2vsg_EndNode(); // step out of stategroup for vertex and index buffers
                         }
                         else
                         {
@@ -311,6 +320,7 @@ namespace vsgUnity.Native
 
                                     PipelineData pipelineData = NativeUtils.CreatePipelineData(fullMeshData); //WE NEED INFO ABOUT THE SHADER SO WE CAN BUILD A PIPLE LINE
                                     pipelineData.fragmentImageSamplerCount = mds[0].textures.Length;
+                                    pipelineData.useAlpha = mds[0].useAlpha;
                                     pipelineData.id = NativeUtils.GetIDForPipeline(pipelineData);
 
                                     GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1);
