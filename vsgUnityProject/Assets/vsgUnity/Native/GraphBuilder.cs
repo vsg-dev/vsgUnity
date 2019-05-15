@@ -221,47 +221,14 @@ namespace vsgUnity.Native
 
                         if (subMeshCount > 1)
                         {
-                            // state group containing vertex and index buffers
-                            //GraphBuilder.unity2vsg_AddStateGroupNode();
-
+ 
+                            /*
                             GraphBuilder.unity2vsg_AddCommandsNode();
 
-                            VertexBuffersData vertexBuffersData;
-                            if (vertexCache.ContainsKey(meshidstr))
-                            {
-                                vertexBuffersData = vertexCache[meshidstr];
-                            }
-                            else
-                            {
-                                vertexBuffersData = new VertexBuffersData();
-                                vertexBuffersData.id = mesh.GetInstanceID().ToString();
-                                vertexBuffersData.verticies = fullMeshData.verticies;
-                                vertexBuffersData.normals = fullMeshData.normals;
-                                vertexBuffersData.uv0 = fullMeshData.uv0;
-                                vertexCache.Add(meshidstr, vertexBuffersData);
-                            }
-
-                            GraphBuilder.unity2vsg_AddBindVertexBuffersCommand(vertexBuffersData);
-
-                            IndexBufferData indexBufferData;
-
-                            if (indexCache.ContainsKey(meshidstr))
-                            {
-                                indexBufferData = indexCache[meshidstr];
-                            }
-                            else
-                            {
-                                indexBufferData = new IndexBufferData();
-                                indexBufferData.id = mesh.GetInstanceID().ToString();
-                                indexBufferData.triangles.data = mesh.triangles;
-                                indexBufferData.triangles.length = indexBufferData.triangles.data.Length;
-                                indexBufferData.use32BitIndicies = fullMeshData.use32BitIndicies;
-                                indexCache.Add(meshidstr, indexBufferData);
-                            }
-
-                            GraphBuilder.unity2vsg_AddBindIndexBufferCommand(indexBufferData);
+                            // bind verts was here
 
                             GraphBuilder.unity2vsg_EndNode();
+                            */
 
                             // create mesh data, if the mesh has already been created we only need to pass the ID to the addGeometry function
                             foreach (string shaderkey in meshMaterials.Keys)
@@ -282,7 +249,43 @@ namespace vsgUnity.Native
 
                                 GraphBuilder.unity2vsg_AddCommandsNode();
 
-                                foreach(MaterialData md in mds)
+                                VertexBuffersData vertexBuffersData;
+                                if (vertexCache.ContainsKey(meshidstr))
+                                {
+                                    vertexBuffersData = vertexCache[meshidstr];
+                                }
+                                else
+                                {
+                                    vertexBuffersData = new VertexBuffersData();
+                                    vertexBuffersData.id = mesh.GetInstanceID().ToString();
+                                    vertexBuffersData.verticies = fullMeshData.verticies;
+                                    vertexBuffersData.normals = fullMeshData.normals;
+                                    vertexBuffersData.uv0 = fullMeshData.uv0;
+                                    vertexCache.Add(meshidstr, vertexBuffersData);
+                                }
+
+                                GraphBuilder.unity2vsg_AddBindVertexBuffersCommand(vertexBuffersData);
+
+                                IndexBufferData indexBufferData;
+
+                                if (indexCache.ContainsKey(meshidstr))
+                                {
+                                    indexBufferData = indexCache[meshidstr];
+                                }
+                                else
+                                {
+                                    indexBufferData = new IndexBufferData();
+                                    indexBufferData.id = mesh.GetInstanceID().ToString();
+                                    indexBufferData.triangles.data = mesh.triangles;
+                                    indexBufferData.triangles.length = indexBufferData.triangles.data.Length;
+                                    indexBufferData.use32BitIndicies = fullMeshData.use32BitIndicies;
+                                    indexCache.Add(meshidstr, indexBufferData);
+                                }
+
+                                GraphBuilder.unity2vsg_AddBindIndexBufferCommand(indexBufferData);
+
+
+                                foreach (MaterialData md in mds)
                                 {
                                     foreach(TextureData t in md.textures)
                                     {
@@ -305,7 +308,6 @@ namespace vsgUnity.Native
                                 GraphBuilder.unity2vsg_EndNode(); // step out of stategroup node for shader
                                 GraphBuilder.unity2vsg_EndNode(); // step out of commands node for descriptors and draw indexed commands
                             }
-                            //GraphBuilder.unity2vsg_EndNode(); // step out of stategroup for vertex and index buffers
                         }
                         else
                         {

@@ -393,7 +393,6 @@ public:
                 }
 
                 geometry->_indices = indiciesushort;
-                geometry->_indexType = VK_INDEX_TYPE_UINT16;
             }
             else
             {
@@ -404,7 +403,6 @@ public:
                 }
 
                 geometry->_indices = indiciesuint;
-                geometry->_indexType = VK_INDEX_TYPE_UINT32;
             }
 
             geometry->indexCount = data.triangles.length;
@@ -455,7 +453,6 @@ public:
                 }
 
                 geometry->_indices = indiciesushort;
-                geometry->_indexType = VK_INDEX_TYPE_UINT16;
             }
             else
             {
@@ -466,7 +463,6 @@ public:
                 }
 
                 geometry->_indices = indiciesuint;
-                geometry->_indexType = VK_INDEX_TYPE_UINT32;
             }
             geometry->_commands = {vsg::DrawIndexed::create(data.triangles.length, 1, 0, 0, 0)};
 
@@ -653,7 +649,7 @@ public:
                 {
                     indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
                 }
-                cmd = vsg::BindIndexBuffer::create(indiciesushort, VK_INDEX_TYPE_UINT16);
+                cmd = vsg::BindIndexBuffer::create(indiciesushort);
             }
             else
             {
@@ -663,7 +659,7 @@ public:
                     indiciesuint->set(i, static_cast<uint32_t>(data.triangles.ptr[i]));
                 }
 
-                cmd = vsg::BindIndexBuffer::create(indiciesuint, VK_INDEX_TYPE_UINT32);
+                cmd = vsg::BindIndexBuffer::create(indiciesuint);
             }
             _bindIndexBufferCache[idstr] = cmd;
         }
