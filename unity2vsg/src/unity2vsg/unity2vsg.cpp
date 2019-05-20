@@ -788,62 +788,136 @@ public:
             texture = vsg::Texture::create();
 
             vsg::ref_ptr<vsg::Data> texdata;
-            VkFormat format = vkFormatForTexFormat(data.format);
+            VkFormat format = data.format;
+            VkFormatSizeInfo sizeInfo = GetSizeInfoForFormat(data.format);
+            sizeInfo.layout.maxNumMipmaps = data.mipmapCount;
+            uint32_t blockVolume = sizeInfo.layout.blockWidth * sizeInfo.layout.blockHeight * sizeInfo.layout.blockDepth;
 
             if (data.depth == 1)
             {
-                switch (format)
+                if (blockVolume == 1)
                 {
-                case VK_FORMAT_R8_UNORM:
-                {
-                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray2D(data.width, data.height, data.pixels.ptr));
-                    break;
+                    switch (format)
+                    {
+                        //
+                        // uint8 formats
+
+                        // 1 component
+                        case VK_FORMAT_R8_UNORM:
+                        case VK_FORMAT_R8_SRGB:
+                        {
+                            texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray2D(data.width, data.height, data.pixels.ptr));
+                            break;
+                        }
+                        // 2 component
+                        case VK_FORMAT_R8G8_UNORM:
+                        case VK_FORMAT_R8G8_SRGB:
+                        {
+                            texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec2*>(data.pixels.ptr)));
+                            break;
+                        }
+                        // 4 component
+                        case VK_FORMAT_R8G8B8A8_UNORM:
+                        case VK_FORMAT_R8G8B8A8_SRGB:
+                        {
+                            texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec4*>(data.pixels.ptr)));
+                            break;
+                        }
+
+                        //
+                        // uint16 formats
+
+                        // 1 component
+                        case VK_FORMAT_R16_UNORM:
+                        {
+                            texdata = vsg::ref_ptr<vsg::Data>(new vsg::ushortArray2D(data.width, data.height, reinterpret_cast<uint16_t*>(data.pixels.ptr)));
+                            break;
+                        }
+                        // 2 component
+                        case VK_FORMAT_R16G16_UNORM:
+                        {
+                            texdata = vsg::ref_ptr<vsg::Data>(new vsg::usvec2Array2D(data.width, data.height, reinterpret_cast<vsg::usvec2*>(data.pixels.ptr)));
+                            break;
+                        }
+                        // 4 component
+                        case VK_FORMAT_R16G16B16A16_UNORM:
+                        {
+                            texdata = vsg::ref_ptr<vsg::Data>(new vsg::usvec4Array2D(data.width, data.height, reinterpret_cast<vsg::usvec4*>(data.pixels.ptr)));
+                            break;
+                        }
+
+                        //
+                        // uint32 formats
+
+                        // 1 component
+                        case VK_FORMAT_R32_UINT:
+                        {
+                            texdata = vsg::ref_ptr<vsg::Data>(new vsg::uintArray2D(data.width, data.height, reinterpret_cast<uint32_t*>(data.pixels.ptr)));
+                            break;
+                        }
+                        // 2 component
+                        case VK_FORMAT_R32G32_UINT:
+                        {
+                            texdata = vsg::ref_ptr<vsg::Data>(new vsg::uivec2Array2D(data.width, data.height, reinterpret_cast<vsg::uivec2*>(data.pixels.ptr)));
+                            break;
+                        }
+                        // 4 component
+                        case VK_FORMAT_R32G32B32A32_UINT:
+                        {
+                            texdata = vsg::ref_ptr<vsg::Data>(new vsg::uivec4Array2D(data.width, data.height, reinterpret_cast<vsg::uivec4*>(data.pixels.ptr)));
+                            break;
+                        }
+
+                        default: break;
+                    }
                 }
-                case VK_FORMAT_R8G8_UNORM:
+                else
                 {
-                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec2*>(data.pixels.ptr)));
-                    break;
-                }
-                case VK_FORMAT_R8G8B8A8_UNORM:
-                {
-                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec4*>(data.pixels.ptr)));
-                    break;
-                }
-                default:
-                {
-                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray2D(data.width, data.height, data.pixels.ptr));
-                    break;
-                }
+                    uint32_t width = data.width / sizeInfo.layout.blockWidth;
+                    uint32_t height = data.height / sizeInfo.layout.blockHeight;
+                    uint32_t depth = data.depth / sizeInfo.layout.blockDepth;
+
+                    if (sizeInfo.blockSize == 64)
+                    {
+                        texdata = new vsg::block64Array2D(width, height, reinterpret_cast<vsg::block64*>(data.pixels.ptr));
+                    }
+                    else if (sizeInfo.blockSize == 128)
+                    {
+                        texdata = new vsg::block128Array2D(width, height, reinterpret_cast<vsg::block128*>(data.pixels.ptr));
+                    }
                 }
             }
-            else if (data.depth > 1)
+            else if (data.depth > 1) // 3d textures
             {
                 switch (format)
                 {
-                case VK_FORMAT_R8_UNORM:
-                {
-                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray3D(data.width, data.height, data.depth, data.pixels.ptr));
-                    break;
-                }
-                case VK_FORMAT_R8G8_UNORM:
-                {
-                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec2*>(data.pixels.ptr)));
-                    break;
-                }
-                case VK_FORMAT_R8G8B8A8_UNORM:
-                {
-                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec4*>(data.pixels.ptr)));
-                    break;
-                }
-                default:
-                {
-                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray3D(data.width, data.height, data.depth, data.pixels.ptr));
-                    break;
-                }
+                    case VK_FORMAT_R8_UNORM:
+                    {
+                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray3D(data.width, data.height, data.depth, data.pixels.ptr));
+                        break;
+                    }
+                    case VK_FORMAT_R8G8_UNORM:
+                    {
+                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec2*>(data.pixels.ptr)));
+                        break;
+                    }
+                    case VK_FORMAT_R8G8B8A8_UNORM:
+                    {
+                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec4*>(data.pixels.ptr)));
+                        break;
+                    }
+                    default: break;
                 }
             }
 
+            if (!texdata.valid())
+            {
+                DebugLog("GraphBuilder Error: Unable to handle texture format");
+                return;
+            }
+
             texdata->setFormat(format);
+            texdata->setLayout(sizeInfo.layout);
 
             texture->_textureData = texdata;
             texture->_samplerInfo = vkSamplerCreateInfoForTextureData(data);
