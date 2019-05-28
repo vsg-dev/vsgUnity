@@ -27,6 +27,8 @@ extern "C"
     UNITY2VSG_EXPORT void unity2vsg_AddTransformNode(unity2vsg::TransformData transform);
     UNITY2VSG_EXPORT void unity2vsg_AddCullNode(unity2vsg::CullData cull);
     UNITY2VSG_EXPORT void unity2vsg_AddCullGroupNode(unity2vsg::CullData cull);
+    UNITY2VSG_EXPORT void unity2vsg_AddLODNode(unity2vsg::CullData cull);
+    UNITY2VSG_EXPORT void unity2vsg_AddLODChild(unity2vsg::LODChildData lodChildData);
     UNITY2VSG_EXPORT void unity2vsg_AddStateGroupNode();
     UNITY2VSG_EXPORT void unity2vsg_AddCommandsNode();
     UNITY2VSG_EXPORT void unity2vsg_AddVertexIndexDrawNode(unity2vsg::MeshData mesh);

@@ -203,6 +203,11 @@ namespace unity2vsg
         float radius;
     };
 
+    struct LODChildData
+    {
+        float minimumScreenHeightRatio;
+    };
+
     struct LightData
     {
         vsg::vec4 color;

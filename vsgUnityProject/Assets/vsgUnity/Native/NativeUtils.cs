@@ -417,6 +417,12 @@ namespace vsgUnity.Native
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    public struct LODChildData
+    {
+        public float minimumScreenHeightRatio;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public struct CameraData
     {
         public Vector3 position;

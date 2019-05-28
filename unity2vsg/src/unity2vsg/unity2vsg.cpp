@@ -339,6 +339,27 @@ public:
         pushNodeToStack(cullGroup);
     }
 
+    void addLOD(CullData cull)
+    {
+        auto lod = vsg::LOD::create();
+        lod->setBound(vsg::sphere(cull.center, cull.radius));
+        if (!addChildToHead(lod))
+        {
+            DebugLog("GraphBuilder Error: Current head is not a group");
+        }
+        pushNodeToStack(lod);
+    }
+
+    void addLODChild(LODChildData lodChild)
+    {
+        auto group = vsg::Group::create();
+        if (!addLODChildToHead(group, lodChild))
+        {
+            DebugLog("GraphBuilder Warning: Current head is not an LOD");
+        }
+        pushNodeToStack(group);
+    }
+
     void addStateGroup()
     {
         auto stategroup = vsg::StateGroup::create();
@@ -947,6 +968,12 @@ public:
         return dynamic_cast<vsg::Group*>(_nodeStack[_nodeStack.size() - 1].get());
     }
 
+    vsg::LOD* getHeadAsLOD()
+    {
+        if (_nodeStack.size() == 0) return nullptr;
+        return dynamic_cast<vsg::LOD*>(_nodeStack[_nodeStack.size() - 1].get());
+    }
+
     vsg::StateGroup* getHeadAsStateGroup()
     {
         if (_nodeStack.size() == 0) return nullptr;
@@ -965,6 +992,20 @@ public:
         if (headGroup != nullptr)
         {
             headGroup->addChild(node);
+            return true;
+        }
+        return false;
+    }
+
+    bool addLODChildToHead(vsg::ref_ptr<vsg::Node> node, LODChildData lodData)
+    {
+        vsg::LOD* headLOD = getHeadAsLOD();
+        if (headLOD != nullptr)
+        {
+            vsg::LOD::LODChild lod;
+            lod.child = node;
+            lod.minimumScreenHeightRatio = lodData.minimumScreenHeightRatio;
+            headLOD->addChild(lod);
             return true;
         }
         return false;
@@ -1108,6 +1149,16 @@ void unity2vsg_AddCullNode(unity2vsg::CullData cull)
 void unity2vsg_AddCullGroupNode(unity2vsg::CullData cull)
 {
     _builder->addCullGroup(cull);
+}
+
+void unity2vsg_AddLODNode(unity2vsg::CullData cull)
+{
+    _builder->addLOD(cull);
+}
+
+void unity2vsg_AddLODChild(unity2vsg::LODChildData lodChildData)
+{
+    _builder->addLODChild(lodChildData);
 }
 
 void unity2vsg_AddStateGroupNode()

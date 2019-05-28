@@ -30,6 +30,12 @@ namespace vsgUnity.Native
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddCullGroupNode")]
         private static extern void unity2vsg_AddCullGroupNode(CullData cull);
 
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddLODNode")]
+        private static extern void unity2vsg_AddLODNode(CullData cull);
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddLODChild")]
+        private static extern void unity2vsg_AddLODChild(LODChildData lodChildData);
+
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddStateGroupNode")]
         private static extern void unity2vsg_AddStateGroupNode();
 
@@ -353,10 +359,47 @@ namespace vsgUnity.Native
                     }
                 }
 
-                // transverse any children
-                for (int i = 0; i < gotrans.childCount; i++)
+                // does this node have an LOD group
+                LODGroup lodgroup = go.GetComponent<LODGroup>();
+                if (lodgroup != null)
                 {
-                    processGameObject(gotrans.GetChild(i).gameObject);
+                    // rather than process the children we figure out which renderers are in which children and add them as LOD children
+                    LOD[] lods = lodgroup.GetLODs();
+                    if (lods.Length > 0)
+                    {
+                        // get bounds from first renderer
+                        if (lods[0].renderers.Length > 0)
+                        {
+                            CullData lodCullData = new CullData();
+                            lodCullData.center = lods[0].renderers[0].bounds.center;
+                            lodCullData.radius = lods[0].renderers[0].bounds.size.magnitude;
+                            unity2vsg_AddLODNode(lodCullData);
+
+                            for (int i = 0; i < lods.Length; i++)
+                            {
+                                // for now just support one renderer and assume it's under a seperate child gameObject
+                                if (lods[i].renderers.Length == 0) continue;
+                                LODChildData lodChild = new LODChildData();
+                                lodChild.minimumScreenHeightRatio = lods[i].screenRelativeTransitionHeight;
+                                unity2vsg_AddLODChild(lodChild);
+
+                                // now process the renderers gameobject, it'll be added to the group we just created by adding an LOD child
+                                processGameObject(lods[i].renderers[0].gameObject);
+
+                                unity2vsg_EndNode();
+                            }
+
+                            unity2vsg_EndNode(); // end the lod node
+                        }
+                    }
+                }
+                else
+                {
+                    // transverse any children
+                    for (int i = 0; i < gotrans.childCount; i++)
+                    {
+                        processGameObject(gotrans.GetChild(i).gameObject);
+                    }
                 }
 
                 // if we added a group or transform step out
