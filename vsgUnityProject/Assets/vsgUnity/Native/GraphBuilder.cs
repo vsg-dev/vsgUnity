@@ -359,6 +359,13 @@ namespace vsgUnity.Native
                     }
                 }
 
+                // does this node have a terrain
+                Terrain terrain = go.GetComponent<Terrain>();
+                if(terrain != null)
+                {
+                    ExportTerrainMesh(terrain, meshCache);
+                }
+
                 // does this node have an LOD group
                 LODGroup lodgroup = go.GetComponent<LODGroup>();
                 if (lodgroup != null)
@@ -417,6 +424,98 @@ namespace vsgUnity.Native
             //GraphBuilder.unity2vsg_EndNode(); // step out of convert coord system node
 
             GraphBuilder.unity2vsg_EndExport(saveFileName);
+        }
+
+        public static void ExportTerrainMesh(Terrain terrain, Dictionary<string, MeshData> meshCache = null)
+        {
+            int samplew = terrain.terrainData.heightmapWidth;
+            int sampleh = terrain.terrainData.heightmapHeight;
+
+            int cellw = terrain.terrainData.heightmapWidth - 1;
+            int cellh = terrain.terrainData.heightmapHeight - 1;
+
+            Vector3 size = terrain.terrainData.size;
+
+            Vector2 cellsize = new Vector3(size.x / cellw, size.z / cellh);
+            Vector2 uvcellsize = new Vector2(1.0f / cellw, 1.0f / cellh);
+
+            float[,] terrainHeights = terrain.terrainData.GetHeights(0, 0, samplew, sampleh);
+
+            int vertcount = samplew * sampleh;
+            Vector3[] verts = new Vector3[vertcount];
+            Vector3[] normals = new Vector3[vertcount];
+            Vector2[] uvs = new Vector2[vertcount];
+
+            int[] indicies = new int[(cellw * cellh) * 6];
+
+            // Build vertices and UVs
+            for (int y = 0; y < samplew; y++)
+            {
+                for (int x = 0; x < sampleh; x++)
+                {
+                    verts[y * samplew + x] = new Vector3(x * cellsize.x, terrainHeights[y, x] * size.y, y * cellsize.y);
+                    normals[y * samplew + x] = terrain.terrainData.GetInterpolatedNormal((float)x / (float)samplew, (float)y / (float)sampleh);
+                    uvs[y * samplew + x] = new Vector2(x * uvcellsize.x, y * uvcellsize.y);
+                }
+            }
+
+            int index = 0;
+            for (int y = 0; y < cellw; y++)
+            {
+                for (int x = 0; x < cellh; x++)
+                {
+                    indicies[index++] = (y * samplew) + x;
+                    indicies[index++] = ((y + 1) * samplew) + x;
+                    indicies[index++] = (y * samplew) + x + 1;
+
+                    indicies[index++] = ((y + 1) * samplew) + x;
+                    indicies[index++] = ((y + 1) * samplew) + x + 1;
+                    indicies[index++] = (y * samplew) + x + 1;
+                }
+            }
+
+            // add stategroup and pipeline for shader
+            GraphBuilder.unity2vsg_AddStateGroupNode();
+
+            PipelineData pipelineData = new PipelineData();
+            pipelineData.hasNormals = 1;
+            pipelineData.uvChannelCount = 1;
+            pipelineData.fragmentImageSamplerCount = 0;
+            pipelineData.useAlpha = 0;
+            pipelineData.id = NativeUtils.GetIDForPipeline(pipelineData);
+
+            GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1);
+
+            /*foreach (TextureData t in mds[0].textures)
+            {
+                GraphBuilder.unity2vsg_AddTextureDescriptor(t);
+            }
+            if (mds[0].textures.Length > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
+            */
+
+            MeshData mesh = new MeshData();
+            mesh.id = terrain.GetInstanceID().ToString();
+            mesh.verticies.data = verts;
+            mesh.verticies.length = vertcount;
+            mesh.normals.data = normals;
+            mesh.normals.length = vertcount;
+            mesh.uv0.data = uvs;
+            mesh.uv0.length = vertcount;
+            mesh.triangles.data = indicies;
+            mesh.triangles.length = indicies.Length;
+            mesh.use32BitIndicies = 1;
+
+
+            GraphBuilder.unity2vsg_AddVertexIndexDrawNode(mesh);
+
+            GraphBuilder.unity2vsg_EndNode(); // step out of vertex index draw node
+            GraphBuilder.unity2vsg_EndNode(); // step out of stategroup node
+
+            if(meshCache != null)
+            {
+                meshCache.Add(mesh.id, mesh);
+            }
+
         }
     }
 

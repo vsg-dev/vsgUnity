@@ -65,16 +65,6 @@ void unity2vsg_ExportMesh(unity2vsg::MeshData mesh)
     vsg::GraphicsPipelineBuilder::Traits::DescriptorBindingSet bindingSet;
     uint32_t shaderMode = LIGHTING;
 
-    /*if (mesh.uv0.length > 0)
-    {
-        bindingSet[VK_SHADER_STAGE_FRAGMENT_BIT].push_back( { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER } );
-    }
-
-    traits->descriptorLayouts =
-    {
-        bindingSet
-    };*/
-
     // shaders
     vsg::ShaderModules shaders{
         vsg::ShaderModule::create(VK_SHADER_STAGE_VERTEX_BIT, "main", createFbxVertexSource(shaderMode, inputshaderatts)),
