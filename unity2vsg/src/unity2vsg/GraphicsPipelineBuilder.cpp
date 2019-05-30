@@ -28,20 +28,15 @@ void GraphicsPipelineBuilder::build(ref_ptr<Traits> traits)
 
     // create descriptor layouts
     DescriptorSetLayouts descriptorSetLayouts;
-    uint32_t bindingIndex = 0; // increment the binding index across all sets
 
-    for (uint32_t i = 0; i < traits->descriptorLayouts.size(); i++)
+    for (auto& bindingSet : traits->descriptorLayouts)
     {
-        Traits::DescriptorBindingSet bindingSet = traits->descriptorLayouts[i];
-
         DescriptorSetLayoutBindings setLayoutBindings;
-        for (VkShaderStageFlags stage : {VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT})
+        for (auto& stageBindings : bindingSet) // could order of stage type in map be important here??
         {
-            Traits::DescriptorBindngs stageBindings = bindingSet[stage];
-            for (uint32_t b = 0; b < stageBindings.size(); b++)
+            for (auto& stageBinding : stageBindings.second)
             {
-                setLayoutBindings.push_back({stageBindings[b].first, stageBindings[b].second, 1, stage, nullptr});
-                bindingIndex++;
+                setLayoutBindings.push_back({stageBinding.index, stageBinding.type, stageBinding.count, stageBindings.first, nullptr});
             }
         }
         descriptorSetLayouts.push_back(DescriptorSetLayout::create(setLayoutBindings));
@@ -51,7 +46,7 @@ void GraphicsPipelineBuilder::build(ref_ptr<Traits> traits)
     VertexInputState::Bindings vertexBindingsDescriptions;
     VertexInputState::Attributes vertexAttributeDescriptions;
     uint32_t locationIndex = 0;
-    bindingIndex = 0;
+    uint32_t bindingIndex = 0;
 
     for (auto& rate : {VK_VERTEX_INPUT_RATE_VERTEX, VK_VERTEX_INPUT_RATE_INSTANCE})
     {
@@ -77,8 +72,11 @@ void GraphicsPipelineBuilder::build(ref_ptr<Traits> traits)
         }
     }
 
+    auto shaderStages = ShaderStages::create(traits->shaderModules);
+    shaderStages->setSpecializationInfos(traits->_specializationInfos);
+
     GraphicsPipelineStates pipelineStates{
-        ShaderStages::create(traits->shaderModules),
+        shaderStages,
         VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         InputAssemblyState::create(traits->primitiveTopology),
         RasterizationState::create(),

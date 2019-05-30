@@ -24,13 +24,20 @@ namespace vsg
         public:
             ShaderModules shaderModules;
 
+            ShaderStages::StageSpecializationInfos _specializationInfos;
+
             using VertexInputAttributeDescription = std::pair<uint32_t, VkFormat>;                // location index, format
             using StructInputAttributeDescription = std::vector<VertexInputAttributeDescription>; // list of vertex input desccriptions making an entire struct for a single binding
             using InputAttributeDescriptions = std::vector<StructInputAttributeDescription>;
 
             std::map<VkVertexInputRate, InputAttributeDescriptions> vertexAttributeDescriptions;
 
-            using DescriptorBinding = std::pair<uint32_t, VkDescriptorType>; // binding index, descriptor type
+            struct DescriptorBinding //should this just be vkDescriptorSetLayoutBinding??
+            {
+                uint32_t index; 
+                VkDescriptorType type;
+                uint32_t count = 1;
+            };
             using DescriptorBindngs = std::vector<DescriptorBinding>;
             using DescriptorBindingSet = std::map<VkShaderStageFlags, DescriptorBindngs>;
 

@@ -20,6 +20,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vsg/maths/vec3.h>
 #include <vsg/maths/vec4.h>
 
+#include "GraphicsPipelineBuilder.h"
+
 namespace unity2vsg
 {
     // types used to pass data from Unity C# to native code
@@ -83,6 +85,12 @@ namespace unity2vsg
         uint32_t length;
     };
 
+    struct DescriptorBindingsArray
+    {
+        vsg::GraphicsPipelineBuilder::Traits::DescriptorBinding* ptr;
+        uint32_t length;
+    };
+
     struct MeshData
     {
         const char* id;
@@ -124,34 +132,6 @@ namespace unity2vsg
         uint32_t firstInstance;
     };
 
-    enum TexFormat
-    {
-        R8_UNORM = 0,
-        R8G8_UNORM = 1,
-        R8G8B8_UNORM = 2,
-        R8G8B8A8_UNORM = 3,
-        BC1_RGB_UNORM = 4,  //dxt1
-        BC1_RGBA_UNORM = 5, //dxt1
-        UnsupportedFormat = 9999
-    };
-
-    enum MipmapFilterMode
-    {
-        Point = 0,
-        Bilinear = 1,
-        Trilinear = 2,
-        UnsupportedFilterMode = 9999
-    };
-
-    enum WrapMode
-    {
-        Repeat = 0,
-        Clamp = 1,
-        Mirror = 2,
-        MirrorOnce = 3,
-        UnsupportedWrapMode = 9999
-    };
-
     struct TextureData
     {
         const char* id;
@@ -162,10 +142,26 @@ namespace unity2vsg
         uint32_t height;
         uint32_t depth;
         uint32_t anisoLevel;
-        WrapMode wrapMode;
-        MipmapFilterMode filterMode;
+        VkSamplerAddressMode wrapMode;
+        VkFilter filterMode;
+        VkSamplerMipmapMode mipmapMode;
         uint32_t mipmapCount;
         float mipmapBias;
+    };
+
+    struct TextureDataArray
+    {
+        TextureData* ptr;
+        uint32_t length;
+    };
+
+    struct ShaderData
+    {
+        const char* vertexSource;
+        const char* fragmentSource;
+        UIntArray vertexSpecializationData;
+        UIntArray fragmentSpecializationData;
+        const char* customDefines;
     };
 
     struct PipelineData
@@ -175,11 +171,10 @@ namespace unity2vsg
         uint32_t hasTangents;
         uint32_t hasColors;
         uint32_t uvChannelCount;
-        uint32_t vertexImageSamplerCount;
-        uint32_t fragmentImageSamplerCount;
-        uint32_t vertexUniformCount;
-        uint32_t fragmentUniformCount;
         uint32_t useAlpha;
+        DescriptorBindingsArray vertexDescriptorBindings;
+        DescriptorBindingsArray fragmentDescriptorBindings;
+        ShaderData shader;
     };
 
     struct TransformData
@@ -223,45 +218,18 @@ namespace unity2vsg
         return vsg::ref_ptr<vsg::Array<T>>(new vsg::Array<T>(static_cast<size_t>(length), ptr));
     }
 
-    VkSamplerAddressMode vkSamplerAddressModeForWrapMode(WrapMode wrap)
-    {
-        switch (wrap)
-        {
-        case WrapMode::Repeat: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        case WrapMode::Clamp: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        case WrapMode::Mirror:
-        case WrapMode::MirrorOnce: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-        default: break;
-        }
-        return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM; // unknown
-    }
-
-    std::pair<VkFilter, VkSamplerMipmapMode> vkFilterAndSamplerMipmapModeForMipmapFilterMode(MipmapFilterMode filtermode)
-    {
-        switch (filtermode)
-        {
-        case MipmapFilterMode::Point: return {VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST};
-        case MipmapFilterMode::Bilinear: return {VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST};
-        case MipmapFilterMode::Trilinear: return {VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR};
-        default: break;
-        }
-        return {VK_FILTER_MAX_ENUM, VK_SAMPLER_MIPMAP_MODE_MAX_ENUM}; // unknown
-    }
-
     VkSamplerCreateInfo vkSamplerCreateInfoForTextureData(const TextureData& data)
     {
-        auto minFilterMipmapMode = vkFilterAndSamplerMipmapModeForMipmapFilterMode(data.filterMode);
-        auto magFilterMipmapMode = vkFilterAndSamplerMipmapModeForMipmapFilterMode(data.filterMode);
         bool mipmappingRequired = data.mipmapCount > 1;
 
         VkSamplerCreateInfo samplerInfo = {};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.minFilter = minFilterMipmapMode.first;
-        samplerInfo.magFilter = magFilterMipmapMode.first;
-        samplerInfo.mipmapMode = minFilterMipmapMode.second;
-        samplerInfo.addressModeU = vkSamplerAddressModeForWrapMode(data.wrapMode);
-        samplerInfo.addressModeV = vkSamplerAddressModeForWrapMode(data.wrapMode);
-        samplerInfo.addressModeW = vkSamplerAddressModeForWrapMode(data.wrapMode);
+        samplerInfo.minFilter = data.filterMode;
+        samplerInfo.magFilter = data.filterMode;
+        samplerInfo.mipmapMode = data.mipmapMode;
+        samplerInfo.addressModeU = data.wrapMode;
+        samplerInfo.addressModeV = data.wrapMode;
+        samplerInfo.addressModeW = data.wrapMode;
 
         // requres Logical device to have deviceFeatures.samplerAnisotropy = VK_TRUE; set when creating the vsg::Deivce
         samplerInfo.anisotropyEnable = data.anisoLevel > 1.0f ? VK_TRUE : VK_FALSE;

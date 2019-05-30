@@ -20,7 +20,7 @@ using namespace unity2vsg;
 
 // create defines string based of shader mask
 
-std::vector<std::string> createPSCDefineStrings(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes)
+std::vector<std::string> createPSCDefineStrings(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes, const std::vector<std::string>& customDefines)
 {
     bool hasnormal = geometryAttrbutes & NORMAL;
     bool hastanget = geometryAttrbutes & TANGENT;
@@ -47,6 +47,11 @@ std::vector<std::string> createPSCDefineStrings(const uint32_t& shaderModeMask, 
     if (hastex0 && (shaderModeMask & SPECULAR_MAP)) defines.push_back("VSG_SPECULAR_MAP");
 
     if (shaderModeMask & BILLBOARD) defines.push_back("VSG_BILLBOARD");
+
+    if (customDefines.size() > 0)
+    {
+        std::copy(customDefines.begin(), customDefines.end(), std::back_inserter(defines));
+    }
 
     return defines;
 }
@@ -185,7 +190,7 @@ std::string debugFormatShaderSource(const std::string& source)
 }
 
 // read a glsl file and inject defines based on shadermodemask and geometryatts
-std::string unity2vsg::readGLSLShader(const std::string& filename, const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes)
+std::string unity2vsg::readGLSLShader(const std::string& filename, const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes, const std::vector<std::string>& customDefines)
 {
     std::string sourceBuffer;
     if (!vsg::readFile(sourceBuffer, filename))
@@ -194,14 +199,14 @@ std::string unity2vsg::readGLSLShader(const std::string& filename, const uint32_
         return std::string();
     }
 
-    auto defines = createPSCDefineStrings(shaderModeMask, geometryAttrbutes);
+    auto defines = createPSCDefineStrings(shaderModeMask, geometryAttrbutes, customDefines);
     std::string formatedSource = processGLSLShaderSource(sourceBuffer, defines);
     return formatedSource;
 }
 
 // create an fbx vertex shader
 
-std::string unity2vsg::createFbxVertexSource(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes)
+std::string unity2vsg::createFbxVertexSource(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes, const std::vector<std::string>& customDefines)
 {
     std::string source =
         "#version 450\n"
@@ -288,7 +293,7 @@ std::string unity2vsg::createFbxVertexSource(const uint32_t& shaderModeMask, con
         "#endif\n"
         "}\n";
 
-    auto defines = createPSCDefineStrings(shaderModeMask, geometryAttrbutes);
+    auto defines = createPSCDefineStrings(shaderModeMask, geometryAttrbutes, customDefines);
     std::string formatedSource = processGLSLShaderSource(source, defines);
 
     return formatedSource;
@@ -296,7 +301,7 @@ std::string unity2vsg::createFbxVertexSource(const uint32_t& shaderModeMask, con
 
 // create an fbx fragment shader
 
-std::string unity2vsg::createFbxFragmentSource(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes)
+std::string unity2vsg::createFbxFragmentSource(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes, const std::vector<std::string>& customDefines)
 {
     std::string source =
         "#version 450\n"
@@ -401,7 +406,7 @@ std::string unity2vsg::createFbxFragmentSource(const uint32_t& shaderModeMask, c
         "#endif\n"
         "}\n";
 
-    auto defines = createPSCDefineStrings(shaderModeMask, geometryAttrbutes);
+    auto defines = createPSCDefineStrings(shaderModeMask, geometryAttrbutes, customDefines);
     std::string formatedSource = processGLSLShaderSource(source, defines);
 
     return formatedSource;

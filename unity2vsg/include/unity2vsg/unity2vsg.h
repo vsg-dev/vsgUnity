@@ -17,8 +17,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 extern "C"
 {
-    UNITY2VSG_EXPORT void unity2vsg_ExportMesh(unity2vsg::MeshData mesh);
-
     UNITY2VSG_EXPORT void unity2vsg_BeginExport();
     UNITY2VSG_EXPORT void unity2vsg_EndExport(const char* saveFileName);
 
@@ -38,7 +36,7 @@ extern "C"
     UNITY2VSG_EXPORT void unity2vsg_AddStringValue(const char* name, const char* value);
 
     // add command to commands node if one is current head or last stategroup node
-    UNITY2VSG_EXPORT void unity2vsg_AddBindGraphicsPipelineCommand(unity2vsg::PipelineData pipeline, uint32_t addToStateGroup);
+    UNITY2VSG_EXPORT int unity2vsg_AddBindGraphicsPipelineCommand(unity2vsg::PipelineData pipeline, uint32_t addToStateGroup);
     UNITY2VSG_EXPORT void unity2vsg_AddBindIndexBufferCommand(unity2vsg::IndexBufferData data);
     UNITY2VSG_EXPORT void unity2vsg_AddBindVertexBuffersCommand(unity2vsg::VertexBuffersData data);
     UNITY2VSG_EXPORT void unity2vsg_AddDrawIndexedCommand(unity2vsg::DrawIndexedData data);
@@ -47,6 +45,8 @@ extern "C"
 
     // add descriptor to current descriptors list that will be bound by BindDescriptors call
     UNITY2VSG_EXPORT void unity2vsg_AddTextureDescriptor(unity2vsg::TextureData texture);
+
+    UNITY2VSG_EXPORT void unity2vsg_AddTextureArrayDescriptor(unity2vsg::TextureDataArray textureArray);
 
     UNITY2VSG_EXPORT void unity2vsg_EndNode();
 

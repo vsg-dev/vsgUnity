@@ -39,6 +39,10 @@ namespace vsgUnity.Editor
             if(!_hasInited)
             {
                 _settings.autoAddCullNodes = false;
+
+                _settings.terrainVertexShaderPath = PathForShaderAsset("terrainVertexShader");
+                _settings.terrainFragmentShaderPath = PathForShaderAsset("terrainFragmentShader");
+
                 _hasInited = true;
             }
 
@@ -55,6 +59,15 @@ namespace vsgUnity.Editor
             PopulatePreviewCamerasList();
 
             window.Show();
+        }
+
+        static string PathForShaderAsset(string shaderFileName)
+        {
+            string[] shaderGUID = AssetDatabase.FindAssets(shaderFileName);
+            if (shaderGUID == null || shaderGUID.Length == 0) return string.Empty;
+            string datapath = Application.dataPath;
+            datapath = datapath.Remove(datapath.Length - ("Assets").Length);
+            return Path.Combine(datapath, AssetDatabase.GUIDToAssetPath(shaderGUID[0]));
         }
 
         void ExportTarget()
@@ -107,7 +120,7 @@ namespace vsgUnity.Editor
             EditorGUILayout.BeginHorizontal();
             {
                 EditorGUILayout.PrefixLabel("Folder");
-                GUILayout.Label(_exportDirectory);
+                GUILayout.Label(_exportDirectory, GUILayout.MaxHeight(100));
 
                 if (GUILayout.Button("...", GUILayout.MaxWidth(GUI.skin.button.lineHeight * 2.0f)))
                 {
@@ -127,6 +140,9 @@ namespace vsgUnity.Editor
             _binaryExport = EditorGUILayout.Toggle("Binary", _binaryExport);
 
             _settings.autoAddCullNodes = EditorGUILayout.Toggle("Add Cull Nodes", _settings.autoAddCullNodes);
+
+            EditorGUILayout.LabelField(_settings.terrainVertexShaderPath);
+            EditorGUILayout.LabelField(_settings.terrainFragmentShaderPath);
 
             EditorGUILayout.Separator();
 

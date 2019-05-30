@@ -18,8 +18,10 @@ namespace unity2vsg
         TEXCOORD0 = 128,
         TEXCOORD1 = 256,
         TEXCOORD2 = 512,
+        TRANSLATE = 1024,
+        TRANSLATE_OVERALL = 2048,
         STANDARD_ATTS = VERTEX | NORMAL | TANGENT | COLOR | TEXCOORD0,
-        ALL_ATTS = VERTEX | NORMAL | NORMAL_OVERALL | TANGENT | TANGENT_OVERALL | COLOR | COLOR_OVERALL | TEXCOORD0 | TEXCOORD1 | TEXCOORD2
+        ALL_ATTS = VERTEX | NORMAL | NORMAL_OVERALL | TANGENT | TANGENT_OVERALL | COLOR | COLOR_OVERALL | TEXCOORD0 | TEXCOORD1 | TEXCOORD2 | TRANSLATE | TRANSLATE_OVERALL
     };
 
     enum ShaderModeMask : uint32_t
@@ -34,28 +36,16 @@ namespace unity2vsg
         AMBIENT_MAP = 64,
         NORMAL_MAP = 128,
         SPECULAR_MAP = 256,
-        ALL_SHADER_MODE_MASK = LIGHTING | MATERIAL | BLEND | BILLBOARD | DIFFUSE_MAP | OPACITY_MAP | AMBIENT_MAP | NORMAL_MAP | SPECULAR_MAP
+        SHADER_TRANSLATE = 512,
+        ALL_SHADER_MODE_MASK = LIGHTING | MATERIAL | BLEND | BILLBOARD | DIFFUSE_MAP | OPACITY_MAP | AMBIENT_MAP | NORMAL_MAP | SPECULAR_MAP | SHADER_TRANSLATE
     };
 
-    // taken from osg fbx plugin
-    enum TextureUnit : uint32_t
-    {
-        DIFFUSE_TEXTURE_UNIT = 0,
-        OPACITY_TEXTURE_UNIT,
-        REFLECTION_TEXTURE_UNIT,
-        EMISSIVE_TEXTURE_UNIT,
-        AMBIENT_TEXTURE_UNIT,
-        NORMAL_TEXTURE_UNIT,
-        SPECULAR_TEXTURE_UNIT,
-        SHININESS_TEXTURE_UNIT
-    };
+    // read a glsl file and inject defines based on shadermode mask and geometryattributes
+    extern std::string readGLSLShader(const std::string& filename, const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes, const std::vector<std::string>& customDefines);
 
-    // read a glsl file and inject defines based on shadermodemask and geometryatts
-    extern std::string readGLSLShader(const std::string& filename, const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes);
-
-    // create shader source using statemask to determine type of shader to build and geometryattributes to determine attribute binding locations (specific to fbx files)
-    extern std::string createFbxVertexSource(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes);
-    extern std::string createFbxFragmentSource(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes);
+    // create standard shader and inject defines based on shadermode mask and geometryattributes
+    extern std::string createFbxVertexSource(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes, const std::vector<std::string>& customDefines);
+    extern std::string createFbxFragmentSource(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes, const std::vector<std::string>& customDefines);
 
     class ShaderCompiler : public vsg::Object
     {
