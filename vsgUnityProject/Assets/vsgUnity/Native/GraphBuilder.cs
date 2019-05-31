@@ -80,6 +80,9 @@ namespace vsgUnity.Native
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTextureDescriptor")]
         private static extern void unity2vsg_AddTextureDescriptor(TextureData texture);
 
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTextureArrayDescriptor")]
+        private static extern void unity2vsg_AddTextureArrayDescriptor(TextureDataArray textureArray);
+
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_EndNode")]
         private static extern void unity2vsg_EndNode();
 
@@ -123,6 +126,7 @@ namespace vsgUnity.Native
             Dictionary<string, VertexBuffersData>vertexCache = new Dictionary<string, VertexBuffersData>();
             Dictionary<string, DrawIndexedData>drawCache = new Dictionary<string, DrawIndexedData>();
             Dictionary<string, TextureData>textureCache = new Dictionary<string, TextureData>();
+            Dictionary<string, TextureDataArray> textureArrayCache = new Dictionary<string, TextureDataArray>();
             Dictionary<string, MaterialData>materialCache = new Dictionary<string, MaterialData>();
 
             System.Action<GameObject> processGameObject = null;
@@ -377,7 +381,7 @@ namespace vsgUnity.Native
                 Terrain terrain = go.GetComponent<Terrain>();
                 if(terrain != null)
                 {
-                    ExportTerrainMesh(terrain, settings, meshCache);
+                    ExportTerrainMesh(terrain, settings, meshCache, textureArrayCache);
                 }
 
                 // does this node have an LOD group
@@ -440,7 +444,7 @@ namespace vsgUnity.Native
             GraphBuilder.unity2vsg_EndExport(saveFileName);
         }
 
-        private static void ExportTerrainMesh(Terrain terrain, ExportSettings settings, Dictionary<string, MeshData> meshCache = null)
+        private static void ExportTerrainMesh(Terrain terrain, ExportSettings settings, Dictionary<string, MeshData> meshCache = null, Dictionary<string, TextureDataArray> textureArrayCache = null)
         {
             int samplew = terrain.terrainData.heightmapWidth;
             int sampleh = terrain.terrainData.heightmapHeight;
@@ -494,15 +498,41 @@ namespace vsgUnity.Native
             PipelineData pipelineData = new PipelineData();
             pipelineData.hasNormals = 1;
             pipelineData.uvChannelCount = 1;
-            //pipelineData.fragmentImageSamplerCount = 0;
             pipelineData.useAlpha = 0;
-            
+
+            List<string> shaderDefines = new List<string>() { "VSG_LIGHTING" };
+            List<DescriptorBinding> fragBindings = new List<DescriptorBinding>();
+
+            // convert layers into textures
+            TerrainLayer[] layers = terrain.terrainData.terrainLayers;
+            List<TextureData> textureDatas = new List<TextureData>();
+            TextureDataArray textureArray = new TextureDataArray() { length = 0 };
+            foreach (TerrainLayer layer in layers)
+            {
+                textureDatas.Add(NativeUtils.CreateTextureData(layer.diffuseTexture, 0));
+            }
+            if(textureDatas.Count > 0)
+            {
+                fragBindings.Add(new DescriptorBinding() { index = 0, type = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, count = textureDatas.Count });
+                shaderDefines.Add("VSG_DIFFUSE_MAP");
+                textureArray.data = textureDatas.ToArray();
+                textureArray.length = textureArray.data.Length;
+                if (textureArrayCache != null) textureArrayCache.Add(terrain.GetInstanceID().ToString(), textureArray);
+
+                pipelineData.shader.fragmentSpecializationData.data = new uint[] { 1 };
+                pipelineData.shader.fragmentSpecializationData.length = 1;
+            }
+
+            pipelineData.fragmentDescriptorBindings.data = fragBindings.ToArray();
+            pipelineData.fragmentDescriptorBindings.length = pipelineData.fragmentDescriptorBindings.data.Length;
+
+            pipelineData.shader.customDefines = string.Join(",", shaderDefines.ToArray());
+
             // use custom shader if present
             if (!string.IsNullOrEmpty(settings.terrainVertexShaderPath) && !string.IsNullOrEmpty(settings.terrainFragmentShaderPath))
             {
                 pipelineData.shader.vertexSource = settings.terrainVertexShaderPath;
                 pipelineData.shader.fragmentSource = settings.terrainFragmentShaderPath;
-                pipelineData.shader.customDefines = "VSG_LIGHTING";
             }
 
             pipelineData.id = NativeUtils.GetIDForPipeline(pipelineData);
@@ -510,12 +540,11 @@ namespace vsgUnity.Native
             if (GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1) == 1)
             {
 
-                /*foreach (TextureData t in mds[0].textures)
+                if(textureArray.length > 0)
                 {
-                    GraphBuilder.unity2vsg_AddTextureDescriptor(t);
+                    GraphBuilder.unity2vsg_AddTextureArrayDescriptor(textureArray);
+                    GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
                 }
-                if (mds[0].textures.Length > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
-                */
 
                 MeshData mesh = new MeshData();
                 mesh.id = terrain.GetInstanceID().ToString();

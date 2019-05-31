@@ -24,56 +24,48 @@ namespace vsgUnity.Native
     // Local Unity types, should match layout of types in unity2vg DataTypes.h, used to pass data from C# to native code
     //
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct ByteArray
     {
         public byte[] data;
         public int length;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct IntArray
     {
         public int[] data;
         public int length;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct UIntArray
     {
         public uint[] data;
         public int length;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct FloatArray
     {
         public float[] data;
         public int length;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct Vec2Array
     {
         public Vector2[] data;
         public int length;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct Vec3Array
     {
         public Vector3[] data;
         public int length;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct Vec4Array
     {
         public Vector4[] data;
         public int length;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct ColorArray
     {
         public Color[] data;
@@ -87,14 +79,12 @@ namespace vsgUnity.Native
         public int count;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct DescriptorBindingsArray
     {
         public DescriptorBinding[] data;
         public int length;
     };
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct MeshData
     {
         public string id;
@@ -136,7 +126,6 @@ namespace vsgUnity.Native
         public int firstInstance;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct TextureData
     {
         public string id;
@@ -152,6 +141,12 @@ namespace vsgUnity.Native
         public VkSamplerMipmapMode mipmapMode;
         public int mipmapCount;
         public float mipmapBias;
+    }
+
+    public struct TextureDataArray
+    {
+        public TextureData[] data;
+        public int length;
     }
 
     public struct MaterialData
@@ -174,7 +169,6 @@ namespace vsgUnity.Native
         public string customDefines;
     };
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct PipelineData
     {
         public string id;
@@ -188,26 +182,22 @@ namespace vsgUnity.Native
         public ShaderData shader;
     };
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct TransformData
     {
         public FloatArray matrix;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct CullData
     {
         public Vector3 center;
         public float radius;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct LODChildData
     {
         public float minimumScreenHeightRatio;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct CameraData
     {
         public Vector3 position;
@@ -222,35 +212,30 @@ namespace vsgUnity.Native
     // Native types for data returned from native code to C#
     //
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct NativeIntArray
     {
         public IntPtr ptr;
         public int length;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct NativeFloatArray
     {
         public IntPtr ptr;
         public int length;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct NativeVec2Array
     {
         public IntPtr ptr;
         public int length;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct NativeVec3Array
     {
         public IntPtr ptr;
         public int length;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
     public struct NativeVec4Array
     {
         public IntPtr ptr;

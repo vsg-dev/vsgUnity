@@ -73,7 +73,7 @@ void GraphicsPipelineBuilder::build(ref_ptr<Traits> traits)
     }
 
     auto shaderStages = ShaderStages::create(traits->shaderModules);
-    shaderStages->setSpecializationInfos(traits->_specializationInfos);
+    shaderStages->setSpecializationInfos(traits->specializationInfos);
 
     GraphicsPipelineStates pipelineStates{
         shaderStages,

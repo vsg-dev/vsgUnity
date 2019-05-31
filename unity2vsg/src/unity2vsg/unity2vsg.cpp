@@ -42,6 +42,18 @@ public:
             }
         }
 
+        if (typeid(object) == typeid(vsg::TextureArray))
+        {
+            vsg::TextureArray* textureArray = static_cast<vsg::TextureArray*>(&object);
+            for (auto& texture : textureArray->_textures)
+            {
+                if (texture->_textureData)
+                {
+                    objects->addChild(texture->_textureData);
+                }
+            }
+        }
+
         object.traverse(*this);
     }
 
@@ -109,6 +121,18 @@ public:
             if (texture->_textureData)
             {
                 texture->_textureData->dataRelease();
+            }
+        }
+
+        if (typeid(object) == typeid(vsg::TextureArray))
+        {
+            vsg::TextureArray* textureArray = static_cast<vsg::TextureArray*>(&object);
+            for (auto& texture : textureArray->_textures)
+            {
+                if (texture->_textureData)
+                {
+                    texture->_textureData->dataRelease();
+                }
             }
         }
 
@@ -545,6 +569,7 @@ public:
                 spi.data = new vsg::uintArray(data.shader.fragmentSpecializationData.length, data.shader.fragmentSpecializationData.ptr);
                 specialInfos[VK_SHADER_STAGE_FRAGMENT_BIT] = spi;
             }
+            traits->specializationInfos = specialInfos;
 
             // topology
             traits->primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -741,14 +766,14 @@ public:
     // Descriptors
     //
 
-    vsg::ref_ptr<vsg::Texture> createTexture(const TextureData& data)
+    vsg::ref_ptr<vsg::Texture> createTexture(const TextureData& data, bool useCache = true)
     {
         vsg::ref_ptr<vsg::Texture> texture;
 
         std::string idstr = std::string(data.id);
 
         // has a texture with this ID already been created
-        if (_textureCache.find(idstr) != _textureCache.end())
+        if (useCache && _textureCache.find(idstr) != _textureCache.end())
         {
             texture = _textureCache[idstr];
         }
@@ -891,7 +916,7 @@ public:
             texture->_textureData = texdata;
             texture->_samplerInfo = vkSamplerCreateInfoForTextureData(data);
 
-            _textureCache[idstr] = texture;
+            if(useCache) _textureCache[idstr] = texture;
         }
 
         texture->_dstBinding = data.channel;
@@ -905,9 +930,23 @@ public:
         _descriptorObjectIds.push_back(std::string(data.id));
     }
 
-    void addTextureArray(unity2vsg::TextureDataArray textureArray)
+    void addTextureArray(unity2vsg::TextureDataArray data)
     {
+        if (data.length == 0) return;
 
+        vsg::ref_ptr<vsg::TextureArray> textureArray = vsg::TextureArray::create();
+        std::string idstr = "";
+
+        for (uint32_t i = 0; i < data.length; i++)
+        {
+            textureArray->_textures.push_back(createTexture(data.ptr[i], false));
+            idstr += data.ptr[i].id;
+        }
+
+        textureArray->_dstBinding = data.ptr[0].channel;
+
+        _descriptors.push_back(textureArray);
+        _descriptorObjectIds.push_back(std::string(idstr));
     }
 
     //

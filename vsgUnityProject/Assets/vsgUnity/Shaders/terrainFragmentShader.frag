@@ -2,7 +2,8 @@
 #pragma import_defines ( VSG_NORMAL, VSG_COLOR, VSG_TEXCOORD0, VSG_LIGHTING, VSG_DIFFUSE_MAP )
 #extension GL_ARB_separate_shader_objects : enable
 #ifdef VSG_DIFFUSE_MAP
-layout(binding = 0) uniform sampler2D diffuseMap;
+layout (constant_id = 0) const uint texIndex = 0;
+layout(set = 0, binding = 0) uniform sampler2D textures[2];
 #endif
 
 #ifdef VSG_NORMAL
@@ -23,7 +24,7 @@ layout(location = 0) out vec4 outColor;
 void main()
 {
 #ifdef VSG_DIFFUSE_MAP
-    vec4 base = texture(diffuseMap, texCoord0.st);
+    vec4 base = texture(textures[texIndex], texCoord0.st);
 #else
     vec4 base = vec4(1.0,1.0,1.0,1.0);
 #endif

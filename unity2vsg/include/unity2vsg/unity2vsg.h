@@ -45,7 +45,6 @@ extern "C"
 
     // add descriptor to current descriptors list that will be bound by BindDescriptors call
     UNITY2VSG_EXPORT void unity2vsg_AddTextureDescriptor(unity2vsg::TextureData texture);
-
     UNITY2VSG_EXPORT void unity2vsg_AddTextureArrayDescriptor(unity2vsg::TextureDataArray textureArray);
 
     UNITY2VSG_EXPORT void unity2vsg_EndNode();
