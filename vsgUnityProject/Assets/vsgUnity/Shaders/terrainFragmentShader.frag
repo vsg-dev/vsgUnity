@@ -1,33 +1,43 @@
-#version 450
-#pragma import_defines ( VSG_NORMAL, VSG_COLOR, VSG_TEXCOORD0, VSG_LIGHTING, VSG_DIFFUSE_MAP )
+#version 450 core
+#pragma import_defines ( VSG_NORMAL, VSG_COLOR, VSG_TEXCOORD0, VSG_LIGHTING, VSG_DIFFUSE_MAP, VSG_TERRAIN_LAYERS)
 #extension GL_ARB_separate_shader_objects : enable
-#ifdef VSG_DIFFUSE_MAP
-layout (constant_id = 0) const uint texIndex = 0;
-layout(set = 0, binding = 0) uniform sampler2D textures[2];
+
+
+#ifdef VSG_TERRAIN_LAYERS
+layout (constant_id = 0) const uint SPLAT_LAYER_COUNT = 1;
+layout (constant_id = 1) const uint SPLAT_MASK_COUNT = 1;
+layout(set = 0, binding = 0) uniform sampler2D layerDiffuseTextures[SPLAT_LAYER_COUNT];
+layout(set = 0, binding = 1) uniform sampler2D layerMaskTextures[SPLAT_MASK_COUNT];
 #endif
 
 #ifdef VSG_NORMAL
 layout(location = 1) in vec3 normalDir;
 #endif
-#ifdef VSG_COLOR
-layout(location = 3) in vec4 vertColor;
-#endif
+
 #ifdef VSG_TEXCOORD0
 layout(location = 4) in vec2 texCoord0;
 #endif
+
 #ifdef VSG_LIGHTING
 layout(location = 5) in vec3 viewDir;
 layout(location = 6) in vec3 lightDir;
 #endif
+
 layout(location = 0) out vec4 outColor;
 
 void main()
 {
-#ifdef VSG_DIFFUSE_MAP
-    vec4 base = texture(textures[texIndex], texCoord0.st);
-#else
-    vec4 base = vec4(1.0,1.0,1.0,1.0);
+    vec4 base = vec4(0.0,0.0,0.0,0.0);
+		
+#ifdef VSG_TERRAIN_LAYERS
+	vec4 mask = texture(layerMaskTextures[0], texCoord0.st);
+	for(int i = 0; i < SPLAT_LAYER_COUNT; i++)
+	{
+		vec4 splat = texture(layerDiffuseTextures[i], texCoord0.st);
+		base = mix(base, splat, mask[i]);
+	}
 #endif
+
 #ifdef VSG_COLOR
     base = base * vertColor;
 #endif
@@ -53,7 +63,7 @@ void main()
 #else
     vec4 color = base;
 #endif
-    outColor = color * vec4(0.0,1.0,0.0,1.0);
+    outColor = color;
     if (outColor.a==0.0) discard;
 }
 

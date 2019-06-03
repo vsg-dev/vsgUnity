@@ -562,11 +562,14 @@ public:
             if (data.shader.fragmentSpecializationData.length > 0)
             {
                 vsg::ShaderStages::SpecializationInfo spi;
+                auto dataarray = new vsg::uintArray(data.shader.fragmentSpecializationData.length);
+
                 for (uint32_t i = 0; i < data.shader.fragmentSpecializationData.length; i++)
                 {
                     spi.entries.push_back({i, i * sizeof(uint32_t), sizeof(uint32_t)});
+                    dataarray->at(i) = data.shader.fragmentSpecializationData.ptr[i];
                 }
-                spi.data = new vsg::uintArray(data.shader.fragmentSpecializationData.length, data.shader.fragmentSpecializationData.ptr);
+                spi.data = dataarray;
                 specialInfos[VK_SHADER_STAGE_FRAGMENT_BIT] = spi;
             }
             traits->specializationInfos = specialInfos;
@@ -810,9 +813,19 @@ public:
                         texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec2*>(data.pixels.ptr)));
                         break;
                     }
+                    // 3 component
+                    case VK_FORMAT_B8G8R8_UNORM:
+                    case VK_FORMAT_B8G8R8_SRGB:
+                    {
+                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec3Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec3*>(data.pixels.ptr)));
+                        break;
+                    }
                     // 4 component
                     case VK_FORMAT_R8G8B8A8_UNORM:
                     case VK_FORMAT_R8G8B8A8_SRGB:
+                    case VK_FORMAT_B8G8R8A8_UNORM:
+                    case VK_FORMAT_B8G8R8A8_SRGB:
+                    case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
                     {
                         texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec4*>(data.pixels.ptr)));
                         break;
@@ -930,7 +943,7 @@ public:
         _descriptorObjectIds.push_back(std::string(data.id));
     }
 
-    void addTextureArray(unity2vsg::TextureDataArray data)
+    /*void addTextureArray(unity2vsg::TextureDataArray data)
     {
         if (data.length == 0) return;
 
@@ -947,6 +960,29 @@ public:
 
         _descriptors.push_back(textureArray);
         _descriptorObjectIds.push_back(std::string(idstr));
+    }*/
+
+    void addTextureToArray(const TextureData& data)
+    {
+        auto texture = createTexture(data);
+        _textureArray.push_back(texture);
+    }
+
+    void createTextureArray(unity2vsg::TextureDataArray data)
+    {
+        vsg::ref_ptr<vsg::TextureArray> textureArray = vsg::TextureArray::create();
+
+        for (auto& tex : _textureArray)
+        {
+            textureArray->_textures.push_back(tex);
+        }
+
+        textureArray->_dstBinding = data.channel;
+
+        _descriptors.push_back(textureArray);
+        _descriptorObjectIds.push_back(std::string(data.id));
+
+        _textureArray.clear();
     }
 
     //
@@ -1077,6 +1113,9 @@ public:
 
     // the current set of descriptors being built
     vsg::Descriptors _descriptors;
+
+    // the current array of textures build when we call create texture array
+    std::vector<vsg::ref_ptr<vsg::Texture>> _textureArray;
 
     // the unique ids of the of the descriptos list being built
     std::vector<std::string> _descriptorObjectIds;
@@ -1222,7 +1261,17 @@ void unity2vsg_AddTextureDescriptor(unity2vsg::TextureData texture)
 
 void unity2vsg_AddTextureArrayDescriptor(unity2vsg::TextureDataArray textureArray)
 {
-    _builder->addTextureArray(textureArray);
+    //_builder->addTextureArray(textureArray);
+}
+
+void unity2vsg_AddTextureDescriptorToArray(unity2vsg::TextureData texture)
+{
+    _builder->addTextureToArray(texture);
+}
+
+void unity2vsg_CreateTextureArrayDescriptor(unity2vsg::TextureDataArray data)
+{
+    _builder->createTextureArray(data);
 }
 
 void unity2vsg_EndNode()

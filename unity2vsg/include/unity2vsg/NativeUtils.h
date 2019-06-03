@@ -151,8 +151,10 @@ namespace unity2vsg
 
     struct TextureDataArray
     {
-        TextureData* ptr;
-        uint32_t length;
+        const char* id;
+        uint32_t channel;
+        //TextureData* ptr;
+        //uint32_t length;
     };
 
     struct ShaderData

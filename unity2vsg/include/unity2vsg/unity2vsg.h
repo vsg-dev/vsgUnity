@@ -47,6 +47,9 @@ extern "C"
     UNITY2VSG_EXPORT void unity2vsg_AddTextureDescriptor(unity2vsg::TextureData texture);
     UNITY2VSG_EXPORT void unity2vsg_AddTextureArrayDescriptor(unity2vsg::TextureDataArray textureArray);
 
+    UNITY2VSG_EXPORT void unity2vsg_AddTextureDescriptorToArray(unity2vsg::TextureData texture);
+    UNITY2VSG_EXPORT void unity2vsg_CreateTextureArrayDescriptor(unity2vsg::TextureDataArray data);
+
     UNITY2VSG_EXPORT void unity2vsg_EndNode();
 
     UNITY2VSG_EXPORT void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg::CameraData camdata);

@@ -74,7 +74,7 @@ namespace vsgUnity.Native
 
     public struct DescriptorBinding
     {
-        public int index;
+        public int binding;
         public VkDescriptorType type;
         public int count;
     }
@@ -145,8 +145,10 @@ namespace vsgUnity.Native
 
     public struct TextureDataArray
     {
-        public TextureData[] data;
-        public int length;
+        public string id;
+        public int channel;
+        //public TextureData[] data;
+        //public int length;
     }
 
     public struct MaterialData
@@ -487,7 +489,7 @@ namespace vsgUnity.Native
                     {
                         texdata.channel = channelLookup[key].channel;
                         texdata.id = texid;
-                        fragBindings.Add(new DescriptorBinding() { index = channelLookup[key].channel, type = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, count = 1 });
+                        fragBindings.Add(new DescriptorBinding() { binding = channelLookup[key].channel, type = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, count = 1 });
                         customdefs.Add(channelLookup[key].define);
                     }
                     else
@@ -504,7 +506,7 @@ namespace vsgUnity.Native
                             Debug.LogWarning(NativeUtils.GetTextureSupportReport(issues, tex));
                         }
 
-                        fragBindings.Add(new DescriptorBinding() { index = channelLookup[key].channel, type = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, count = 1 });
+                        fragBindings.Add(new DescriptorBinding() { binding = channelLookup[key].channel, type = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, count = 1 });
                         customdefs.Add(channelLookup[key].define);
 
                         cache.Add(texid, texdata);

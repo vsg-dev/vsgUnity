@@ -83,6 +83,12 @@ namespace vsgUnity.Native
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTextureArrayDescriptor")]
         private static extern void unity2vsg_AddTextureArrayDescriptor(TextureDataArray textureArray);
 
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTextureDescriptorToArray")]
+        private static extern void unity2vsg_AddTextureDescriptorToArray(TextureData texture);
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_CreateTextureArrayDescriptor")]
+        private static extern void unity2vsg_CreateTextureArrayDescriptor(TextureDataArray data);
+
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_EndNode")]
         private static extern void unity2vsg_EndNode();
 
@@ -381,7 +387,7 @@ namespace vsgUnity.Native
                 Terrain terrain = go.GetComponent<Terrain>();
                 if(terrain != null)
                 {
-                    ExportTerrainMesh(terrain, settings, meshCache, textureArrayCache);
+                    ExportTerrainMesh(terrain, settings, meshCache, textureCache, textureArrayCache);
                 }
 
                 // does this node have an LOD group
@@ -444,7 +450,7 @@ namespace vsgUnity.Native
             GraphBuilder.unity2vsg_EndExport(saveFileName);
         }
 
-        private static void ExportTerrainMesh(Terrain terrain, ExportSettings settings, Dictionary<string, MeshData> meshCache = null, Dictionary<string, TextureDataArray> textureArrayCache = null)
+        private static void ExportTerrainMesh(Terrain terrain, ExportSettings settings, Dictionary<string, MeshData> meshCache = null, Dictionary<string, TextureData> textureCache = null, Dictionary<string, TextureDataArray> textureArrayCache = null)
         {
             int samplew = terrain.terrainData.heightmapWidth;
             int sampleh = terrain.terrainData.heightmapHeight;
@@ -502,31 +508,119 @@ namespace vsgUnity.Native
 
             List<string> shaderDefines = new List<string>() { "VSG_LIGHTING" };
             List<DescriptorBinding> fragBindings = new List<DescriptorBinding>();
+            List<uint> shaderConsts = new List<uint>();
 
             // convert layers into textures
             TerrainLayer[] layers = terrain.terrainData.terrainLayers;
-            List<TextureData> textureDatas = new List<TextureData>();
-            TextureDataArray textureArray = new TextureDataArray() { length = 0 };
-            foreach (TerrainLayer layer in layers)
-            {
-                textureDatas.Add(NativeUtils.CreateTextureData(layer.diffuseTexture, 0));
-            }
-            if(textureDatas.Count > 0)
-            {
-                fragBindings.Add(new DescriptorBinding() { index = 0, type = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, count = textureDatas.Count });
-                shaderDefines.Add("VSG_DIFFUSE_MAP");
-                textureArray.data = textureDatas.ToArray();
-                textureArray.length = textureArray.data.Length;
-                if (textureArrayCache != null) textureArrayCache.Add(terrain.GetInstanceID().ToString(), textureArray);
+            TextureData baseTextureData = new TextureData() { channel = -1 };
+            List<TextureData> layerDiffuseTextureDatas = new List<TextureData>();
+            TextureDataArray layerDiffuseTextureArray = new TextureDataArray() { id = terrain.GetInstanceID().ToString()+"-diffuse", channel = 0 };
+            List<TextureData> layerMaskTextureDatas = new List<TextureData>();
+            TextureDataArray layerMaskTextureArray = new TextureDataArray() { id = terrain.GetInstanceID().ToString()+"-mask", channel = 1 };
 
-                pipelineData.shader.fragmentSpecializationData.data = new uint[] { 1 };
-                pipelineData.shader.fragmentSpecializationData.length = 1;
+            for(int i = 0; i < layers.Length; i++)
+            {
+                string layertexid = layers[i].diffuseTexture.GetInstanceID().ToString();
+
+                TextureData layerData;
+
+                if (textureCache.ContainsKey(layertexid))
+                {
+                    layerData = textureCache[layertexid];
+                }
+                else
+                {
+                    NativeUtils.TextureSupportIssues issues = NativeUtils.GetSupportIssuesForTexture(layers[i].diffuseTexture);
+                    if (issues == NativeUtils.TextureSupportIssues.None)
+                    {
+                        layerData = NativeUtils.CreateTextureData(layers[i].diffuseTexture, i);
+                    }
+                    else
+                    {
+                        layerData = NativeUtils.CreateTextureData(Texture2D.whiteTexture, i);
+
+                        Debug.LogWarning(NativeUtils.GetTextureSupportReport(issues, layers[i].diffuseTexture));
+                    }
+                    textureCache.Add(layertexid, layerData);
+                }
+
+                layerDiffuseTextureDatas.Add(layerData);
+            }
+            Debug.Log("Alpha tex count: " + terrain.terrainData.alphamapTextureCount);
+            for (int i = 0; i < terrain.terrainData.alphamapTextureCount; i++)
+            {
+                Texture2D splatmask = terrain.terrainData.GetAlphamapTexture(i);
+                string masktexid = splatmask.GetInstanceID().ToString();
+
+                TextureData splatData;
+
+                if (textureCache.ContainsKey(masktexid))
+                {
+                    splatData = textureCache[masktexid];
+                }
+                else
+                {
+                    NativeUtils.TextureSupportIssues issues = NativeUtils.GetSupportIssuesForTexture(splatmask);
+                    if (issues == NativeUtils.TextureSupportIssues.None)
+                    {
+                        splatData = NativeUtils.CreateTextureData(splatmask, i);
+                    }
+                    else
+                    {
+                        Debug.Log("Splat texture format not support, returned following issues:\n" + NativeUtils.GetTextureSupportReport(issues, splatmask) + "\nAttempting to convert.");
+
+                        RenderTexture rt = RenderTexture.GetTemporary(splatmask.width, splatmask.height, 0, RenderTextureFormat.ARGB32);
+                        Graphics.Blit(splatmask, rt);
+                        Texture2D converted = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
+                        Graphics.SetRenderTarget(rt);
+                        converted.ReadPixels(new Rect(0.0f, 0.0f, rt.width, rt.height), 0, 0, false);
+                        converted.Apply(false, false);
+
+                        issues = NativeUtils.GetSupportIssuesForTexture(converted);
+                        if (issues == NativeUtils.TextureSupportIssues.None)
+                        {
+                            splatData = NativeUtils.CreateTextureData(converted, i);
+                        }
+                        else
+                        {
+                            Debug.Log("Failed to convert splat tex: " + NativeUtils.GetTextureSupportReport(issues, converted));
+
+                            splatData = NativeUtils.CreateTextureData(Texture2D.whiteTexture, i);
+                        }
+                    }
+                    textureCache.Add(masktexid, splatData);
+                }
+
+                layerMaskTextureDatas.Add(splatData);
+            }
+
+
+            if (layerDiffuseTextureDatas.Count > 0)
+            {
+
+                if (textureArrayCache != null) textureArrayCache.Add(layerDiffuseTextureArray.id, layerDiffuseTextureArray);
+                fragBindings.Add(new DescriptorBinding() { binding = 0, type = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, count = layerDiffuseTextureDatas.Count });
+
+                shaderConsts.Add((uint)layerDiffuseTextureDatas.Count);
+
+                shaderDefines.Add("VSG_TERRAIN_LAYERS");
+            }
+
+            if (layerMaskTextureDatas.Count > 0)
+            {
+                if (textureArrayCache != null) textureArrayCache.Add(layerMaskTextureArray.id, layerMaskTextureArray);
+                fragBindings.Add(new DescriptorBinding() { binding = 1, type = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, count = layerMaskTextureDatas.Count });
+
+                shaderConsts.Add((uint)layerMaskTextureDatas.Count);
             }
 
             pipelineData.fragmentDescriptorBindings.data = fragBindings.ToArray();
             pipelineData.fragmentDescriptorBindings.length = pipelineData.fragmentDescriptorBindings.data.Length;
 
             pipelineData.shader.customDefines = string.Join(",", shaderDefines.ToArray());
+
+            pipelineData.shader.fragmentSpecializationData.data = shaderConsts.ToArray();
+            pipelineData.shader.fragmentSpecializationData.length = pipelineData.shader.fragmentSpecializationData.data.Length;
 
             // use custom shader if present
             if (!string.IsNullOrEmpty(settings.terrainVertexShaderPath) && !string.IsNullOrEmpty(settings.terrainFragmentShaderPath))
@@ -539,12 +633,30 @@ namespace vsgUnity.Native
 
             if (GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1) == 1)
             {
-
-                if(textureArray.length > 0)
+                if(baseTextureData.channel != -1)
                 {
-                    GraphBuilder.unity2vsg_AddTextureArrayDescriptor(textureArray);
-                    GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
+                    unity2vsg_AddTextureDescriptor(baseTextureData);
                 }
+
+                if(layerDiffuseTextureDatas.Count > 0)
+                {
+                    foreach (TextureData tex in layerDiffuseTextureDatas)
+                    {
+                        unity2vsg_AddTextureDescriptorToArray(tex);
+                    }
+                    unity2vsg_CreateTextureArrayDescriptor(layerDiffuseTextureArray);
+                }
+
+                if (layerMaskTextureDatas.Count > 0)
+                {
+                    foreach (TextureData tex in layerMaskTextureDatas)
+                    {
+                        unity2vsg_AddTextureDescriptorToArray(tex);
+                    }
+                    unity2vsg_CreateTextureArrayDescriptor(layerMaskTextureArray);
+                }
+
+                GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
 
                 MeshData mesh = new MeshData();
                 mesh.id = terrain.GetInstanceID().ToString();
