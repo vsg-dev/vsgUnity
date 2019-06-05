@@ -422,6 +422,79 @@ public:
     // Commands
     //
 
+    vsg::ref_ptr<vsg::ShaderModule> getOrCreateShaderModule(VkShaderStageFlagBits stage, std::string shaderSourceFile, uint32_t inputAtts, uint32_t shaderMode, std::string customDefStr)
+    {
+        auto split = [](const std::string& str, const char& seperator) {
+            std::vector<std::string> elements;
+
+            std::string::size_type prev_pos = 0, pos = 0;
+
+            while ((pos = str.find(seperator, pos)) != std::string::npos)
+            {
+                auto substring = str.substr(prev_pos, pos - prev_pos);
+                elements.push_back(substring);
+                prev_pos = ++pos;
+            }
+
+            elements.push_back(str.substr(prev_pos, pos - prev_pos));
+
+            return elements;
+        };
+
+        std::string shaderkey = shaderSourceFile + "," + std::to_string(inputAtts) + "," + customDefStr;
+        std::vector<std::string> customdefs = customDefStr.empty() ? std::vector<std::string>() : split(customDefStr, ',');
+
+        vsg::ref_ptr<vsg::ShaderModule> shaderModule;
+
+        if (_shaderModulesCache.find(shaderkey) != _shaderModulesCache.end())
+        {
+            shaderModule = _shaderModulesCache[shaderkey];
+        }
+        else
+        {
+            if (!shaderSourceFile.empty())
+            {
+                shaderModule = vsg::ShaderModule::create(readGLSLShader(shaderSourceFile, shaderMode, inputAtts, customdefs));
+            }
+            else
+            {
+                if (stage == VK_SHADER_STAGE_VERTEX_BIT)
+                {
+                    shaderModule = vsg::ShaderModule::create(createFbxVertexSource(shaderMode, inputAtts, customdefs));
+                }
+                else
+                {
+                    shaderModule = vsg::ShaderModule::create(createFbxFragmentSource(shaderMode, inputAtts, customdefs));
+                }
+                _shaderModulesCache[shaderkey] = shaderModule;
+            }
+        }
+
+        return shaderModule;
+    }
+
+    vsg::ref_ptr<vsg::ShaderStage> createShaderStage(VkShaderStageFlagBits stage, vsg::ref_ptr<vsg::ShaderModule> shaderModule, UIntArray specializationConstants)
+    {
+        auto shaderStage = vsg::ShaderStage::create(stage, "main", shaderModule);
+
+        if (specializationConstants.length > 0)
+        {
+            vsg::ShaderStage::SpecializationMapEntries specialEntires;
+            auto dataarray = new vsg::uintArray(specializationConstants.length);
+
+            for (uint32_t i = 0; i < specializationConstants.length; i++)
+            {
+                specialEntires.push_back({i, i * sizeof(uint32_t), sizeof(uint32_t)});
+                dataarray->at(i) = specializationConstants.ptr[i];
+            }
+
+            shaderStage->setSpecializationMapEntries(specialEntires);
+            shaderStage->setSpecializationData(dataarray);
+        }
+
+        return shaderStage;
+    }
+
     bool addBindGraphicsPipelineCommand(const PipelineData& data, bool addToActiveStateGroup)
     {
         std::string idstr = std::string(data.id);
@@ -485,94 +558,27 @@ public:
 
             traits->descriptorLayouts = {bindingSet};
 
-            // shaders
-            vsg::ShaderModules shaders;
+            // setup shaders
+            std::string vertexShaderSource = data.shader.vertexSource != nullptr ? std::string(data.shader.vertexSource) : "";
+            std::string fragmentShaderSource = data.shader.fragmentSource != nullptr ? std::string(data.shader.fragmentSource) : "";
+            std::string customDefs = data.shader.customDefines != nullptr ? std::string(data.shader.customDefines) : "";
 
+            auto vertShaderModule = getOrCreateShaderModule(VK_SHADER_STAGE_VERTEX_BIT, vertexShaderSource, inputshaderatts, shaderMode, customDefs);
+            auto fragShaderModule = getOrCreateShaderModule(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderSource, inputshaderatts, shaderMode, customDefs);
 
-            auto split = [](const std::string& str, const char& seperator) {
-                std::vector<std::string> elements;
+            auto vertStage = createShaderStage(VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule, data.shader.vertexSpecializationData);
+            auto fragStage = createShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderModule, data.shader.fragmentSpecializationData);
 
-                std::string::size_type prev_pos = 0, pos = 0;
+            vsg::ShaderStages shaders = {vertStage, fragStage};
 
-                while ((pos = str.find(seperator, pos)) != std::string::npos)
-                {
-                    auto substring = str.substr(prev_pos, pos - prev_pos);
-                    elements.push_back(substring);
-                    prev_pos = ++pos;
-                }
-
-                elements.push_back(str.substr(prev_pos, pos - prev_pos));
-
-                return elements;
-            };
-
-            std::string defsstr = std::string(data.shader.customDefines);
-            std::vector<std::string> customdefs = defsstr.size() == 0 ? std::vector<std::string>() : split(defsstr, ',');
-
-            std::string shaderkey = std::to_string(inputshaderatts) + "," + defsstr;
-
-            if (_shaderModulesCache.find(shaderkey) != _shaderModulesCache.end())
+            ShaderCompiler shaderCompiler;
+            if (!shaderCompiler.compile(shaders))
             {
-                shaders = _shaderModulesCache[shaderkey];
-            }
-            else
-            {
-                if (data.shader.vertexSource != nullptr && data.shader.fragmentSource != nullptr)
-                {
-                    std::string vertexShaderSource = std::string(data.shader.vertexSource);
-                    std::string fragmentShaderSource = std::string(data.shader.fragmentSource);
-
-                    shaders =
-                        {
-                            vsg::ShaderModule::create(VK_SHADER_STAGE_VERTEX_BIT, "main", readGLSLShader(vertexShaderSource, shaderMode, inputshaderatts, customdefs)),
-                            vsg::ShaderModule::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", readGLSLShader(fragmentShaderSource, shaderMode, inputshaderatts, customdefs))};
-                }
-                else
-                {
-                    shaders =
-                        {
-                            vsg::ShaderModule::create(VK_SHADER_STAGE_VERTEX_BIT, "main", createFbxVertexSource(shaderMode, inputshaderatts, customdefs)),
-                            vsg::ShaderModule::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", createFbxFragmentSource(shaderMode, inputshaderatts, customdefs))};
-                }
-
-                ShaderCompiler shaderCompiler;
-                if (!shaderCompiler.compile(shaders))
-                {
-                    DebugLog("GraphBuilder Error: Failed to compile shaders.");
-                    return false;
-                }
-
-                _shaderModulesCache[shaderkey] = shaders;
+                DebugLog("GraphBuilder Error: Failed to compile shaders.");
+                return false;
             }
 
-            traits->shaderModules = shaders;
-
-            vsg::ShaderStages::StageSpecializationInfos specialInfos;
-            if (data.shader.vertexSpecializationData.length > 0)
-            {
-                vsg::ShaderStages::SpecializationInfo spi;
-                for (uint32_t i = 0; i < data.shader.vertexSpecializationData.length; i++)
-                {
-                    spi.entries.push_back({i, i * sizeof(uint32_t), sizeof(uint32_t)});
-                }
-                spi.data = new vsg::uintArray(data.shader.vertexSpecializationData.length, data.shader.vertexSpecializationData.ptr);
-                specialInfos[VK_SHADER_STAGE_VERTEX_BIT] = spi;
-            }
-
-            if (data.shader.fragmentSpecializationData.length > 0)
-            {
-                vsg::ShaderStages::SpecializationInfo spi;
-                auto dataarray = new vsg::uintArray(data.shader.fragmentSpecializationData.length);
-
-                for (uint32_t i = 0; i < data.shader.fragmentSpecializationData.length; i++)
-                {
-                    spi.entries.push_back({i, i * sizeof(uint32_t), sizeof(uint32_t)});
-                    dataarray->at(i) = data.shader.fragmentSpecializationData.ptr[i];
-                }
-                spi.data = dataarray;
-                specialInfos[VK_SHADER_STAGE_FRAGMENT_BIT] = spi;
-            }
-            traits->specializationInfos = specialInfos;
+            traits->shaderStages = shaders;
 
             // topology
             traits->primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -929,7 +935,7 @@ public:
             texture->_textureData = texdata;
             texture->_samplerInfo = vkSamplerCreateInfoForTextureData(data);
 
-            if(useCache) _textureCache[idstr] = texture;
+            if (useCache) _textureCache[idstr] = texture;
         }
 
         texture->_dstBinding = data.channel;
@@ -1128,7 +1134,7 @@ public:
     std::map<std::string, vsg::ref_ptr<vsg::Command>> _drawIndexedCache;
 
     // map of shader modules to the masks used to create them
-    std::map<std::string, vsg::ShaderModules> _shaderModulesCache;
+    std::map<std::string, vsg::ref_ptr<vsg::ShaderModule>> _shaderModulesCache;
 
     // map of textures to the TextureData ID they represent
     std::map<std::string, vsg::ref_ptr<vsg::Texture>> _textureCache;

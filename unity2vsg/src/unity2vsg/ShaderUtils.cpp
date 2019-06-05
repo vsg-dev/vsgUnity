@@ -423,10 +423,10 @@ ShaderCompiler::~ShaderCompiler()
     glslang::FinalizeProcess();
 }
 
-bool ShaderCompiler::compile(vsg::ShaderModules& shaders)
+bool ShaderCompiler::compile(vsg::ShaderStages& shaders)
 {
-    auto getFriendlyNameForShader = [](const vsg::ref_ptr<vsg::ShaderModule>& vsg_shader) {
-        switch (vsg_shader->stage())
+    auto getFriendlyNameForShader = [](const vsg::ref_ptr<vsg::ShaderStage>& vsg_shader) {
+        switch (vsg_shader->getShaderStageFlagBits())
         {
         case (VK_SHADER_STAGE_VERTEX_BIT): return "Vertex Shader";
         case (VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT): return "Tessellation Control Shader";
@@ -439,7 +439,7 @@ bool ShaderCompiler::compile(vsg::ShaderModules& shaders)
         return "";
     };
 
-    using StageShaderMap = std::map<EShLanguage, vsg::ref_ptr<vsg::ShaderModule>>;
+    using StageShaderMap = std::map<EShLanguage, vsg::ref_ptr<vsg::ShaderStage>>;
     using TShaders = std::list<std::unique_ptr<glslang::TShader>>;
     TShaders tshaders;
 
@@ -451,7 +451,7 @@ bool ShaderCompiler::compile(vsg::ShaderModules& shaders)
     for (auto& vsg_shader : shaders)
     {
         EShLanguage envStage = EShLangCount;
-        switch (vsg_shader->stage())
+        switch (vsg_shader->getShaderStageFlagBits())
         {
         case (VK_SHADER_STAGE_VERTEX_BIT): envStage = EShLangVertex; break;
         case (VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT): envStage = EShLangTessControl; break;
@@ -481,7 +481,7 @@ bool ShaderCompiler::compile(vsg::ShaderModules& shaders)
         shader->setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_1);
         shader->setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
 
-        const char* str = vsg_shader->source().c_str();
+        const char* str = vsg_shader->getShaderModule()->source().c_str();
         shader->setStrings(&str, 1);
 
         int defaultVersion = 110; // 110 desktop, 100 non desktop
@@ -501,7 +501,7 @@ bool ShaderCompiler::compile(vsg::ShaderModules& shaders)
             INFO_OUTPUT << std::endl
                         << "----  " << getFriendlyNameForShader(vsg_shader) << "  ----" << std::endl
                         << std::endl;
-            INFO_OUTPUT << debugFormatShaderSource(vsg_shader->source()) << std::endl;
+            INFO_OUTPUT << debugFormatShaderSource(vsg_shader->getShaderModule()->source()) << std::endl;
             INFO_OUTPUT << "Warning: GLSL source failed to parse." << std::endl;
             INFO_OUTPUT << "glslang info log: " << std::endl
                         << shader->getInfoLog();
@@ -529,7 +529,7 @@ bool ShaderCompiler::compile(vsg::ShaderModules& shaders)
             INFO_OUTPUT << std::endl
                         << getFriendlyNameForShader(vsg_shader) << ":" << std::endl
                         << std::endl;
-            INFO_OUTPUT << debugFormatShaderSource(vsg_shader->source()) << std::endl;
+            INFO_OUTPUT << debugFormatShaderSource(vsg_shader->getShaderModule()->source()) << std::endl;
         }
 
         INFO_OUTPUT << "Warning: Program failed to link." << std::endl;
@@ -551,7 +551,7 @@ bool ShaderCompiler::compile(vsg::ShaderModules& shaders)
             std::string warningsErrors;
             spv::SpvBuildLogger logger;
             glslang::SpvOptions spvOptions;
-            glslang::GlslangToSpv(*(program->getIntermediate((EShLanguage)eshl_stage)), vsg_shader->spirv(), &logger, &spvOptions);
+            glslang::GlslangToSpv(*(program->getIntermediate((EShLanguage)eshl_stage)), vsg_shader->getShaderModule()->spirv(), &logger, &spvOptions);
         }
     }
 

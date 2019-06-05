@@ -22,9 +22,7 @@ namespace vsg
         class Traits : public Inherit<Object, Traits>
         {
         public:
-            ShaderModules shaderModules;
-
-            ShaderStages::StageSpecializationInfos specializationInfos;
+            vsg::ShaderStages shaderStages;
 
             using VertexInputAttributeDescription = std::pair<uint32_t, VkFormat>;                // location index, format
             using StructInputAttributeDescription = std::vector<VertexInputAttributeDescription>; // list of vertex input desccriptions making an entire struct for a single binding

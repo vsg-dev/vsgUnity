@@ -53,7 +53,6 @@ namespace unity2vsg
         ShaderCompiler(vsg::Allocator* allocator = nullptr);
         virtual ~ShaderCompiler();
 
-        bool compile(vsg::ShaderModule* shader);
-        bool compile(vsg::ShaderModules& shaders);
+        bool compile(vsg::ShaderStages& shaders);
     };
 } // namespace unity2vsg

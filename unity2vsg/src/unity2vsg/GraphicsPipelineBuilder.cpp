@@ -72,11 +72,10 @@ void GraphicsPipelineBuilder::build(ref_ptr<Traits> traits)
         }
     }
 
-    auto shaderStages = ShaderStages::create(traits->shaderModules);
-    shaderStages->setSpecializationInfos(traits->specializationInfos);
+    //auto shaderStages = ShaderStages::create(traits->shaderModules);
+    //shaderStages->setSpecializationInfos(traits->specializationInfos);
 
     GraphicsPipelineStates pipelineStates{
-        shaderStages,
         VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         InputAssemblyState::create(traits->primitiveTopology),
         RasterizationState::create(),
@@ -89,7 +88,7 @@ void GraphicsPipelineBuilder::build(ref_ptr<Traits> traits)
     };
 
     auto pipelineLayout = PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
-    _graphicsPipeline = GraphicsPipeline::create(pipelineLayout, pipelineStates);
+    _graphicsPipeline = GraphicsPipeline::create(pipelineLayout, traits->shaderStages, pipelineStates);
 }
 
 size_t GraphicsPipelineBuilder::sizeOf(VkFormat format)
