@@ -33,6 +33,7 @@ namespace vsgUnity.Editor
         static void
         Init()
         {
+            MaterialMapping.createTemplateFile();   
             // Get existing open window or if none, make a new one:
             ExportWindow window = (ExportWindow) EditorWindow.GetWindow(typeof (ExportWindow), true, "vsgUnity");
 

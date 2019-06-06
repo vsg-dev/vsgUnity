@@ -1,5 +1,5 @@
 #version 450 core
-#pragma import_defines ( VSG_NORMAL, VSG_COLOR, VSG_TEXCOORD0, VSG_LIGHTING, VSG_DIFFUSE_MAP, VSG_TERRAIN_LAYERS)
+#pragma import_defines ( VSG_NORMAL, VSG_COLOR, VSG_TEXCOORD0, VSG_LIGHTING, VSG_TERRAIN_LAYERS)
 #extension GL_ARB_separate_shader_objects : enable
 
 

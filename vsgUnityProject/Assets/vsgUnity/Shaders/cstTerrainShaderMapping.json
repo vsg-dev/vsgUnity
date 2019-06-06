@@ -1,0 +1,12 @@
+{
+    "unityShaderName": "CTS Terrain Shader Advanced Trial",
+    "vsgShaderName": "standardTerrainShader",
+    "uniformMappings": [
+        {
+            "uniformTypeString": "Texture2DUniform",
+            "unityPropName": "_Texture_Array_Albedo",
+            "vsgBindingIndex": 0,
+            "vsgDefine": "VSG_TERRAIN_LAYERS"
+        }
+    ]
+}

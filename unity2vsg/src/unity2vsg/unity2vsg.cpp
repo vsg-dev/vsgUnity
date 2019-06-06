@@ -441,7 +441,7 @@ public:
             return elements;
         };
 
-        std::string shaderkey = shaderSourceFile + "," + std::to_string(inputAtts) + "," + customDefStr;
+        std::string shaderkey = std::to_string((int)stage) + "," + shaderSourceFile + "," + std::to_string(inputAtts) + "," + customDefStr;
         std::vector<std::string> customdefs = customDefStr.empty() ? std::vector<std::string>() : split(customDefStr, ',');
 
         vsg::ref_ptr<vsg::ShaderModule> shaderModule;

@@ -468,6 +468,8 @@ namespace vsgUnity.Native
             MaterialData matdata = new MaterialData();
             matdata.id = material.GetInstanceID().ToString();
 
+            Debug.Log("shader name: " + material.shader.name);
+
             Dictionary<string, Texture> texturemap = GetValidTexturesForMaterial(material);
 
             List<TextureData> texdatas = new List<TextureData>();
