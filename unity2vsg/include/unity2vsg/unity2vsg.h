@@ -29,8 +29,7 @@ extern "C"
     UNITY2VSG_EXPORT void unity2vsg_AddLODChild(unity2vsg::LODChildData lodChildData);
     UNITY2VSG_EXPORT void unity2vsg_AddStateGroupNode();
     UNITY2VSG_EXPORT void unity2vsg_AddCommandsNode();
-    UNITY2VSG_EXPORT void unity2vsg_AddVertexIndexDrawNode(unity2vsg::MeshData mesh);
-    UNITY2VSG_EXPORT void unity2vsg_AddGeometryNode(unity2vsg::MeshData mesh);
+    UNITY2VSG_EXPORT void unity2vsg_AddVertexIndexDrawNode(unity2vsg::VertexIndexDrawData mesh);
 
     // add meta data to nodes
     UNITY2VSG_EXPORT void unity2vsg_AddStringValue(const char* name, const char* value);
@@ -44,11 +43,11 @@ extern "C"
     UNITY2VSG_EXPORT void unity2vsg_CreateBindDescriptorSetCommand(uint32_t addToStateGroup);
 
     // add descriptor to current descriptors list that will be bound by BindDescriptors call
-    UNITY2VSG_EXPORT void unity2vsg_AddTextureDescriptor(unity2vsg::TextureData texture);
-    UNITY2VSG_EXPORT void unity2vsg_AddTextureArrayDescriptor(unity2vsg::TextureDataArray textureArray);
+    UNITY2VSG_EXPORT void unity2vsg_AddDescriptorImage(unity2vsg::DescriptorImageData texture);
+    UNITY2VSG_EXPORT void unity2vsg_AddTextureArrayDescriptor(unity2vsg::DescriptorImagesData textureArray);
 
-    UNITY2VSG_EXPORT void unity2vsg_AddTextureDescriptorToArray(unity2vsg::TextureData texture);
-    UNITY2VSG_EXPORT void unity2vsg_CreateTextureArrayDescriptor(unity2vsg::TextureDataArray data);
+    UNITY2VSG_EXPORT void unity2vsg_AddImageDataToActiveDescriptorImagesArray(unity2vsg::ImageData texture);
+    UNITY2VSG_EXPORT void unity2vsg_CreateDescriptorImagesFromActiveArray(unity2vsg::DescriptorImagesData data);
 
     UNITY2VSG_EXPORT void unity2vsg_EndNode();
 

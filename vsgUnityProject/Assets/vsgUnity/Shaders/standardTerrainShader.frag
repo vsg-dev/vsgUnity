@@ -26,16 +26,18 @@ layout(location = 6) in vec3 lightDir;
 layout(location = 0) out vec4 outColor;
 
 void main()
-{
-    vec4 base = vec4(0.0,0.0,0.0,0.0);
-		
+{	
 #ifdef VSG_TERRAIN_LAYERS
+	vec4 base = vec4(0.0,0.0,0.0,0.0);
+
 	vec4 mask = texture(layerMaskTextures[0], texCoord0.st);
 	for(int i = 0; i < SPLAT_LAYER_COUNT; i++)
 	{
 		vec4 splat = texture(layerDiffuseTextures[i], texCoord0.st);
 		base = mix(base, splat, mask[i]);
 	}
+#else
+	vec4 base = vec4(1.0,1.0,1.0,1.0);
 #endif
 
 #ifdef VSG_COLOR

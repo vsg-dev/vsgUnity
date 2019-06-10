@@ -32,7 +32,7 @@ namespace vsg
 
             struct DescriptorBinding //should this just be vkDescriptorSetLayoutBinding??
             {
-                uint32_t index; 
+                uint32_t index;
                 VkDescriptorType type;
                 uint32_t count = 1;
             };

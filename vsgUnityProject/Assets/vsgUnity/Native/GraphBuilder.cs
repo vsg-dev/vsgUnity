@@ -42,10 +42,7 @@ namespace vsgUnity.Native
         private static extern void unity2vsg_AddCommandsNode();
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddVertexIndexDrawNode")]
-        private static extern void unity2vsg_AddVertexIndexDrawNode(MeshData mesh);
-
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddGeometryNode")]
-        private static extern void unity2vsg_AddGeometryNode(MeshData mesh);
+        private static extern void unity2vsg_AddVertexIndexDrawNode(VertexIndexDrawData mesh);
 
         //
         // Meta Data
@@ -58,7 +55,7 @@ namespace vsgUnity.Native
         // Commands
         //
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddBindGraphicsPipelineCommand")]
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddBindGraphicsPipelineCommand", CallingConvention = CallingConvention.StdCall)]
         private static extern int unity2vsg_AddBindGraphicsPipelineCommand(PipelineData pipeline, int addToStateGroup);
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddBindIndexBufferCommand")]
@@ -77,17 +74,17 @@ namespace vsgUnity.Native
         // Descriptors
         //
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTextureDescriptor")]
-        private static extern void unity2vsg_AddTextureDescriptor(TextureData texture);
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDescriptorImage")]
+        private static extern void unity2vsg_AddDescriptorImage(DescriptorImageData texture);
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTextureArrayDescriptor")]
-        private static extern void unity2vsg_AddTextureArrayDescriptor(TextureDataArray textureArray);
+        private static extern void unity2vsg_AddTextureArrayDescriptor(DescriptorImagesData textureArray);
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTextureDescriptorToArray")]
-        private static extern void unity2vsg_AddTextureDescriptorToArray(TextureData texture);
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddImageDataToActiveDescriptorImagesArray")]
+        private static extern void unity2vsg_AddImageDataToActiveDescriptorImagesArray(ImageData texture);
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_CreateTextureArrayDescriptor")]
-        private static extern void unity2vsg_CreateTextureArrayDescriptor(TextureDataArray data);
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_CreateDescriptorImagesFromActiveArray")]
+        private static extern void unity2vsg_CreateDescriptorImagesFromActiveArray(DescriptorImagesData data);
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_EndNode")]
         private static extern void unity2vsg_EndNode();
@@ -103,12 +100,16 @@ namespace vsgUnity.Native
         public struct ExportSettings
         {
             public bool autoAddCullNodes;
-            public string terrainVertexShaderPath;
-            public string terrainFragmentShaderPath;
+            public string standardShaderMappingPath;
+            public string standardTerrainShaderMappingPath;
         }
 
         public static void Export(GameObject[] gameObjects, string saveFileName, ExportSettings settings)
         {
+            MeshConverter.ClearCaches();
+            TextureConverter.ClearCaches();
+            MaterialConverter.ClearCaches();
+
             GraphBuilder.unity2vsg_BeginExport();
 
             /*
@@ -127,13 +128,8 @@ namespace vsgUnity.Native
             GraphBuilder.unity2vsg_AddTransform(convertData);
             */
 
-            Dictionary<string, MeshData>meshCache = new Dictionary<string, MeshData>();
-            Dictionary<string, IndexBufferData>indexCache = new Dictionary<string, IndexBufferData>();
-            Dictionary<string, VertexBuffersData>vertexCache = new Dictionary<string, VertexBuffersData>();
-            Dictionary<string, DrawIndexedData>drawCache = new Dictionary<string, DrawIndexedData>();
-            Dictionary<string, TextureData>textureCache = new Dictionary<string, TextureData>();
-            Dictionary<string, TextureDataArray> textureArrayCache = new Dictionary<string, TextureDataArray>();
-            Dictionary<string, MaterialData>materialCache = new Dictionary<string, MaterialData>();
+            Dictionary<System.IntPtr, DescriptorImagesData> textureArrayCache = new Dictionary<System.IntPtr, DescriptorImagesData>();
+            List<PipelineData> storePipelines = new List<PipelineData>();
 
             System.Action<GameObject> processGameObject = null;
             processGameObject = (GameObject go) =>
@@ -194,43 +190,23 @@ namespace vsgUnity.Native
 
                     if (mesh != null && mesh.isReadable && mesh.vertexCount > 0 && mesh.GetIndexCount(0) > 0)
                     {
-                        string meshidstr = mesh.GetInstanceID().ToString();
+                        int meshid = mesh.GetInstanceID();
 
-                        MeshData fullMeshData;
-                        if (meshCache.ContainsKey(meshidstr))
-                        {
-                            fullMeshData = meshCache[meshidstr];
-                        }
-                        else
-                        {
-                            fullMeshData = NativeUtils.CreateMeshData(mesh, -1);
-                            meshCache.Add(meshidstr, fullMeshData);
-                        }
+                        MeshInfo meshInfo = MeshConverter.GetOrCreateMeshInfo(mesh);
 
                         int subMeshCount = mesh.subMeshCount;
 
                         // shader instance id, Material Data, sub mesh indicies
-                        Dictionary<string, Dictionary<MaterialData, List<int>>> meshMaterials = new Dictionary<string, Dictionary<MaterialData, List<int>>>();
+                        Dictionary<int, Dictionary<MaterialInfo, List<int>>> meshMaterials = new Dictionary<int, Dictionary<MaterialInfo, List<int>>>();
                         for (int matindex = 0; matindex < materials.Length && matindex < subMeshCount; matindex++)
                         {
                             Material mat = materials[matindex];
                             if (mat == null) continue;
 
-                            string matid = mat.GetInstanceID().ToString();
-                            string matshaderid = NativeUtils.GetShaderIDForMaterial(mat);
+                            MaterialInfo matdata = MaterialConverter.GetOrCreateMaterialData(mat);
+                            int matshaderid = matdata.shaderStages.id;
 
-                            MaterialData matdata;
-
-                            if (materialCache.ContainsKey(matid))
-                            {
-                                matdata = materialCache[matid];
-                            }
-                            else
-                            {
-                                matdata = NativeUtils.CreateMaterialData(mat, ref textureCache);
-                            }
-
-                            if (!meshMaterials.ContainsKey(matshaderid)) meshMaterials.Add(matshaderid, new Dictionary<MaterialData, List<int>>());
+                            if (!meshMaterials.ContainsKey(matshaderid)) meshMaterials.Add(matshaderid, new Dictionary<MaterialInfo, List<int>>());
                             if (!meshMaterials[matshaderid].ContainsKey(matdata)) meshMaterials[matshaderid].Add(matdata, new List<int>());
 
                             meshMaterials[matshaderid][matdata].Add(matindex);
@@ -248,82 +224,45 @@ namespace vsgUnity.Native
                             */
 
                             // create mesh data, if the mesh has already been created we only need to pass the ID to the addGeometry function
-                            foreach (string shaderkey in meshMaterials.Keys)
+                            foreach (int shaderkey in meshMaterials.Keys)
                             {
-                                List<MaterialData> mds = new List<MaterialData>(meshMaterials[shaderkey].Keys);
+                                List<MaterialInfo> mds = new List<MaterialInfo>(meshMaterials[shaderkey].Keys);
 
                                 if (mds.Count == 0) continue;
 
                                 // add stategroup and pipeline for shader
                                 GraphBuilder.unity2vsg_AddStateGroupNode();
 
-                                PipelineData pipelineData = NativeUtils.CreatePipelineData(fullMeshData); //WE NEED INFO ABOUT THE SHADER SO WE CAN BUILD A PIPLE LINE
-                                pipelineData.vertexDescriptorBindings.data = mds[0].vertexDescriptorBindings;
-                                pipelineData.vertexDescriptorBindings.length = mds[0].vertexDescriptorBindings.Length;
-                                pipelineData.fragmentDescriptorBindings.data = mds[0].fragmentDescriptorBindings;
-                                pipelineData.fragmentDescriptorBindings.length = mds[0].fragmentDescriptorBindings.Length;
-                                pipelineData.shader.customDefines = mds[0].customDefines == null ? "" : string.Join(",", mds[0].customDefines);
+                                PipelineData pipelineData = NativeUtils.CreatePipelineData(meshInfo); //WE NEED INFO ABOUT THE SHADER SO WE CAN BUILD A PIPLE LINE
+                                pipelineData.descriptorBindings = NativeUtils.WrapArray(mds[0].descriptorBindings.ToArray());
+                                pipelineData.shaderStages = mds[0].shaderStages.ToNative();
                                 pipelineData.useAlpha = mds[0].useAlpha;
-                                pipelineData.id = NativeUtils.GetIDForPipeline(pipelineData);
+                                pipelineData.id = NativeUtils.ToNative(NativeUtils.GetIDForPipeline(pipelineData));
+                                storePipelines.Add(pipelineData);
 
                                 if (GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1) == 1)
                                 {
 
                                     GraphBuilder.unity2vsg_AddCommandsNode();
 
-                                    VertexBuffersData vertexBuffersData;
-                                    if (vertexCache.ContainsKey(meshidstr))
-                                    {
-                                        vertexBuffersData = vertexCache[meshidstr];
-                                    }
-                                    else
-                                    {
-                                        vertexBuffersData = new VertexBuffersData();
-                                        vertexBuffersData.id = mesh.GetInstanceID().ToString();
-                                        vertexBuffersData.verticies = fullMeshData.verticies;
-                                        vertexBuffersData.normals = fullMeshData.normals;
-                                        vertexBuffersData.uv0 = fullMeshData.uv0;
-                                        vertexCache.Add(meshidstr, vertexBuffersData);
-                                    }
-
+                                    VertexBuffersData vertexBuffersData = MeshConverter.GetOrCreateVertexBuffersData(meshInfo);
                                     GraphBuilder.unity2vsg_AddBindVertexBuffersCommand(vertexBuffersData);
 
-                                    IndexBufferData indexBufferData;
-
-                                    if (indexCache.ContainsKey(meshidstr))
-                                    {
-                                        indexBufferData = indexCache[meshidstr];
-                                    }
-                                    else
-                                    {
-                                        indexBufferData = new IndexBufferData();
-                                        indexBufferData.id = mesh.GetInstanceID().ToString();
-                                        indexBufferData.triangles.data = mesh.triangles;
-                                        indexBufferData.triangles.length = indexBufferData.triangles.data.Length;
-                                        indexBufferData.use32BitIndicies = fullMeshData.use32BitIndicies;
-                                        indexCache.Add(meshidstr, indexBufferData);
-                                    }
-
+                                    IndexBufferData indexBufferData = MeshConverter.GetOrCreateIndexBufferData(meshInfo);
                                     GraphBuilder.unity2vsg_AddBindIndexBufferCommand(indexBufferData);
 
 
-                                    foreach (MaterialData md in mds)
+                                    foreach (MaterialInfo md in mds)
                                     {
-                                        foreach (TextureData t in md.textures)
+                                        foreach (DescriptorImageData t in md.imageDescriptors)
                                         {
-                                            GraphBuilder.unity2vsg_AddTextureDescriptor(t);
+                                            GraphBuilder.unity2vsg_AddDescriptorImage(t);
                                         }
-                                        if (md.textures.Length > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(0);
+                                        if (md.imageDescriptors.Count > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(0);
 
                                         foreach (int submeshIndex in meshMaterials[shaderkey][md])
                                         {
-                                            DrawIndexedData drawIndexedData = new DrawIndexedData();
-                                            drawIndexedData.id = mesh.GetInstanceID().ToString() + "-" + submeshIndex.ToString();
-                                            drawIndexedData.indexCount = (int)mesh.GetIndexCount(submeshIndex);
-                                            drawIndexedData.firstIndex = (int)mesh.GetIndexStart(submeshIndex);
-                                            //Debug.Log("index count: " + mesh.GetIndexCount(submeshIndex).ToString() + " first index: " + mesh.GetIndexStart(submeshIndex).ToString() + " total indicies " + indexBufferData.triangles.length);
-                                            drawIndexedData.instanceCount = 1;
-
+                                            DrawIndexedData drawIndexedData = MeshConverter.GetOrCreateDrawIndexedData(meshInfo, submeshIndex);
                                             GraphBuilder.unity2vsg_AddDrawIndexedCommand(drawIndexedData);
                                         }
                                     }
@@ -335,35 +274,34 @@ namespace vsgUnity.Native
                         }
                         else
                         {
-                            List<string> sids = new List<string>(meshMaterials.Keys);
+                            List<int> sids = new List<int>(meshMaterials.Keys);
                             if (sids.Count > 0)
                             {
-                                List<MaterialData> mds = new List<MaterialData>(meshMaterials[sids[0]].Keys);
+                                List<MaterialInfo> mds = new List<MaterialInfo>(meshMaterials[sids[0]].Keys);
 
                                 if (mds.Count > 0)
                                 {
                                     // add stategroup and pipeline for shader
                                     GraphBuilder.unity2vsg_AddStateGroupNode();
 
-                                    PipelineData pipelineData = NativeUtils.CreatePipelineData(fullMeshData); //WE NEED INFO ABOUT THE SHADER SO WE CAN BUILD A PIPLE LINE
-                                    pipelineData.vertexDescriptorBindings.data = mds[0].vertexDescriptorBindings;
-                                    pipelineData.vertexDescriptorBindings.length = mds[0].vertexDescriptorBindings.Length;
-                                    pipelineData.fragmentDescriptorBindings.data = mds[0].fragmentDescriptorBindings;
-                                    pipelineData.fragmentDescriptorBindings.length = mds[0].fragmentDescriptorBindings.Length;
-                                    pipelineData.shader.customDefines = mds[0].customDefines == null ? "" : string.Join(",", mds[0].customDefines);
+                                    PipelineData pipelineData = NativeUtils.CreatePipelineData(meshInfo); //WE NEED INFO ABOUT THE SHADER SO WE CAN BUILD A PIPLE LINE
+                                    pipelineData.descriptorBindings = NativeUtils.WrapArray(mds[0].descriptorBindings.ToArray());
+                                    pipelineData.shaderStages = mds[0].shaderStages.ToNative();
                                     pipelineData.useAlpha = mds[0].useAlpha;
-                                    pipelineData.id = NativeUtils.GetIDForPipeline(pipelineData);
+                                    pipelineData.id = NativeUtils.ToNative(NativeUtils.GetIDForPipeline(pipelineData));
+                                    storePipelines.Add(pipelineData);
 
                                     if (GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1) == 1)
                                     {
 
-                                        foreach (TextureData t in mds[0].textures)
+                                        foreach (DescriptorImageData t in mds[0].imageDescriptors)
                                         {
-                                            GraphBuilder.unity2vsg_AddTextureDescriptor(t);
+                                            GraphBuilder.unity2vsg_AddDescriptorImage(t);
                                         }
-                                        if (mds[0].textures.Length > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
+                                        if (mds[0].imageDescriptors.Count > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
 
-                                        GraphBuilder.unity2vsg_AddVertexIndexDrawNode(fullMeshData);
+                                        VertexIndexDrawData vertexIndexDrawData = MeshConverter.GetOrCreateVertexIndexDrawData(meshInfo);
+                                        GraphBuilder.unity2vsg_AddVertexIndexDrawNode(vertexIndexDrawData);
 
                                         GraphBuilder.unity2vsg_EndNode(); // step out of vertex index draw node
                                     }
@@ -387,7 +325,7 @@ namespace vsgUnity.Native
                 Terrain terrain = go.GetComponent<Terrain>();
                 if(terrain != null)
                 {
-                    ExportTerrainMesh(terrain, settings, meshCache, textureCache, textureArrayCache);
+                    ExportTerrainMesh(terrain, settings, textureArrayCache, storePipelines);
                 }
 
                 // does this node have an LOD group
@@ -450,8 +388,28 @@ namespace vsgUnity.Native
             GraphBuilder.unity2vsg_EndExport(saveFileName);
         }
 
-        private static void ExportTerrainMesh(Terrain terrain, ExportSettings settings, Dictionary<string, MeshData> meshCache = null, Dictionary<string, TextureData> textureCache = null, Dictionary<string, TextureDataArray> textureArrayCache = null)
+        private static void ExportTerrainMesh(Terrain terrain, ExportSettings settings, Dictionary<System.IntPtr, DescriptorImagesData> textureArrayCache = null, List<PipelineData> storePipelines = null)
         {
+            TerrainShaderMapping terrainShaderMapping = null;
+
+            if (terrain.materialType == Terrain.MaterialType.Custom)
+            {
+                // try and load a shader mapping file to match the custom terrain material
+                terrainShaderMapping = ShaderMappingIO.ReadFromJsonFile<TerrainShaderMapping>(terrain.materialTemplate.shader);
+            }
+            else if (settings.standardTerrainShaderMappingPath != null)
+            {
+                // load the shader mapping file
+                terrainShaderMapping = ShaderMappingIO.ReadFromJsonFile<TerrainShaderMapping>(ShaderMappingIO.GetPathForShaderMappingFile("DefaultTerrain"));
+            }
+
+            if (terrainShaderMapping == null)
+            {
+                Debug.Log("GraphBuilder: Failed to load Terrain Shader Mapping file for terrain '" + terrain.name + "'.");
+                return;
+            }
+
+
             int samplew = terrain.terrainData.heightmapWidth;
             int sampleh = terrain.terrainData.heightmapHeight;
 
@@ -507,88 +465,39 @@ namespace vsgUnity.Native
             pipelineData.useAlpha = 0;
 
             List<string> shaderDefines = new List<string>() { "VSG_LIGHTING" };
-            List<DescriptorBinding> fragBindings = new List<DescriptorBinding>();
-            List<uint> shaderConsts = new List<uint>();
+            List<VkDescriptorSetLayoutBinding> fragBindings = new List<VkDescriptorSetLayoutBinding>();
+            List<int> shaderConsts = new List<int>();
 
             // convert layers into textures
             TerrainLayer[] layers = terrain.terrainData.terrainLayers;
-            TextureData baseTextureData = new TextureData() { channel = -1 };
-            List<TextureData> layerDiffuseTextureDatas = new List<TextureData>();
-            TextureDataArray layerDiffuseTextureArray = new TextureDataArray() { id = terrain.GetInstanceID().ToString()+"-diffuse", channel = 0 };
-            List<TextureData> layerMaskTextureDatas = new List<TextureData>();
-            TextureDataArray layerMaskTextureArray = new TextureDataArray() { id = terrain.GetInstanceID().ToString()+"-mask", channel = 1 };
+            List<ImageData> layerDiffuseTextureDatas = new List<ImageData>();
+            DescriptorImagesData layerDiffuseTextureArray = new DescriptorImagesData() { id = NativeUtils.ToNative(terrain.GetInstanceID().ToString()+"-diffuse"), channel = 0 };
+            List<ImageData> layerMaskTextureDatas = new List<ImageData>();
+            DescriptorImagesData layerMaskTextureArray = new DescriptorImagesData() { id = NativeUtils.ToNative(terrain.GetInstanceID().ToString()+"-mask"), channel = 1 };
 
             for(int i = 0; i < layers.Length; i++)
             {
-                string layertexid = layers[i].diffuseTexture.GetInstanceID().ToString();
-
-                TextureData layerData;
-
-                if (textureCache.ContainsKey(layertexid))
-                {
-                    layerData = textureCache[layertexid];
-                }
-                else
-                {
-                    NativeUtils.TextureSupportIssues issues = NativeUtils.GetSupportIssuesForTexture(layers[i].diffuseTexture);
-                    if (issues == NativeUtils.TextureSupportIssues.None)
-                    {
-                        layerData = NativeUtils.CreateTextureData(layers[i].diffuseTexture, i);
-                    }
-                    else
-                    {
-                        layerData = NativeUtils.CreateTextureData(Texture2D.whiteTexture, i);
-
-                        Debug.LogWarning(NativeUtils.GetTextureSupportReport(issues, layers[i].diffuseTexture));
-                    }
-                    textureCache.Add(layertexid, layerData);
-                }
-
+                ImageData layerData = TextureConverter.GetOrCreateImageData(layers[i].diffuseTexture);
                 layerDiffuseTextureDatas.Add(layerData);
             }
             Debug.Log("Alpha tex count: " + terrain.terrainData.alphamapTextureCount);
             for (int i = 0; i < terrain.terrainData.alphamapTextureCount; i++)
             {
-                Texture2D splatmask = terrain.terrainData.GetAlphamapTexture(i);
-                string masktexid = splatmask.GetInstanceID().ToString();
+                Texture2D srcmask = terrain.terrainData.GetAlphamapTexture(i);
 
-                TextureData splatData;
-
-                if (textureCache.ContainsKey(masktexid))
+                ImageData splatData = new ImageData();
+                if (!TextureConverter.GetImageDataFromCache(srcmask.GetInstanceID(), out splatData))
                 {
-                    splatData = textureCache[masktexid];
-                }
-                else
-                {
-                    NativeUtils.TextureSupportIssues issues = NativeUtils.GetSupportIssuesForTexture(splatmask);
-                    if (issues == NativeUtils.TextureSupportIssues.None)
-                    {
-                        splatData = NativeUtils.CreateTextureData(splatmask, i);
-                    }
-                    else
-                    {
-                        Debug.Log("Splat texture format not support, returned following issues:\n" + NativeUtils.GetTextureSupportReport(issues, splatmask) + "\nAttempting to convert.");
+                    // alpha masks need to be converteds
+                    RenderTexture rt = RenderTexture.GetTemporary(srcmask.width, srcmask.height, 0, RenderTextureFormat.ARGB32);
+                    Graphics.Blit(srcmask, rt);
+                    Texture2D convmask = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
+                    Graphics.SetRenderTarget(rt);
+                    convmask.ReadPixels(new Rect(0.0f, 0.0f, rt.width, rt.height), 0, 0, false);
+                    convmask.Apply(false, false);
 
-                        RenderTexture rt = RenderTexture.GetTemporary(splatmask.width, splatmask.height, 0, RenderTextureFormat.ARGB32);
-                        Graphics.Blit(splatmask, rt);
-                        Texture2D converted = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
-                        Graphics.SetRenderTarget(rt);
-                        converted.ReadPixels(new Rect(0.0f, 0.0f, rt.width, rt.height), 0, 0, false);
-                        converted.Apply(false, false);
-
-                        issues = NativeUtils.GetSupportIssuesForTexture(converted);
-                        if (issues == NativeUtils.TextureSupportIssues.None)
-                        {
-                            splatData = NativeUtils.CreateTextureData(converted, i);
-                        }
-                        else
-                        {
-                            Debug.Log("Failed to convert splat tex: " + NativeUtils.GetTextureSupportReport(issues, converted));
-
-                            splatData = NativeUtils.CreateTextureData(Texture2D.whiteTexture, i);
-                        }
-                    }
-                    textureCache.Add(masktexid, splatData);
+                    splatData = TextureConverter.CreateImageData(convmask, false);
+                    TextureConverter.AddImageDataToCache(splatData, srcmask.GetInstanceID());
                 }
 
                 layerMaskTextureDatas.Add(splatData);
@@ -599,83 +508,69 @@ namespace vsgUnity.Native
             {
 
                 if (textureArrayCache != null) textureArrayCache.Add(layerDiffuseTextureArray.id, layerDiffuseTextureArray);
-                fragBindings.Add(new DescriptorBinding() { binding = 0, type = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, count = layerDiffuseTextureDatas.Count });
+                fragBindings.Add(new VkDescriptorSetLayoutBinding() { binding = 0, descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags = VkShaderStageFlagBits.VK_SHADER_STAGE_FRAGMENT_BIT, descriptorCount = (uint)layerDiffuseTextureDatas.Count });
 
-                shaderConsts.Add((uint)layerDiffuseTextureDatas.Count);
+                shaderConsts.Add(layerDiffuseTextureDatas.Count);
 
                 shaderDefines.Add("VSG_TERRAIN_LAYERS");
             }
-
+            
             if (layerMaskTextureDatas.Count > 0)
             {
                 if (textureArrayCache != null) textureArrayCache.Add(layerMaskTextureArray.id, layerMaskTextureArray);
-                fragBindings.Add(new DescriptorBinding() { binding = 1, type = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, count = layerMaskTextureDatas.Count });
+                fragBindings.Add(new VkDescriptorSetLayoutBinding() { binding = 1, descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags = VkShaderStageFlagBits.VK_SHADER_STAGE_FRAGMENT_BIT, descriptorCount = (uint)layerMaskTextureDatas.Count });
 
-                shaderConsts.Add((uint)layerMaskTextureDatas.Count);
+                shaderConsts.Add(layerMaskTextureDatas.Count);
             }
 
-            pipelineData.fragmentDescriptorBindings.data = fragBindings.ToArray();
-            pipelineData.fragmentDescriptorBindings.length = pipelineData.fragmentDescriptorBindings.data.Length;
+            pipelineData.descriptorBindings = NativeUtils.WrapArray(fragBindings.ToArray());
+            ShaderStagesInfo shaderStagesInfo = MaterialConverter.GetOrCreateShaderStagesInfo(terrainShaderMapping.shaders.ToArray(), string.Join(",", shaderDefines.ToArray()), shaderConsts.ToArray());
+            pipelineData.shaderStages = shaderStagesInfo.ToNative();
 
-            pipelineData.shader.customDefines = string.Join(",", shaderDefines.ToArray());
+            pipelineData.id = NativeUtils.ToNative(NativeUtils.GetIDForPipeline(pipelineData));
+            storePipelines.Add(pipelineData);
 
-            pipelineData.shader.fragmentSpecializationData.data = shaderConsts.ToArray();
-            pipelineData.shader.fragmentSpecializationData.length = pipelineData.shader.fragmentSpecializationData.data.Length;
-
-            // use custom shader if present
-            if (!string.IsNullOrEmpty(settings.terrainVertexShaderPath) && !string.IsNullOrEmpty(settings.terrainFragmentShaderPath))
-            {
-                pipelineData.shader.vertexSource = settings.terrainVertexShaderPath;
-                pipelineData.shader.fragmentSource = settings.terrainFragmentShaderPath;
-            }
-
-            pipelineData.id = NativeUtils.GetIDForPipeline(pipelineData);
 
             if (GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1) == 1)
             {
-                if(baseTextureData.channel != -1)
-                {
-                    unity2vsg_AddTextureDescriptor(baseTextureData);
-                }
-
                 if(layerDiffuseTextureDatas.Count > 0)
                 {
-                    foreach (TextureData tex in layerDiffuseTextureDatas)
+                    foreach (ImageData tex in layerDiffuseTextureDatas)
                     {
-                        unity2vsg_AddTextureDescriptorToArray(tex);
+                        unity2vsg_AddImageDataToActiveDescriptorImagesArray(tex);
                     }
-                    unity2vsg_CreateTextureArrayDescriptor(layerDiffuseTextureArray);
+                    unity2vsg_CreateDescriptorImagesFromActiveArray(layerDiffuseTextureArray);
                 }
-
+                
                 if (layerMaskTextureDatas.Count > 0)
                 {
-                    foreach (TextureData tex in layerMaskTextureDatas)
+                    foreach (ImageData tex in layerMaskTextureDatas)
                     {
-                        unity2vsg_AddTextureDescriptorToArray(tex);
+                        unity2vsg_AddImageDataToActiveDescriptorImagesArray(tex);
                     }
-                    unity2vsg_CreateTextureArrayDescriptor(layerMaskTextureArray);
+                    unity2vsg_CreateDescriptorImagesFromActiveArray(layerMaskTextureArray);
                 }
 
                 GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
+                
 
-                MeshData mesh = new MeshData();
-                mesh.id = terrain.GetInstanceID().ToString();
-                mesh.verticies.data = verts;
-                mesh.verticies.length = vertcount;
-                mesh.normals.data = normals;
-                mesh.normals.length = vertcount;
-                mesh.uv0.data = uvs;
-                mesh.uv0.length = vertcount;
-                mesh.triangles.data = indicies;
-                mesh.triangles.length = indicies.Length;
-                mesh.use32BitIndicies = 1;
-
-                if (meshCache != null)
+                MeshInfo mesh = null;
+                if (!MeshConverter.GetMeshInfoFromCache(terrain.GetInstanceID(), out mesh))
                 {
-                    meshCache.Add(mesh.id, mesh);
+                    mesh = new MeshInfo
+                    {
+                        id = terrain.GetInstanceID(),
+                        verticies = NativeUtils.WrapArray(verts),
+                        normals = NativeUtils.WrapArray(normals),
+                        uv0 = NativeUtils.WrapArray(uvs),
+                        triangles = NativeUtils.WrapArray(indicies),
+                        use32BitIndicies = 1
+                    };
+
+                    MeshConverter.AddMeshInfoToCache(mesh, terrain.GetInstanceID());
                 }
 
-                GraphBuilder.unity2vsg_AddVertexIndexDrawNode(mesh);
+                GraphBuilder.unity2vsg_AddVertexIndexDrawNode(MeshConverter.GetOrCreateVertexIndexDrawData(mesh));
                 GraphBuilder.unity2vsg_EndNode(); // step out of vertex index draw node
             }
             GraphBuilder.unity2vsg_EndNode(); // step out of stategroup node

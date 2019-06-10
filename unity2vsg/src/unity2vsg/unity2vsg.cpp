@@ -33,23 +33,23 @@ public:
 
     void apply(vsg::Object& object) override
     {
-        if (typeid(object) == typeid(vsg::Texture))
+        if (typeid(object) == typeid(vsg::DescriptorImage))
         {
-            vsg::Texture* texture = static_cast<vsg::Texture*>(&object);
-            if (texture->_textureData)
+            vsg::DescriptorImage* texture = static_cast<vsg::DescriptorImage*>(&object);
+            if (texture->getImage())
             {
-                objects->addChild(texture->_textureData);
+                objects->addChild(vsg::ref_ptr<vsg::Data>(texture->getImage()));
             }
         }
 
-        if (typeid(object) == typeid(vsg::TextureArray))
+        if (typeid(object) == typeid(vsg::DescriptorImages))
         {
-            vsg::TextureArray* textureArray = static_cast<vsg::TextureArray*>(&object);
-            for (auto& texture : textureArray->_textures)
+            vsg::DescriptorImages* textureArray = static_cast<vsg::DescriptorImages*>(&object);
+            for (auto& samplerimage : textureArray->getSamplerImages())
             {
-                if (texture->_textureData)
+                if (samplerimage.second.valid())
                 {
-                    objects->addChild(texture->_textureData);
+                    objects->addChild(samplerimage.second);
                 }
             }
         }
@@ -115,23 +115,23 @@ public:
 
     void apply(vsg::Object& object) override
     {
-        if (typeid(object) == typeid(vsg::Texture))
+        if (typeid(object) == typeid(vsg::DescriptorImage))
         {
-            vsg::Texture* texture = static_cast<vsg::Texture*>(&object);
-            if (texture->_textureData)
+            vsg::DescriptorImage* texture = static_cast<vsg::DescriptorImage*>(&object);
+            if (texture->getImage())
             {
-                texture->_textureData->dataRelease();
+                texture->getImage()->dataRelease();
             }
         }
 
-        if (typeid(object) == typeid(vsg::TextureArray))
+        if (typeid(object) == typeid(vsg::DescriptorImages))
         {
-            vsg::TextureArray* textureArray = static_cast<vsg::TextureArray*>(&object);
-            for (auto& texture : textureArray->_textures)
+            vsg::DescriptorImages* textureArray = static_cast<vsg::DescriptorImages*>(&object);
+            for (auto& samplerimage : textureArray->getSamplerImages())
             {
-                if (texture->_textureData)
+                if (samplerimage.second.valid())
                 {
-                    texture->_textureData->dataRelease();
+                    samplerimage.second->dataRelease();
                 }
             }
         }
@@ -215,10 +215,10 @@ public:
 
     void addMatrixTrasform(const TransformData& data)
     {
-        vsg::mat4 matrix = vsg::mat4(data.matrix.ptr[0], data.matrix.ptr[1], data.matrix.ptr[2], data.matrix.ptr[3],
-                                     data.matrix.ptr[4], data.matrix.ptr[5], data.matrix.ptr[6], data.matrix.ptr[7],
-                                     data.matrix.ptr[8], data.matrix.ptr[9], data.matrix.ptr[10], data.matrix.ptr[11],
-                                     data.matrix.ptr[12], data.matrix.ptr[13], data.matrix.ptr[14], data.matrix.ptr[15]);
+        vsg::mat4 matrix = vsg::mat4(data.matrix.data[0], data.matrix.data[1], data.matrix.data[2], data.matrix.data[3],
+                                     data.matrix.data[4], data.matrix.data[5], data.matrix.data[6], data.matrix.data[7],
+                                     data.matrix.data[8], data.matrix.data[9], data.matrix.data[10], data.matrix.data[11],
+                                     data.matrix.data[12], data.matrix.data[13], data.matrix.data[14], data.matrix.data[15]);
 
         auto transform = vsg::MatrixTransform::create(matrix);
 
@@ -291,26 +291,26 @@ public:
         pushNodeToStack(commands);
     }
 
-    void addVertexIndexDraw(const MeshData& data)
+    void addVertexIndexDraw(const VertexIndexDrawData& data)
     {
         vsg::ref_ptr<vsg::Node> geomNode;
 
-        // has a geometry with this ID already been created
-        std::string idstr = std::string(data.id);
-
-        if (_geometryCache.find(idstr) != _geometryCache.end())
+        if (_vertexIndexDrawCache.find(data.id) != _vertexIndexDrawCache.end())
         {
-            geomNode = _geometryCache[idstr];
+            geomNode = _vertexIndexDrawCache[data.id];
         }
         else
         {
             auto geometry = vsg::VertexIndexDraw::create();
 
             // vertex inputs
-            auto inputarrays = vsg::DataList{createVsgArray<vsg::vec3>(data.verticies.ptr, data.verticies.length)}; // always have verticies
+            auto inputarrays = vsg::DataList{createVsgArray<vsg::vec3>(data.verticies.data, data.verticies.length)}; // always have verticies
 
-            if (data.normals.length > 0) inputarrays.push_back(createVsgArray<vsg::vec3>(data.normals.ptr, data.normals.length));
-            if (data.uv0.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv0.ptr, data.uv0.length));
+            if (data.normals.length > 0) inputarrays.push_back(createVsgArray<vsg::vec3>(data.normals.data, data.normals.length));
+            if (data.tangents.length > 0) inputarrays.push_back(createVsgArray<vsg::vec4>(data.tangents.data, data.tangents.length));
+            if (data.colors.length > 0) inputarrays.push_back(createVsgArray<vsg::vec4>(data.colors.data, data.colors.length));
+            if (data.uv0.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv0.data, data.uv0.length));
+            if (data.uv1.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv1.data, data.uv1.length));
 
             geometry->_arrays = inputarrays;
 
@@ -320,7 +320,7 @@ public:
                 vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
                 for (uint32_t i = 0; i < data.triangles.length; i++)
                 {
-                    indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
+                    indiciesushort->set(i, static_cast<uint16_t>(data.triangles.data[i]));
                 }
 
                 geometry->_indices = indiciesushort;
@@ -330,7 +330,7 @@ public:
                 vsg::ref_ptr<vsg::uintArray> indiciesuint(new vsg::uintArray(data.triangles.length));
                 for (uint32_t i = 0; i < data.triangles.length; i++)
                 {
-                    indiciesuint->set(i, static_cast<uint32_t>(data.triangles.ptr[i]));
+                    indiciesuint->set(i, static_cast<uint32_t>(data.triangles.data[i]));
                 }
 
                 geometry->_indices = indiciesuint;
@@ -339,65 +339,7 @@ public:
             geometry->indexCount = data.triangles.length;
             geometry->instanceCount = 1;
 
-            _geometryCache[idstr] = geometry;
-            geomNode = geometry;
-        }
-
-        if (!addChildToHead(geomNode))
-        {
-            DebugLog("GraphBuilder Error: Current head is not a group");
-        }
-
-        pushNodeToStack(geomNode);
-    }
-
-    void addGeometry(const MeshData& data)
-    {
-        vsg::ref_ptr<vsg::Node> geomNode;
-
-        // has a geometry with this ID already been created
-        std::string idstr = std::string(data.id);
-
-        if (_geometryCache.find(idstr) != _geometryCache.end())
-        {
-            geomNode = _geometryCache[idstr];
-        }
-        else
-        {
-            auto geometry = vsg::Geometry::create();
-
-            // vertex inputs
-            auto inputarrays = vsg::DataList{createVsgArray<vsg::vec3>(data.verticies.ptr, data.verticies.length)}; // always have verticies
-
-            if (data.normals.length > 0) inputarrays.push_back(createVsgArray<vsg::vec3>(data.normals.ptr, data.normals.length));
-            if (data.uv0.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv0.ptr, data.uv0.length));
-
-            geometry->_arrays = inputarrays;
-
-            if (data.use32BitIndicies == 0)
-            {
-                // for now convert the int32 array indicies to uint16
-                vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
-                for (uint32_t i = 0; i < data.triangles.length; i++)
-                {
-                    indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
-                }
-
-                geometry->_indices = indiciesushort;
-            }
-            else
-            {
-                vsg::ref_ptr<vsg::uintArray> indiciesuint(new vsg::uintArray(data.triangles.length));
-                for (uint32_t i = 0; i < data.triangles.length; i++)
-                {
-                    indiciesuint->set(i, static_cast<uint32_t>(data.triangles.ptr[i]));
-                }
-
-                geometry->_indices = indiciesuint;
-            }
-            geometry->_commands = {vsg::DrawIndexed::create(data.triangles.length, 1, 0, 0, 0)};
-
-            _geometryCache[idstr] = geometry;
+            _vertexIndexDrawCache[data.id] = geometry;
             geomNode = geometry;
         }
 
@@ -485,7 +427,8 @@ public:
             for (uint32_t i = 0; i < specializationConstants.length; i++)
             {
                 specialEntires.push_back({i, i * sizeof(uint32_t), sizeof(uint32_t)});
-                dataarray->at(i) = specializationConstants.ptr[i];
+                dataarray->at(i) = specializationConstants.data[i];
+                DebugLog("Special Value: " + std::to_string(dataarray->at(i)));
             }
 
             shaderStage->setSpecializationMapEntries(specialEntires);
@@ -520,7 +463,7 @@ public:
             }
             if (data.hasTangents)
             {
-                inputAttributes.push_back({{2, VK_FORMAT_R32G32B32_SFLOAT}});
+                inputAttributes.push_back({{2, VK_FORMAT_R32G32B32A32_SFLOAT}});
                 inputshaderatts |= TANGENT;
             }
             if (data.hasColors)
@@ -533,6 +476,11 @@ public:
                 inputAttributes.push_back({{4, VK_FORMAT_R32G32_SFLOAT}});
                 inputshaderatts |= TEXCOORD0;
             }
+            if (data.uvChannelCount > 1) // uv set 1
+            {
+                inputAttributes.push_back({{5, VK_FORMAT_R32G32_SFLOAT}});
+                inputshaderatts |= TEXCOORD1;
+            }
 
             traits->vertexAttributeDescriptions[VK_VERTEX_INPUT_RATE_VERTEX] = inputAttributes;
 
@@ -540,36 +488,36 @@ public:
             vsg::GraphicsPipelineBuilder::Traits::DescriptorBindingSet bindingSet;
             uint32_t shaderMode = 0;
 
-            vsg::GraphicsPipelineBuilder::Traits::DescriptorBindngs vertexBindings;
-            for (uint32_t i = 0; i < data.vertexDescriptorBindings.length; i++)
+            for (uint32_t i = 0; i < data.descriptorBindings.length; i++)
             {
-                vsg::GraphicsPipelineBuilder::Traits::DescriptorBinding& binding = data.vertexDescriptorBindings.ptr[i];
-                vertexBindings.push_back(binding);
+                VkDescriptorSetLayoutBinding dslb = data.descriptorBindings.data[i];
+                vsg::GraphicsPipelineBuilder::Traits::DescriptorBinding binding = {dslb.binding, dslb.descriptorType, dslb.descriptorCount};
+                bindingSet[dslb.stageFlags].push_back(binding);
             }
-            bindingSet[VK_SHADER_STAGE_VERTEX_BIT] = vertexBindings;
-
-            vsg::GraphicsPipelineBuilder::Traits::DescriptorBindngs fragmentBindings;
-            for (uint32_t i = 0; i < data.fragmentDescriptorBindings.length; i++)
-            {
-                vsg::GraphicsPipelineBuilder::Traits::DescriptorBinding& binding = data.fragmentDescriptorBindings.ptr[i];
-                fragmentBindings.push_back(binding);
-            }
-            bindingSet[VK_SHADER_STAGE_FRAGMENT_BIT] = fragmentBindings;
 
             traits->descriptorLayouts = {bindingSet};
 
             // setup shaders
-            std::string vertexShaderSource = data.shader.vertexSource != nullptr ? std::string(data.shader.vertexSource) : "";
-            std::string fragmentShaderSource = data.shader.fragmentSource != nullptr ? std::string(data.shader.fragmentSource) : "";
-            std::string customDefs = data.shader.customDefines != nullptr ? std::string(data.shader.customDefines) : "";
+            vsg::ShaderStages shaders;
 
-            auto vertShaderModule = getOrCreateShaderModule(VK_SHADER_STAGE_VERTEX_BIT, vertexShaderSource, inputshaderatts, shaderMode, customDefs);
-            auto fragShaderModule = getOrCreateShaderModule(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderSource, inputshaderatts, shaderMode, customDefs);
+            for (int i = 0; i < data.shaderStages.stagesCount; i++)
+            {
+                ShaderStageData& shaderStageData = data.shaderStages.stages[i];
+                std::string customDefs = std::string(shaderStageData.customDefines);
 
-            auto vertStage = createShaderStage(VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule, data.shader.vertexSpecializationData);
-            auto fragStage = createShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderModule, data.shader.fragmentSpecializationData);
-
-            vsg::ShaderStages shaders = {vertStage, fragStage};
+                if ((shaderStageData.stages & VK_SHADER_STAGE_VERTEX_BIT) == VK_SHADER_STAGE_VERTEX_BIT)
+                {
+                    std::string vertDefines = customDefs + ", VSG_VERTEX_CODE";
+                    auto vertShaderModule = getOrCreateShaderModule(VK_SHADER_STAGE_VERTEX_BIT, std::string(shaderStageData.source), inputshaderatts, shaderMode, vertDefines);
+                    shaders.push_back(createShaderStage(VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule, shaderStageData.specializationData));
+                }
+                if ((shaderStageData.stages & VK_SHADER_STAGE_FRAGMENT_BIT) == VK_SHADER_STAGE_FRAGMENT_BIT)
+                {
+                    std::string fragDefines = customDefs + ", VSG_FRAGMENT_CODE";
+                    auto fragShaderModule = getOrCreateShaderModule(VK_SHADER_STAGE_FRAGMENT_BIT, std::string(shaderStageData.source), inputshaderatts, shaderMode, fragDefines);
+                    shaders.push_back(createShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderModule, shaderStageData.specializationData));
+                }
+            }
 
             ShaderCompiler shaderCompiler;
             if (!shaderCompiler.compile(shaders))
@@ -634,13 +582,11 @@ public:
 
     void addBindIndexBufferCommand(unity2vsg::IndexBufferData data)
     {
-        std::string idstr = std::string(data.id);
-
         vsg::ref_ptr<vsg::Command> cmd;
 
-        if (_bindIndexBufferCache.find(idstr) != _bindIndexBufferCache.end())
+        if (_bindIndexBufferCache.find(data.id) != _bindIndexBufferCache.end())
         {
-            cmd = _bindIndexBufferCache[idstr];
+            cmd = _bindIndexBufferCache[data.id];
         }
         else
         {
@@ -650,7 +596,7 @@ public:
                 vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
                 for (uint32_t i = 0; i < data.triangles.length; i++)
                 {
-                    indiciesushort->set(i, static_cast<uint16_t>(data.triangles.ptr[i]));
+                    indiciesushort->set(i, static_cast<uint16_t>(data.triangles.data[i]));
                 }
                 cmd = vsg::BindIndexBuffer::create(indiciesushort);
             }
@@ -659,35 +605,36 @@ public:
                 vsg::ref_ptr<vsg::uintArray> indiciesuint(new vsg::uintArray(data.triangles.length));
                 for (uint32_t i = 0; i < data.triangles.length; i++)
                 {
-                    indiciesuint->set(i, static_cast<uint32_t>(data.triangles.ptr[i]));
+                    indiciesuint->set(i, static_cast<uint32_t>(data.triangles.data[i]));
                 }
 
                 cmd = vsg::BindIndexBuffer::create(indiciesuint);
             }
-            _bindIndexBufferCache[idstr] = cmd;
+            _bindIndexBufferCache[data.id] = cmd;
         }
         addCommandToHead(cmd);
     }
 
     void addBindVertexBuffersCommand(unity2vsg::VertexBuffersData data)
     {
-        std::string idstr = std::string(data.id);
-
         vsg::ref_ptr<vsg::Command> cmd;
 
-        if (_bindVertexBuffersCache.find(idstr) != _bindVertexBuffersCache.end())
+        if (_bindVertexBuffersCache.find(data.id) != _bindVertexBuffersCache.end())
         {
-            cmd = _bindVertexBuffersCache[idstr];
+            cmd = _bindVertexBuffersCache[data.id];
         }
         else
         {
-            auto inputarrays = vsg::DataList{createVsgArray<vsg::vec3>(data.verticies.ptr, data.verticies.length)}; // always have verticies
+            auto inputarrays = vsg::DataList{createVsgArray<vsg::vec3>(data.verticies.data, data.verticies.length)}; // always have verticies
 
-            if (data.normals.length > 0) inputarrays.push_back(createVsgArray<vsg::vec3>(data.normals.ptr, data.normals.length));
-            if (data.uv0.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv0.ptr, data.uv0.length));
+            if (data.normals.length > 0) inputarrays.push_back(createVsgArray<vsg::vec3>(data.normals.data, data.normals.length));
+            if (data.tangents.length > 0) inputarrays.push_back(createVsgArray<vsg::vec4>(data.tangents.data, data.tangents.length));
+            if (data.colors.length > 0) inputarrays.push_back(createVsgArray<vsg::vec4>(data.colors.data, data.colors.length));
+            if (data.uv0.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv0.data, data.uv0.length));
+            if (data.uv1.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv1.data, data.uv1.length));
 
             cmd = vsg::BindVertexBuffers::create(0, inputarrays);
-            _bindVertexBuffersCache[idstr] = cmd;
+            _bindVertexBuffersCache[data.id] = cmd;
         }
 
         addCommandToHead(cmd);
@@ -695,18 +642,16 @@ public:
 
     void addDrawIndexedCommand(unity2vsg::DrawIndexedData data)
     {
-        std::string idstr = std::string(data.id);
-
         vsg::ref_ptr<vsg::Command> cmd;
 
-        if (_drawIndexedCache.find(idstr) != _drawIndexedCache.end())
+        if (_drawIndexedCache.find(data.id) != _drawIndexedCache.end())
         {
-            cmd = _drawIndexedCache[idstr];
+            cmd = _drawIndexedCache[data.id];
         }
         else
         {
             cmd = vsg::DrawIndexed::create(data.indexCount, data.instanceCount, data.firstIndex, data.vertexOffset, data.firstInstance);
-            _drawIndexedCache[idstr] = cmd;
+            _drawIndexedCache[data.id] = cmd;
         }
         addCommandToHead(cmd);
     }
@@ -775,213 +720,203 @@ public:
     // Descriptors
     //
 
-    vsg::ref_ptr<vsg::Texture> createTexture(const TextureData& data, bool useCache = true)
+    vsg::ref_ptr<vsg::Data> createDataForTexture(const ImageData& data)
     {
-        vsg::ref_ptr<vsg::Texture> texture;
+        vsg::ref_ptr<vsg::Data> texdata;
+        VkFormat format = data.format;
+        VkFormatSizeInfo sizeInfo = GetSizeInfoForFormat(data.format);
+        sizeInfo.layout.maxNumMipmaps = data.mipmapCount;
+        uint32_t blockVolume = sizeInfo.layout.blockWidth * sizeInfo.layout.blockHeight * sizeInfo.layout.blockDepth;
 
-        std::string idstr = std::string(data.id);
-
-        // has a texture with this ID already been created
-        if (useCache && _textureCache.find(idstr) != _textureCache.end())
+        if (data.depth == 1)
         {
-            texture = _textureCache[idstr];
-        }
-        else
-        {
-            texture = vsg::Texture::create();
-
-            vsg::ref_ptr<vsg::Data> texdata;
-            VkFormat format = data.format;
-            VkFormatSizeInfo sizeInfo = GetSizeInfoForFormat(data.format);
-            sizeInfo.layout.maxNumMipmaps = data.mipmapCount;
-            uint32_t blockVolume = sizeInfo.layout.blockWidth * sizeInfo.layout.blockHeight * sizeInfo.layout.blockDepth;
-
-            if (data.depth == 1)
-            {
-                if (blockVolume == 1)
-                {
-                    switch (format)
-                    {
-                    //
-                    // uint8 formats
-
-                    // 1 component
-                    case VK_FORMAT_R8_UNORM:
-                    case VK_FORMAT_R8_SRGB:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray2D(data.width, data.height, data.pixels.ptr));
-                        break;
-                    }
-                    // 2 component
-                    case VK_FORMAT_R8G8_UNORM:
-                    case VK_FORMAT_R8G8_SRGB:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec2*>(data.pixels.ptr)));
-                        break;
-                    }
-                    // 3 component
-                    case VK_FORMAT_B8G8R8_UNORM:
-                    case VK_FORMAT_B8G8R8_SRGB:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec3Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec3*>(data.pixels.ptr)));
-                        break;
-                    }
-                    // 4 component
-                    case VK_FORMAT_R8G8B8A8_UNORM:
-                    case VK_FORMAT_R8G8B8A8_SRGB:
-                    case VK_FORMAT_B8G8R8A8_UNORM:
-                    case VK_FORMAT_B8G8R8A8_SRGB:
-                    case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec4*>(data.pixels.ptr)));
-                        break;
-                    }
-
-                    //
-                    // uint16 formats
-
-                    // 1 component
-                    case VK_FORMAT_R16_UNORM:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::ushortArray2D(data.width, data.height, reinterpret_cast<uint16_t*>(data.pixels.ptr)));
-                        break;
-                    }
-                    // 2 component
-                    case VK_FORMAT_R16G16_UNORM:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::usvec2Array2D(data.width, data.height, reinterpret_cast<vsg::usvec2*>(data.pixels.ptr)));
-                        break;
-                    }
-                    // 4 component
-                    case VK_FORMAT_R16G16B16A16_UNORM:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::usvec4Array2D(data.width, data.height, reinterpret_cast<vsg::usvec4*>(data.pixels.ptr)));
-                        break;
-                    }
-
-                    //
-                    // uint32 formats
-
-                    // 1 component
-                    case VK_FORMAT_R32_UINT:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::uintArray2D(data.width, data.height, reinterpret_cast<uint32_t*>(data.pixels.ptr)));
-                        break;
-                    }
-                    // 2 component
-                    case VK_FORMAT_R32G32_UINT:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::uivec2Array2D(data.width, data.height, reinterpret_cast<vsg::uivec2*>(data.pixels.ptr)));
-                        break;
-                    }
-                    // 4 component
-                    case VK_FORMAT_R32G32B32A32_UINT:
-                    {
-                        texdata = vsg::ref_ptr<vsg::Data>(new vsg::uivec4Array2D(data.width, data.height, reinterpret_cast<vsg::uivec4*>(data.pixels.ptr)));
-                        break;
-                    }
-
-                    default: break;
-                    }
-                }
-                else
-                {
-                    uint32_t width = data.width / sizeInfo.layout.blockWidth;
-                    uint32_t height = data.height / sizeInfo.layout.blockHeight;
-                    uint32_t depth = data.depth / sizeInfo.layout.blockDepth;
-
-                    if (sizeInfo.blockSize == 64)
-                    {
-                        texdata = new vsg::block64Array2D(width, height, reinterpret_cast<vsg::block64*>(data.pixels.ptr));
-                    }
-                    else if (sizeInfo.blockSize == 128)
-                    {
-                        texdata = new vsg::block128Array2D(width, height, reinterpret_cast<vsg::block128*>(data.pixels.ptr));
-                    }
-                }
-            }
-            else if (data.depth > 1) // 3d textures
+            if (blockVolume == 1)
             {
                 switch (format)
                 {
+                //
+                // uint8 formats
+
+                // 1 component
                 case VK_FORMAT_R8_UNORM:
+                case VK_FORMAT_R8_SRGB:
                 {
-                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray3D(data.width, data.height, data.depth, data.pixels.ptr));
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray2D(data.width, data.height, data.pixels.data));
                     break;
                 }
+                // 2 component
                 case VK_FORMAT_R8G8_UNORM:
+                case VK_FORMAT_R8G8_SRGB:
                 {
-                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec2*>(data.pixels.ptr)));
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec2*>(data.pixels.data)));
                     break;
                 }
+                // 3 component
+                case VK_FORMAT_B8G8R8_UNORM:
+                case VK_FORMAT_B8G8R8_SRGB:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec3Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec3*>(data.pixels.data)));
+                    break;
+                }
+                // 4 component
                 case VK_FORMAT_R8G8B8A8_UNORM:
+                case VK_FORMAT_R8G8B8A8_SRGB:
+                case VK_FORMAT_B8G8R8A8_UNORM:
+                case VK_FORMAT_B8G8R8A8_SRGB:
+                case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
                 {
-                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec4*>(data.pixels.ptr)));
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec4*>(data.pixels.data)));
                     break;
                 }
+
+                //
+                // uint16 formats
+
+                // 1 component
+                case VK_FORMAT_R16_UNORM:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ushortArray2D(data.width, data.height, reinterpret_cast<uint16_t*>(data.pixels.data)));
+                    break;
+                }
+                // 2 component
+                case VK_FORMAT_R16G16_UNORM:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::usvec2Array2D(data.width, data.height, reinterpret_cast<vsg::usvec2*>(data.pixels.data)));
+                    break;
+                }
+                // 4 component
+                case VK_FORMAT_R16G16B16A16_UNORM:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::usvec4Array2D(data.width, data.height, reinterpret_cast<vsg::usvec4*>(data.pixels.data)));
+                    break;
+                }
+
+                //
+                // uint32 formats
+
+                // 1 component
+                case VK_FORMAT_R32_UINT:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::uintArray2D(data.width, data.height, reinterpret_cast<uint32_t*>(data.pixels.data)));
+                    break;
+                }
+                // 2 component
+                case VK_FORMAT_R32G32_UINT:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::uivec2Array2D(data.width, data.height, reinterpret_cast<vsg::uivec2*>(data.pixels.data)));
+                    break;
+                }
+                // 4 component
+                case VK_FORMAT_R32G32B32A32_UINT:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::uivec4Array2D(data.width, data.height, reinterpret_cast<vsg::uivec4*>(data.pixels.data)));
+                    break;
+                }
+
                 default: break;
                 }
             }
-
-            if (!texdata.valid())
+            else
             {
-                DebugLog("GraphBuilder Error: Unable to handle texture format");
-                return vsg::ref_ptr<vsg::Texture>();
+                uint32_t width = data.width / sizeInfo.layout.blockWidth;
+                uint32_t height = data.height / sizeInfo.layout.blockHeight;
+                uint32_t depth = data.depth / sizeInfo.layout.blockDepth;
+
+                if (sizeInfo.blockSize == 64)
+                {
+                    texdata = new vsg::block64Array2D(width, height, reinterpret_cast<vsg::block64*>(data.pixels.data));
+                }
+                else if (sizeInfo.blockSize == 128)
+                {
+                    texdata = new vsg::block128Array2D(width, height, reinterpret_cast<vsg::block128*>(data.pixels.data));
+                }
             }
-
-            texdata->setFormat(format);
-            texdata->setLayout(sizeInfo.layout);
-
-            texture->_textureData = texdata;
-            texture->_samplerInfo = vkSamplerCreateInfoForTextureData(data);
-
-            if (useCache) _textureCache[idstr] = texture;
+        }
+        else if (data.depth > 1) // 3d textures
+        {
+            switch (format)
+            {
+            case VK_FORMAT_R8_UNORM:
+            {
+                texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray3D(data.width, data.height, data.depth, data.pixels.data));
+                break;
+            }
+            case VK_FORMAT_R8G8_UNORM:
+            {
+                texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec2*>(data.pixels.data)));
+                break;
+            }
+            case VK_FORMAT_R8G8B8A8_UNORM:
+            {
+                texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec4*>(data.pixels.data)));
+                break;
+            }
+            default: break;
+            }
         }
 
-        texture->_dstBinding = data.channel;
+        if (!texdata.valid())
+        {
+            DebugLog("GraphBuilder Error: Unable to handle texture format");
+            return vsg::ref_ptr<vsg::Data>();
+        }
+
+        texdata->setFormat(format);
+        texdata->setLayout(sizeInfo.layout);
+        return texdata;
+    }
+
+    vsg::ref_ptr<vsg::DescriptorImage> createTexture(const DescriptorImageData& data, bool useCache = true)
+    {
+        vsg::ref_ptr<vsg::DescriptorImage> texture;
+
+        // has a texture with this ID already been created
+        if (useCache && _textureCache.find(data.id) != _textureCache.end())
+        {
+            texture = _textureCache[data.id];
+        }
+        else
+        {
+            vsg::ref_ptr<vsg::Data> texdata = createDataForTexture(data.image);
+            if (!texdata.valid()) return vsg::ref_ptr<vsg::DescriptorImage>();
+
+            vsg::ref_ptr<vsg::Sampler> sampler = vsg::Sampler::create();
+            sampler->info() = vkSamplerCreateInfoForTextureData(data.image);
+
+            texture = vsg::DescriptorImage::create(data.binding, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, sampler, texdata);
+
+            if (useCache) _textureCache[data.id] = texture;
+        }
+
         return texture;
     }
 
-    void addTexture(const TextureData& data)
+    void addTexture(const DescriptorImageData& data)
     {
         auto texture = createTexture(data);
         _descriptors.push_back(texture);
-        _descriptorObjectIds.push_back(std::string(data.id));
+        _descriptorObjectIds.push_back(std::to_string(data.id));
     }
 
-    /*void addTextureArray(unity2vsg::TextureDataArray data)
+    void addTextureToArray(const ImageData& data)
     {
-        if (data.length == 0) return;
-
-        vsg::ref_ptr<vsg::TextureArray> textureArray = vsg::TextureArray::create();
-        std::string idstr = "";
-
-        for (uint32_t i = 0; i < data.length; i++)
-        {
-            textureArray->_textures.push_back(createTexture(data.ptr[i], false));
-            idstr += data.ptr[i].id;
-        }
-
-        textureArray->_dstBinding = data.ptr[0].channel;
-
-        _descriptors.push_back(textureArray);
-        _descriptorObjectIds.push_back(std::string(idstr));
-    }*/
-
-    void addTextureToArray(const TextureData& data)
-    {
-        auto texture = createTexture(data);
-        _textureArray.push_back(texture);
+        //auto texture = createTexture(data);
+        _textureArray.push_back(data);
     }
 
-    void createTextureArray(unity2vsg::TextureDataArray data)
+    void createTextureArray(DescriptorImagesData data)
     {
-        vsg::ref_ptr<vsg::TextureArray> textureArray = vsg::TextureArray::create();
+        vsg::SamplerImages sampleImages;
 
-        for (auto& tex : _textureArray)
+        for (auto& texturedata : _textureArray)
         {
-            textureArray->_textures.push_back(tex);
+            vsg::ref_ptr<vsg::Data> texdata = createDataForTexture(texturedata);
+            vsg::ref_ptr<vsg::Sampler> sampler = vsg::Sampler::create();
+            sampler->info() = vkSamplerCreateInfoForTextureData(texturedata);
+            sampleImages.push_back({sampler, texdata});
         }
+
+        vsg::ref_ptr<vsg::DescriptorImages> textureArray = vsg::DescriptorImages::create(data.channel, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, sampleImages);
 
         textureArray->_dstBinding = data.channel;
 
@@ -1081,15 +1016,6 @@ public:
         _nodeStack.pop_back();
     }
 
-    PipelineData createPipelineDataFromMeshData(const MeshData& mesh)
-    {
-        PipelineData data;
-        data.hasNormals = mesh.normals.length > 0;
-        data.hasColors = mesh.colors.length > 0;
-        data.uvChannelCount = mesh.uv0.length > 0 ? 1 : 0;
-        return data;
-    }
-
     void writeFile(std::string fileName)
     {
         LeafDataCollection leafDataCollection;
@@ -1121,23 +1047,23 @@ public:
     vsg::Descriptors _descriptors;
 
     // the current array of textures build when we call create texture array
-    std::vector<vsg::ref_ptr<vsg::Texture>> _textureArray;
+    std::vector<ImageData> _textureArray;
 
     // the unique ids of the of the descriptos list being built
     std::vector<std::string> _descriptorObjectIds;
 
-    // map of exisitng Geometryies/VertexIndexedDraws to the MeshData ID they represent
-    std::map<std::string, vsg::ref_ptr<vsg::Node>> _geometryCache;
+    // caches
 
-    std::map<std::string, vsg::ref_ptr<vsg::Command>> _bindVertexBuffersCache;
-    std::map<std::string, vsg::ref_ptr<vsg::Command>> _bindIndexBufferCache;
-    std::map<std::string, vsg::ref_ptr<vsg::Command>> _drawIndexedCache;
+    std::map<int, vsg::ref_ptr<vsg::Command>> _bindVertexBuffersCache;
+    std::map<int, vsg::ref_ptr<vsg::Command>> _bindIndexBufferCache;
+    std::map<int, vsg::ref_ptr<vsg::Command>> _drawIndexedCache;
+    std::map<int, vsg::ref_ptr<vsg::VertexIndexDraw>> _vertexIndexDrawCache;
 
     // map of shader modules to the masks used to create them
     std::map<std::string, vsg::ref_ptr<vsg::ShaderModule>> _shaderModulesCache;
 
-    // map of textures to the TextureData ID they represent
-    std::map<std::string, vsg::ref_ptr<vsg::Texture>> _textureCache;
+    // map of descriptorimage to the ImageData ID they represent
+    std::map<int, vsg::ref_ptr<vsg::DescriptorImage>> _textureCache;
 
     // map of bind descriptor set to IDs
     std::map<std::string, vsg::ref_ptr<vsg::BindDescriptorSet>> _bindDescriptorSetCache;
@@ -1208,14 +1134,9 @@ void unity2vsg_AddCommandsNode()
     _builder->addCommands();
 }
 
-void unity2vsg_AddVertexIndexDrawNode(unity2vsg::MeshData mesh)
+void unity2vsg_AddVertexIndexDrawNode(unity2vsg::VertexIndexDrawData mesh)
 {
     _builder->addVertexIndexDraw(mesh);
-}
-
-void unity2vsg_AddGeometryNode(unity2vsg::MeshData mesh)
-{
-    _builder->addGeometry(mesh);
 }
 
 //
@@ -1260,22 +1181,22 @@ void unity2vsg_CreateBindDescriptorSetCommand(uint32_t addToStateGroup)
 // Desccriptos
 //
 
-void unity2vsg_AddTextureDescriptor(unity2vsg::TextureData texture)
+void unity2vsg_AddDescriptorImage(unity2vsg::DescriptorImageData texture)
 {
     _builder->addTexture(texture);
 }
 
-void unity2vsg_AddTextureArrayDescriptor(unity2vsg::TextureDataArray textureArray)
+void unity2vsg_AddTextureArrayDescriptor(unity2vsg::DescriptorImagesData textureArray)
 {
     //_builder->addTextureArray(textureArray);
 }
 
-void unity2vsg_AddTextureDescriptorToArray(unity2vsg::TextureData texture)
+void unity2vsg_AddImageDataToActiveDescriptorImagesArray(unity2vsg::ImageData texture)
 {
     _builder->addTextureToArray(texture);
 }
 
-void unity2vsg_CreateTextureArrayDescriptor(unity2vsg::TextureDataArray data)
+void unity2vsg_CreateDescriptorImagesFromActiveArray(unity2vsg::DescriptorImagesData data)
 {
     _builder->createTextureArray(data);
 }

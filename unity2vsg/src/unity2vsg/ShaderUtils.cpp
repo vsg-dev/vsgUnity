@@ -26,14 +26,16 @@ std::vector<std::string> createPSCDefineStrings(const uint32_t& shaderModeMask, 
     bool hastanget = geometryAttrbutes & TANGENT;
     bool hascolor = geometryAttrbutes & COLOR;
     bool hastex0 = geometryAttrbutes & TEXCOORD0;
+    bool hastex1 = geometryAttrbutes & TEXCOORD1;
 
     std::vector<std::string> defines;
 
     // vertx inputs
     if (hasnormal) defines.push_back("VSG_NORMAL");
+    if (hastanget) defines.push_back("VSG_TANGENT");
     if (hascolor) defines.push_back("VSG_COLOR");
     if (hastex0) defines.push_back("VSG_TEXCOORD0");
-    if (hastanget) defines.push_back("VSG_TANGENT");
+    if (hastex1) defines.push_back("VSG_TEXCOORD0");
 
     // shading modes/maps
     if (hasnormal && (shaderModeMask & LIGHTING)) defines.push_back("VSG_LIGHTING");

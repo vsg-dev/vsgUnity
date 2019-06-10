@@ -24,174 +24,197 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace unity2vsg
 {
-    // types used to pass data from Unity C# to native code
+
     struct ByteArray
     {
-        uint8_t* ptr;
-        uint32_t length;
-    };
-
-    struct ShortArray
-    {
-        int16_t* ptr;
-        uint32_t length;
-    };
-
-    struct UShortArray
-    {
-        uint16_t* ptr;
-        uint32_t length;
+        uint8_t* data;
+        int length;
     };
 
     struct IntArray
     {
-        int32_t* ptr;
-        uint32_t length;
+        uint32_t* data;
+        int length;
     };
 
     struct UIntArray
     {
-        uint32_t* ptr;
-        uint32_t length;
+        uint32_t* data;
+        int length;
     };
 
     struct FloatArray
     {
-        float* ptr;
-        uint32_t length;
-    };
-
-    struct DoubleArray
-    {
-        double* ptr;
-        uint32_t length;
+        float* data;
+        int length;
     };
 
     struct Vec2Array
     {
-        vsg::vec2* ptr;
-        uint32_t length;
+        vsg::vec2* data;
+        int length;
     };
 
     struct Vec3Array
     {
-        vsg::vec3* ptr;
-        uint32_t length;
+        vsg::vec3* data;
+        int length;
     };
 
     struct Vec4Array
     {
-        vsg::vec4* ptr;
-        uint32_t length;
+        vsg::vec4* data;
+        int length;
     };
 
-    struct DescriptorBindingsArray
+    struct ColorArray
     {
-        vsg::GraphicsPipelineBuilder::Traits::DescriptorBinding* ptr;
-        uint32_t length;
+        vsg::vec4* data;
+        int length;
     };
 
-    struct MeshData
+    struct DescriptorSetLayoutBindingsArray
     {
-        const char* id;
+        VkDescriptorSetLayoutBinding* data;
+        int length;
+    };
+
+    //
+    // Mesh/Vertex/Draw command types
+    //
+
+    struct VertexIndexDrawData
+    {
+        int id;
         Vec3Array verticies;
         IntArray triangles;
         Vec3Array normals;
-        Vec3Array tangents;
-        Vec4Array colors;
+        Vec4Array tangents;
+        ColorArray colors;
         Vec2Array uv0;
         Vec2Array uv1;
-        uint32_t use32BitIndicies;
+        int use32BitIndicies;
     };
 
     struct IndexBufferData
     {
-        const char* id; // same as mesh id
+        int id; // same as mesh id
         IntArray triangles;
-        uint32_t use32BitIndicies;
+        int use32BitIndicies;
     };
 
-    struct VertexBuffersData
+     struct VertexBuffersData
     {
-        const char* id; // same as mesh id
+        int id; // same as mesh id
         Vec3Array verticies;
         Vec3Array normals;
-        Vec3Array tangents;
-        Vec4Array colors;
+        Vec4Array tangents;
+        ColorArray colors;
         Vec2Array uv0;
         Vec2Array uv1;
     };
 
     struct DrawIndexedData
     {
-        const char* id; // mesh id + sub mesh index
+        int id;
         uint32_t indexCount;
         uint32_t firstIndex;
-        int32_t vertexOffset;
+        uint32_t vertexOffset;
         uint32_t instanceCount;
         uint32_t firstInstance;
     };
 
-    struct TextureData
+    //
+    // Image types
+    //
+
+    struct ImageData
     {
-        const char* id;
-        uint32_t channel;
+        int id;
         ByteArray pixels;
         VkFormat format;
-        uint32_t width;
-        uint32_t height;
-        uint32_t depth;
-        uint32_t anisoLevel;
+        int width;
+        int height;
+        int depth;
+        int anisoLevel;
         VkSamplerAddressMode wrapMode;
         VkFilter filterMode;
         VkSamplerMipmapMode mipmapMode;
-        uint32_t mipmapCount;
+        int mipmapCount;
         float mipmapBias;
     };
 
-    struct TextureDataArray
+    //
+    // Descriptor types
+    //
+
+    struct DescriptorImageData
     {
-        const char* id;
-        uint32_t channel;
-        //TextureData* ptr;
-        //uint32_t length;
+        int id;
+        int binding;
+        ImageData image;
     };
 
-    struct ShaderData
+    struct DescriptorFloatUniformData
     {
-        const char* vertexSource;
-        const char* fragmentSource;
-        UIntArray vertexSpecializationData;
-        UIntArray fragmentSpecializationData;
+        int id;
+        int binding;
+        float value;
+    };
+
+    struct DescriptorVectorUniformData
+    {
+        int id;
+        int binding;
+        vsg::vec4 value;
+    };
+
+    struct DescriptorImagesData
+    {
+        const char* id;
+        int channel;
+    };
+
+    //
+    // Shader and pipeline types
+    //
+
+    struct ShaderStageData
+    {
+        int id;
+        VkShaderStageFlagBits stages;
+        UIntArray specializationData;
         const char* customDefines;
+        const char* source;
+    };
+
+    struct ShaderStagesData
+    {
+        int id;
+        ShaderStageData* stages;
+        int stagesCount;
     };
 
     struct PipelineData
     {
         const char* id;
-        uint32_t hasNormals;
-        uint32_t hasTangents;
-        uint32_t hasColors;
-        uint32_t uvChannelCount;
-        uint32_t useAlpha;
-        DescriptorBindingsArray vertexDescriptorBindings;
-        DescriptorBindingsArray fragmentDescriptorBindings;
-        ShaderData shader;
+        int hasNormals;
+        int hasTangents;
+        int hasColors;
+        int uvChannelCount;
+        int useAlpha;
+        DescriptorSetLayoutBindingsArray descriptorBindings;
+        ShaderStagesData shaderStages;
     };
+
+    //
+    // Node creation types
+    //
+
 
     struct TransformData
     {
         FloatArray matrix;
-    };
-
-    struct CameraData
-    {
-        vsg::vec3 position;
-        vsg::vec3 lookAt;
-        vsg::vec3 upDir;
-        float fov;
-        float nearZ;
-        float farZ;
     };
 
     struct CullData
@@ -205,10 +228,14 @@ namespace unity2vsg
         float minimumScreenHeightRatio;
     };
 
-    struct LightData
+    struct CameraData
     {
-        vsg::vec4 color;
-        float intensity;
+        vsg::vec3 position;
+        vsg::vec3 lookAt;
+        vsg::vec3 upDir;
+        float fov;
+        float nearZ;
+        float farZ;
     };
 
     // create a vsg Array from a pointer and length, by default the ownership of the memory will be external to vsg still
@@ -220,7 +247,7 @@ namespace unity2vsg
         return vsg::ref_ptr<vsg::Array<T>>(new vsg::Array<T>(static_cast<size_t>(length), ptr));
     }
 
-    VkSamplerCreateInfo vkSamplerCreateInfoForTextureData(const TextureData& data)
+    VkSamplerCreateInfo vkSamplerCreateInfoForTextureData(const ImageData& data)
     {
         bool mipmappingRequired = data.mipmapCount > 1;
 
