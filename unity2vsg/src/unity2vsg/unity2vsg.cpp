@@ -36,16 +36,7 @@ public:
         if (typeid(object) == typeid(vsg::DescriptorImage))
         {
             vsg::DescriptorImage* texture = static_cast<vsg::DescriptorImage*>(&object);
-            if (texture->getImage())
-            {
-                objects->addChild(vsg::ref_ptr<vsg::Data>(texture->getImage()));
-            }
-        }
-
-        if (typeid(object) == typeid(vsg::DescriptorImages))
-        {
-            vsg::DescriptorImages* textureArray = static_cast<vsg::DescriptorImages*>(&object);
-            for (auto& samplerimage : textureArray->getSamplerImages())
+            for (auto& samplerimage : texture->getSamplerImages())
             {
                 if (samplerimage.second.valid())
                 {
@@ -118,16 +109,7 @@ public:
         if (typeid(object) == typeid(vsg::DescriptorImage))
         {
             vsg::DescriptorImage* texture = static_cast<vsg::DescriptorImage*>(&object);
-            if (texture->getImage())
-            {
-                texture->getImage()->dataRelease();
-            }
-        }
-
-        if (typeid(object) == typeid(vsg::DescriptorImages))
-        {
-            vsg::DescriptorImages* textureArray = static_cast<vsg::DescriptorImages*>(&object);
-            for (auto& samplerimage : textureArray->getSamplerImages())
+            for (auto& samplerimage : texture->getSamplerImages())
             {
                 if (samplerimage.second.valid())
                 {
@@ -883,7 +865,7 @@ public:
             vsg::ref_ptr<vsg::Sampler> sampler = vsg::Sampler::create();
             sampler->info() = vkSamplerCreateInfoForTextureData(data.image);
 
-            texture = vsg::DescriptorImage::create(data.binding, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, sampler, texdata);
+            texture = vsg::DescriptorImage::create(sampler, texdata, data.binding, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
             if (useCache) _textureCache[data.id] = texture;
         }
@@ -916,7 +898,7 @@ public:
             sampleImages.push_back({sampler, texdata});
         }
 
-        vsg::ref_ptr<vsg::DescriptorImages> textureArray = vsg::DescriptorImages::create(data.channel, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, sampleImages);
+        vsg::ref_ptr<vsg::DescriptorImage> textureArray = vsg::DescriptorImage::create(sampleImages, data.channel, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
         textureArray->_dstBinding = data.channel;
 
