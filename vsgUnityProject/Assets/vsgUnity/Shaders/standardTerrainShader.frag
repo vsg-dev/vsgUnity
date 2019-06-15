@@ -8,6 +8,17 @@ layout (constant_id = 0) const uint SPLAT_LAYER_COUNT = 1;
 layout (constant_id = 1) const uint SPLAT_MASK_COUNT = 1;
 layout(set = 0, binding = 0) uniform sampler2D layerDiffuseTextures[SPLAT_LAYER_COUNT];
 layout(set = 0, binding = 1) uniform sampler2D layerMaskTextures[SPLAT_MASK_COUNT];
+
+layout(set = 0, binding = 2) uniform LayerInfoScale
+{
+    vec4 scale;
+} layerInfoScale[SPLAT_LAYER_COUNT];
+
+layout(set = 0, binding = 3) uniform TerrainInfoSize
+{
+    vec4 size;
+} terrainInfoSize;
+
 #endif
 
 #ifdef VSG_NORMAL
@@ -29,12 +40,15 @@ void main()
 {	
 #ifdef VSG_TERRAIN_LAYERS
 	vec4 base = vec4(0.0,0.0,0.0,0.0);
-
-	vec4 mask = texture(layerMaskTextures[0], texCoord0.st);
-	for(int i = 0; i < SPLAT_LAYER_COUNT; i++)
+	int layerindex = 0;
+	for(int m = 0; m < SPLAT_MASK_COUNT; m++)
 	{
-		vec4 splat = texture(layerDiffuseTextures[i], texCoord0.st);
-		base = mix(base, splat, mask[i]);
+		vec4 mask = texture(layerMaskTextures[m], texCoord0.st);
+		for(int i = 0; i < 4 && layerindex < SPLAT_LAYER_COUNT; i++, layerindex++)
+		{
+			vec4 splat = texture(layerDiffuseTextures[layerindex], (texCoord0.st * terrainInfoSize.size.st) * layerInfoScale[layerindex].scale.st);
+			base = mix(base, splat, mask[i]);
+		}
 	}
 #else
 	vec4 base = vec4(1.0,1.0,1.0,1.0);

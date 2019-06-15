@@ -299,6 +299,18 @@ namespace vsgUnity.Native
         }
     }
 
+    public struct DescriptorFloatArrayUniformData : IEquatable<DescriptorFloatArrayUniformData>
+    {
+        public int id;
+        public int binding;
+        public FloatArray value;
+
+        public bool Equals(DescriptorFloatArrayUniformData b)
+        {
+            return binding == b.binding && value.Equals(b.value);
+        }
+    }
+
     public struct DescriptorVectorUniformData : IEquatable<DescriptorVectorUniformData>
     {
         public int id;
@@ -306,6 +318,18 @@ namespace vsgUnity.Native
         public Vector4 value;
 
         public bool Equals(DescriptorVectorUniformData b)
+        {
+            return binding == b.binding && value.Equals(b.value);
+        }
+    }
+
+    public struct DescriptorVectorArrayUniformData : IEquatable<DescriptorVectorArrayUniformData>
+    {
+        public int id;
+        public int binding;
+        public Vec4Array value;
+
+        public bool Equals(DescriptorVectorArrayUniformData b)
         {
             return binding == b.binding && value.Equals(b.value);
         }

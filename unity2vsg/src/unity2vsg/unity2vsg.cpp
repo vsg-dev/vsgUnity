@@ -909,6 +909,53 @@ public:
     }
 
     //
+    // Uniforms
+
+    void addDescriptorBuffer(DescriptorFloatUniformData data)
+    {
+        vsg::ref_ptr<vsg::floatValue> floatval = vsg::ref_ptr<vsg::floatValue>(new vsg::floatValue());
+        floatval->value() = data.value;
+        _descriptors.push_back(vsg::DescriptorBuffer::create(floatval, data.binding));
+        _descriptorObjectIds.push_back(std::to_string(data.id));
+    }
+
+    void addDescriptorBuffer(DescriptorFloatArrayUniformData data)
+    {
+        vsg::DataList vallist;
+        for (int i = 0; i < data.value.length; i++)
+        {
+            vsg::ref_ptr<vsg::floatValue> floatval = vsg::ref_ptr<vsg::floatValue>(new vsg::floatValue());
+            floatval->value() = data.value.data[i];
+            vallist.push_back(floatval);
+        }
+
+        _descriptors.push_back(vsg::DescriptorBuffer::create(vallist, data.binding));
+        _descriptorObjectIds.push_back(std::to_string(data.id));
+    }
+
+    void addDescriptorBuffer(DescriptorVectorUniformData data)
+    {
+        vsg::ref_ptr<vsg::vec4Value> vecval = vsg::ref_ptr<vsg::vec4Value>(new vsg::vec4Value());
+        vecval->value() = data.value;
+        _descriptors.push_back(vsg::DescriptorBuffer::create(vecval, data.binding));
+        _descriptorObjectIds.push_back(std::to_string(data.id));
+    }
+
+    void addDescriptorBuffer(DescriptorVectorArrayUniformData data)
+    {
+        vsg::DataList vallist;
+        for (int i = 0; i < data.value.length; i++)
+        {
+            vsg::ref_ptr<vsg::vec4Value> vecval = vsg::ref_ptr<vsg::vec4Value>(new vsg::vec4Value());
+            vecval->value() = data.value.data[i];
+            vallist.push_back(vecval);
+        }
+
+        _descriptors.push_back(vsg::DescriptorBuffer::create(vallist, data.binding));
+        _descriptorObjectIds.push_back(std::to_string(data.id));
+    }
+
+    //
     // Helpers
     //
 
@@ -1181,6 +1228,26 @@ void unity2vsg_AddImageDataToActiveDescriptorImagesArray(unity2vsg::ImageData te
 void unity2vsg_CreateDescriptorImagesFromActiveArray(unity2vsg::DescriptorImagesData data)
 {
     _builder->createTextureArray(data);
+}
+
+void unity2vsg_AddDescriptorBufferFloat(unity2vsg::DescriptorFloatUniformData data)
+{
+    _builder->addDescriptorBuffer(data);
+}
+
+void unity2vsg_AddDescriptorBufferFloatArray(unity2vsg::DescriptorFloatArrayUniformData data)
+{
+    _builder->addDescriptorBuffer(data);
+}
+
+void unity2vsg_AddDescriptorBufferVector(unity2vsg::DescriptorVectorUniformData data)
+{
+    _builder->addDescriptorBuffer(data);
+}
+
+void unity2vsg_AddDescriptorBufferVectorArray(unity2vsg::DescriptorVectorArrayUniformData data)
+{
+    _builder->addDescriptorBuffer(data);
 }
 
 void unity2vsg_EndNode()

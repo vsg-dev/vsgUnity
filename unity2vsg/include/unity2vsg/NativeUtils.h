@@ -162,11 +162,25 @@ namespace unity2vsg
         float value;
     };
 
+    struct DescriptorFloatArrayUniformData
+    {
+        int id;
+        int binding;
+        FloatArray value;
+    };
+
     struct DescriptorVectorUniformData
     {
         int id;
         int binding;
         vsg::vec4 value;
+    };
+
+    struct DescriptorVectorArrayUniformData
+    {
+        int id;
+        int binding;
+        Vec4Array value;
     };
 
     struct DescriptorImagesData

@@ -49,6 +49,11 @@ extern "C"
     UNITY2VSG_EXPORT void unity2vsg_AddImageDataToActiveDescriptorImagesArray(unity2vsg::ImageData texture);
     UNITY2VSG_EXPORT void unity2vsg_CreateDescriptorImagesFromActiveArray(unity2vsg::DescriptorImagesData data);
 
+    UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferFloat(unity2vsg::DescriptorFloatUniformData data);
+    UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferFloatArray(unity2vsg::DescriptorFloatArrayUniformData data);
+    UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferVector(unity2vsg::DescriptorVectorUniformData data);
+    UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferVectorArray(unity2vsg::DescriptorVectorArrayUniformData data);
+
     UNITY2VSG_EXPORT void unity2vsg_EndNode();
 
     UNITY2VSG_EXPORT void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg::CameraData camdata);
