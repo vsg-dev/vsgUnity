@@ -8,8 +8,10 @@ namespace vsgUnity.Native
     {
         public class TerrainInfo
         {
-            public TerrainShaderMapping shaderMapping;
+            public ShaderMapping shaderMapping;
             public MeshInfo terrainMesh;
+
+            // standard terrain material info
             public List<VkDescriptorSetLayoutBinding> descriptorBindings = new List<VkDescriptorSetLayoutBinding>();
             public List<string> shaderDefines = new List<string>();
             public List<int> shaderConsts = new List<int>();
@@ -19,32 +21,37 @@ namespace vsgUnity.Native
             public List<Vector4> diffuseScales = new List<Vector4>();
             public Vector4 terrainSize = Vector4.one;
 
+            // custom terrain material info
+            public MaterialInfo customMaterial;
+
         }
 
         public static TerrainInfo CreateTerrainInfo(Terrain terrain, GraphBuilder.ExportSettings settings)
         {
-            TerrainShaderMapping terrainShaderMapping = null;
-         
+            TerrainInfo terrainInfo = new TerrainInfo();
+            bool usingCustomMaterial = false;
+
             if (terrain.materialType == Terrain.MaterialType.Custom)
             {
                 // try and load a shader mapping file to match the custom terrain material
-                terrainShaderMapping = ShaderMappingIO.ReadFromJsonFile<TerrainShaderMapping>(terrain.materialTemplate.shader);
+                terrainInfo.shaderMapping = ShaderMappingIO.ReadFromJsonFile(terrain.materialTemplate.shader);
+                if (terrainInfo.shaderMapping != null) usingCustomMaterial = true;
+            }
+            else
+            {
+                // load the default terrain shader mapping file
+                terrainInfo.shaderMapping = ShaderMappingIO.ReadFromJsonFile(ShaderMappingIO.GetPathForShaderMappingFile("DefaultTerrain"));
             }
 
-            if (terrainShaderMapping == null && settings.standardTerrainShaderMappingPath != null)
+            if (terrainInfo.shaderMapping == null)
             {
-                // load the shader mapping file
-                terrainShaderMapping = ShaderMappingIO.ReadFromJsonFile<TerrainShaderMapping>(ShaderMappingIO.GetPathForShaderMappingFile("DefaultTerrain"));
-            }
-
-            if (terrainShaderMapping == null)
-            {
-                Debug.Log("GraphBuilder: Failed to load Terrain Shader Mapping file for terrain '" + terrain.name + "'.");
+                // no mapping loaded, use a default shader so we can at least export and render the terrain mesh
+                NativeLog.WriteLine("GraphBuilder: Failed to load Terrain Shader Mapping file for terrain '" + terrain.name + "'.");
+                terrainInfo.shaderMapping = ShaderMappingIO.ReadFromJsonFile(ShaderMappingIO.GetPathForShaderMappingFile("Default"));
+                usingCustomMaterial = true;
                 return null;
             }
 
-            TerrainInfo terrainInfo = new TerrainInfo();
-            terrainInfo.shaderMapping = terrainShaderMapping;
             terrainInfo.shaderDefines.Add("VSG_LIGHTING");
 
             // build mesh
@@ -73,9 +80,9 @@ namespace vsgUnity.Native
             {
                 for (int x = 0; x < sampleh; x++)
                 {
-                    verts[y * samplew + x] = new Vector3(x * cellsize.x, terrainHeights[y, x] * size.y, y * cellsize.y);
+                    verts[y * samplew + x].Set(x * cellsize.x, terrainHeights[y, x] * size.y, y * cellsize.y);
                     normals[y * samplew + x] = terrain.terrainData.GetInterpolatedNormal((float)x / (float)samplew, (float)y / (float)sampleh);
-                    uvs[y * samplew + x] = new Vector2(x * uvcellsize.x, y * uvcellsize.y);
+                    uvs[y * samplew + x].Set(x * uvcellsize.x, y * uvcellsize.y);
                 }
             }
 
@@ -114,55 +121,50 @@ namespace vsgUnity.Native
             terrainInfo.terrainMesh = mesh;
             terrainInfo.terrainSize = size;
 
-            // gather textures
+            // gather material info
 
-            TerrainLayer[] layers = terrain.terrainData.terrainLayers;
-            for (int i = 0; i < layers.Length; i++)
+            if (!usingCustomMaterial)
             {
-                ImageData layerData = TextureConverter.GetOrCreateImageData(layers[i].diffuseTexture);
-                terrainInfo.diffuseTextureDatas.Add(layerData);
-
-                terrainInfo.diffuseScales.Add(new Vector4(1.0f / layers[i].tileSize.x, 1.0f / layers[i].tileSize.y));
-            }
-
-            for (int i = 0; i < terrain.terrainData.alphamapTextureCount; i++)
-            {
-                Texture2D srcmask = terrain.terrainData.GetAlphamapTexture(i);
-
-                ImageData splatData = new ImageData();
-                if (!TextureConverter.GetImageDataFromCache(srcmask.GetInstanceID(), out splatData))
+                // use standard terrain layers
+                TerrainLayer[] layers = terrain.terrainData.terrainLayers;
+                for (int i = 0; i < layers.Length; i++)
                 {
-                    // alpha masks need to be converteds
-                    RenderTexture rt = RenderTexture.GetTemporary(srcmask.width, srcmask.height, 0, RenderTextureFormat.ARGB32);
-                    Graphics.Blit(srcmask, rt);
-                    Texture2D convmask = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
-                    Graphics.SetRenderTarget(rt);
-                    convmask.ReadPixels(new Rect(0.0f, 0.0f, rt.width, rt.height), 0, 0, false);
-                    convmask.Apply(false, false);
+                    ImageData layerData = TextureConverter.GetOrCreateImageData(layers[i].diffuseTexture);
+                    terrainInfo.diffuseTextureDatas.Add(layerData);
 
-                    splatData = TextureConverter.CreateImageData(convmask, false);
-                    TextureConverter.AddImageDataToCache(splatData, srcmask.GetInstanceID());
+                    terrainInfo.diffuseScales.Add(new Vector4(1.0f / layers[i].tileSize.x, 1.0f / layers[i].tileSize.y));
                 }
 
-                terrainInfo.maskTextureDatas.Add(splatData);
+                for (int i = 0; i < terrain.terrainData.alphamapTextureCount; i++)
+                {
+                    Texture2D srcmask = terrain.terrainData.GetAlphamapTexture(i);
+                    ImageData splatData = TextureConverter.GetOrCreateImageData(srcmask);
+
+                    terrainInfo.maskTextureDatas.Add(splatData);
+                }
+
+                if (terrainInfo.diffuseTextureDatas.Count > 0)
+                {
+                    terrainInfo.descriptorBindings.Add(new VkDescriptorSetLayoutBinding() { binding = 0, descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags = VkShaderStageFlagBits.VK_SHADER_STAGE_FRAGMENT_BIT, descriptorCount = (uint)terrainInfo.diffuseTextureDatas.Count });
+                    terrainInfo.descriptorBindings.Add(new VkDescriptorSetLayoutBinding() { binding = 2, descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stageFlags = VkShaderStageFlagBits.VK_SHADER_STAGE_FRAGMENT_BIT, descriptorCount = (uint)terrainInfo.diffuseScales.Count });
+
+                    terrainInfo.shaderConsts.Add(terrainInfo.diffuseTextureDatas.Count);
+                    terrainInfo.shaderDefines.Add("VSG_TERRAIN_LAYERS");
+                }
+
+                terrainInfo.descriptorBindings.Add(new VkDescriptorSetLayoutBinding() { binding = 3, descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stageFlags = VkShaderStageFlagBits.VK_SHADER_STAGE_FRAGMENT_BIT, descriptorCount = 1 });
+
+                if (terrainInfo.maskTextureDatas.Count > 0)
+                {
+                    terrainInfo.descriptorBindings.Add(new VkDescriptorSetLayoutBinding() { binding = 1, descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags = VkShaderStageFlagBits.VK_SHADER_STAGE_FRAGMENT_BIT, descriptorCount = (uint)terrainInfo.maskTextureDatas.Count });
+                    terrainInfo.shaderConsts.Add(terrainInfo.maskTextureDatas.Count);
+                }
             }
-
-
-            if (terrainInfo.diffuseTextureDatas.Count > 0)
+            else
             {
-                terrainInfo.descriptorBindings.Add(new VkDescriptorSetLayoutBinding() { binding = 0, descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags = VkShaderStageFlagBits.VK_SHADER_STAGE_FRAGMENT_BIT, descriptorCount = (uint)terrainInfo.diffuseTextureDatas.Count });
-                terrainInfo.descriptorBindings.Add(new VkDescriptorSetLayoutBinding() { binding = 2, descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stageFlags = VkShaderStageFlagBits.VK_SHADER_STAGE_FRAGMENT_BIT, descriptorCount = (uint)terrainInfo.diffuseScales.Count });
-
-                terrainInfo.shaderConsts.Add(terrainInfo.diffuseTextureDatas.Count);
-                terrainInfo.shaderDefines.Add("VSG_TERRAIN_LAYERS");
-            }
-
-            terrainInfo.descriptorBindings.Add(new VkDescriptorSetLayoutBinding() { binding = 3, descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stageFlags = VkShaderStageFlagBits.VK_SHADER_STAGE_FRAGMENT_BIT, descriptorCount = 1 });
-
-            if (terrainInfo.maskTextureDatas.Count > 0)
-            {
-                terrainInfo.descriptorBindings.Add(new VkDescriptorSetLayoutBinding() { binding = 1, descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags = VkShaderStageFlagBits.VK_SHADER_STAGE_FRAGMENT_BIT, descriptorCount = (uint)terrainInfo.maskTextureDatas.Count });
-                terrainInfo.shaderConsts.Add(terrainInfo.maskTextureDatas.Count);
+                Material customMaterial = terrain.materialTemplate;
+                terrainInfo.customMaterial = MaterialConverter.CreateMaterialData(customMaterial, terrainInfo.shaderMapping);
+                terrainInfo.customMaterial.customDefines = terrainInfo.shaderDefines;
             }
 
             return terrainInfo;

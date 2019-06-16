@@ -74,19 +74,12 @@ namespace vsgUnity.Native
         // Descriptors
         //
 
+        // images
+
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDescriptorImage")]
         private static extern void unity2vsg_AddDescriptorImage(DescriptorImageData texture);
 
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddTextureArrayDescriptor")]
-        private static extern void unity2vsg_AddTextureArrayDescriptor(DescriptorImagesData textureArray);
-
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddImageDataToActiveDescriptorImagesArray")]
-        private static extern void unity2vsg_AddImageDataToActiveDescriptorImagesArray(ImageData texture);
-
-        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_CreateDescriptorImagesFromActiveArray")]
-        private static extern void unity2vsg_CreateDescriptorImagesFromActiveArray(DescriptorImagesData data);
-
-        // buffers
+        // uniform buffers
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDescriptorBufferFloat")]
         private static extern void unity2vsg_AddDescriptorBufferFloat(DescriptorFloatUniformData data);
@@ -145,7 +138,6 @@ namespace vsgUnity.Native
             GraphBuilder.unity2vsg_AddTransform(convertData);
             */
 
-            Dictionary<System.IntPtr, DescriptorImagesData> textureArrayCache = new Dictionary<System.IntPtr, DescriptorImagesData>();
             List<PipelineData> storePipelines = new List<PipelineData>();
 
             System.Action<GameObject> processGameObject = null;
@@ -195,7 +187,7 @@ namespace vsgUnity.Native
                     if (settings.autoAddCullNodes)
                     {
                         CullData culldata = new CullData();
-                        culldata.center = meshRenderer.bounds.center;
+                        culldata.center = meshRenderer.bounds.center - gotrans.position;
                         culldata.radius = meshRenderer.bounds.size.magnitude;
                         GraphBuilder.unity2vsg_AddCullGroupNode(culldata);
                         addedCullGroup = true;
@@ -271,11 +263,7 @@ namespace vsgUnity.Native
 
                                     foreach (MaterialInfo md in mds)
                                     {
-                                        foreach (DescriptorImageData t in md.imageDescriptors)
-                                        {
-                                            GraphBuilder.unity2vsg_AddDescriptorImage(t);
-                                        }
-                                        if (md.imageDescriptors.Count > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(0);
+                                        BindDescriptors(md);
 
                                         foreach (int submeshIndex in meshMaterials[shaderkey][md])
                                         {
@@ -310,12 +298,7 @@ namespace vsgUnity.Native
 
                                     if (GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1) == 1)
                                     {
-
-                                        foreach (DescriptorImageData t in mds[0].imageDescriptors)
-                                        {
-                                            GraphBuilder.unity2vsg_AddDescriptorImage(t);
-                                        }
-                                        if (mds[0].imageDescriptors.Count > 0) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
+                                        BindDescriptors(mds[0]);
 
                                         VertexIndexDrawData vertexIndexDrawData = MeshConverter.GetOrCreateVertexIndexDrawData(meshInfo);
                                         GraphBuilder.unity2vsg_AddVertexIndexDrawNode(vertexIndexDrawData);
@@ -329,7 +312,8 @@ namespace vsgUnity.Native
                     }
                     else
                     {
-                        Debug.LogWarning("ExportMesh: Unable to export mesh, mesh is not readable. Please enabled read/write in the models import settings.");
+                        string reason = mesh == null ? "mesh is null." : (!mesh.isReadable ? "mesh '" + mesh.name + "' is not readable. Please enabled read/write in the models import settings." : "mesh '" + mesh.name + "' has an unknown error.");
+                        NativeLog.WriteLine("ExportMesh: Unable to export mesh for gameobject " + go.name + ", " + reason);
                     }
 
                     if (addedCullGroup)
@@ -342,7 +326,7 @@ namespace vsgUnity.Native
                 Terrain terrain = go.GetComponent<Terrain>();
                 if(terrain != null)
                 {
-                    ExportTerrainMesh(terrain, settings, textureArrayCache, storePipelines);
+                    ExportTerrainMesh(terrain, settings, storePipelines);
                 }
 
                 // does this node have an LOD group
@@ -357,7 +341,7 @@ namespace vsgUnity.Native
                         if (lods[0].renderers.Length > 0)
                         {
                             CullData lodCullData = new CullData();
-                            lodCullData.center = lods[0].renderers[0].bounds.center;
+                            lodCullData.center = lods[0].renderers[0].bounds.center - gotrans.position;
                             lodCullData.radius = lods[0].renderers[0].bounds.size.magnitude;
                             unity2vsg_AddLODNode(lodCullData);
 
@@ -370,7 +354,8 @@ namespace vsgUnity.Native
                                 unity2vsg_AddLODChild(lodChild);
 
                                 // now process the renderers gameobject, it'll be added to the group we just created by adding an LOD child
-                                processGameObject(lods[i].renderers[0].gameObject);
+                                if(lods[i].renderers[0].gameObject != go) // some LOD groups might contains themselves as a child
+                                    processGameObject(lods[i].renderers[0].gameObject);
 
                                 unity2vsg_EndNode();
                             }
@@ -403,13 +388,37 @@ namespace vsgUnity.Native
             //GraphBuilder.unity2vsg_EndNode(); // step out of convert coord system node
 
             GraphBuilder.unity2vsg_EndExport(saveFileName);
+            NativeLog.PrintReport();
         }
 
-        private static void ExportTerrainMesh(Terrain terrain, ExportSettings settings, Dictionary<System.IntPtr, DescriptorImagesData> textureArrayCache = null, List<PipelineData> storePipelines = null)
+        // Bind the descriptors in a materialinfo, should be called from within a StateGroup
+        
+        private static void BindDescriptors(MaterialInfo materialInfo)
+        {
+            bool addedAny = false;
+            foreach (DescriptorImageData t in materialInfo.imageDescriptors)
+            {
+                GraphBuilder.unity2vsg_AddDescriptorImage(t);
+                addedAny = true;
+            }
+            foreach (DescriptorVectorUniformData t in materialInfo.vectorDescriptors)
+            {
+                GraphBuilder.unity2vsg_AddDescriptorBufferVector(t);
+                addedAny = true;
+            }
+            foreach (DescriptorFloatUniformData t in materialInfo.floatDescriptors)
+            {
+                GraphBuilder.unity2vsg_AddDescriptorBufferFloat(t);
+                addedAny = true;
+            }
+            if (addedAny) GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
+        }
+
+        private static void ExportTerrainMesh(Terrain terrain, ExportSettings settings, List<PipelineData> storePipelines = null)
         {
             TerrainConverter.TerrainInfo terrainInfo = TerrainConverter.CreateTerrainInfo(terrain, settings);
 
-            if (terrainInfo == null || terrainInfo.diffuseTextureDatas.Count == 0 || terrainInfo.maskTextureDatas.Count == 0 || terrainInfo.shaderMapping == null) return;
+            if (terrainInfo == null || ((terrainInfo.diffuseTextureDatas.Count == 0 || terrainInfo.maskTextureDatas.Count == 0) && terrainInfo.customMaterial == null)) return;
 
             // add stategroup and pipeline for shader
             GraphBuilder.unity2vsg_AddStateGroupNode();
@@ -419,69 +428,64 @@ namespace vsgUnity.Native
             pipelineData.uvChannelCount = 1;
             pipelineData.useAlpha = 0;
 
-            // convert layers into textures
-            TerrainLayer[] layers = terrain.terrainData.terrainLayers;
-            DescriptorImagesData layerDiffuseTextureArray = new DescriptorImagesData() { id = NativeUtils.ToNative(terrain.GetInstanceID().ToString()+"-diffuse"), channel = 0 };
-            DescriptorImagesData layerMaskTextureArray = new DescriptorImagesData() { id = NativeUtils.ToNative(terrain.GetInstanceID().ToString()+"-mask"), channel = 1 };
-
-
-            if (terrainInfo.diffuseTextureDatas.Count > 0)
+            if (terrainInfo.customMaterial == null)
             {
+                pipelineData.descriptorBindings = NativeUtils.WrapArray(terrainInfo.descriptorBindings.ToArray());
+                ShaderStagesInfo shaderStagesInfo = MaterialConverter.GetOrCreateShaderStagesInfo(terrainInfo.shaderMapping.shaders.ToArray(), string.Join(",", terrainInfo.shaderDefines.ToArray()), terrainInfo.shaderConsts.ToArray());
+                pipelineData.shaderStages = shaderStagesInfo.ToNative();
 
-                if (textureArrayCache != null) textureArrayCache.Add(layerDiffuseTextureArray.id, layerDiffuseTextureArray);
-            }
-            
-            if (terrainInfo.maskTextureDatas.Count > 0)
-            {
-                if (textureArrayCache != null) textureArrayCache.Add(layerMaskTextureArray.id, layerMaskTextureArray);
-            }
+                pipelineData.id = NativeUtils.ToNative(NativeUtils.GetIDForPipeline(pipelineData));
+                storePipelines.Add(pipelineData);
 
-            pipelineData.descriptorBindings = NativeUtils.WrapArray(terrainInfo.descriptorBindings.ToArray());
-            ShaderStagesInfo shaderStagesInfo = MaterialConverter.GetOrCreateShaderStagesInfo(terrainInfo.shaderMapping.shaders.ToArray(), string.Join(",", terrainInfo.shaderDefines.ToArray()), terrainInfo.shaderConsts.ToArray());
-            pipelineData.shaderStages = shaderStagesInfo.ToNative();
-
-            pipelineData.id = NativeUtils.ToNative(NativeUtils.GetIDForPipeline(pipelineData));
-            storePipelines.Add(pipelineData);
-
-
-            if (GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1) == 1)
-            {
-                if(terrainInfo.diffuseTextureDatas.Count > 0)
+                if (GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1) == 1)
                 {
-                    foreach (ImageData tex in terrainInfo.diffuseTextureDatas)
+                    if (terrainInfo.diffuseTextureDatas.Count > 0)
                     {
-                        unity2vsg_AddImageDataToActiveDescriptorImagesArray(tex);
+                        DescriptorImageData layerDiffuseTextureArray = MaterialConverter.GetOrCreateDescriptorImageData(terrainInfo.diffuseTextureDatas.ToArray(), 0);
+                        unity2vsg_AddDescriptorImage(layerDiffuseTextureArray);
                     }
-                    unity2vsg_CreateDescriptorImagesFromActiveArray(layerDiffuseTextureArray);
-                }
 
-                if(terrainInfo.diffuseScales.Count > 0)
-                {
-                    DescriptorVectorArrayUniformData scalesDescriptor = new DescriptorVectorArrayUniformData();
-                    scalesDescriptor.binding = 2;
-                    scalesDescriptor.value = NativeUtils.WrapArray(terrainInfo.diffuseScales.ToArray());
-                    unity2vsg_AddDescriptorBufferVectorArray(scalesDescriptor);
-                }
-
-                DescriptorVectorUniformData sizeDescriptor = new DescriptorVectorUniformData();
-                sizeDescriptor.binding = 3;
-                sizeDescriptor.value = terrainInfo.terrainSize;
-                unity2vsg_AddDescriptorBufferVector(sizeDescriptor);
-
-                if (terrainInfo.maskTextureDatas.Count > 0)
-                {
-                    foreach (ImageData tex in terrainInfo.maskTextureDatas)
+                    if (terrainInfo.diffuseScales.Count > 0)
                     {
-                        unity2vsg_AddImageDataToActiveDescriptorImagesArray(tex);
+                        DescriptorVectorArrayUniformData scalesDescriptor = new DescriptorVectorArrayUniformData();
+                        scalesDescriptor.binding = 2;
+                        scalesDescriptor.value = NativeUtils.WrapArray(terrainInfo.diffuseScales.ToArray());
+                        unity2vsg_AddDescriptorBufferVectorArray(scalesDescriptor);
                     }
-                    unity2vsg_CreateDescriptorImagesFromActiveArray(layerMaskTextureArray);
+
+                    DescriptorVectorUniformData sizeDescriptor = new DescriptorVectorUniformData();
+                    sizeDescriptor.binding = 3;
+                    sizeDescriptor.value = terrainInfo.terrainSize;
+                    unity2vsg_AddDescriptorBufferVector(sizeDescriptor);
+
+                    if (terrainInfo.maskTextureDatas.Count > 0)
+                    {
+                        DescriptorImageData layerMaskTextureArray = MaterialConverter.GetOrCreateDescriptorImageData(terrainInfo.maskTextureDatas.ToArray(), 1);
+                        unity2vsg_AddDescriptorImage(layerMaskTextureArray);
+                    }
+
+                    GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
+
+                    GraphBuilder.unity2vsg_AddVertexIndexDrawNode(MeshConverter.GetOrCreateVertexIndexDrawData(terrainInfo.terrainMesh));
+                    GraphBuilder.unity2vsg_EndNode(); // step out of vertex index draw node
+                }
+            }
+            else
+            {
+                pipelineData.descriptorBindings = NativeUtils.WrapArray(terrainInfo.customMaterial.descriptorBindings.ToArray());
+                pipelineData.shaderStages = terrainInfo.customMaterial.shaderStages.ToNative();
+                pipelineData.id = NativeUtils.ToNative(NativeUtils.GetIDForPipeline(pipelineData));
+                storePipelines.Add(pipelineData);
+
+                if (GraphBuilder.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1) == 1)
+                {
+                    BindDescriptors(terrainInfo.customMaterial);
+
+                    GraphBuilder.unity2vsg_AddVertexIndexDrawNode(MeshConverter.GetOrCreateVertexIndexDrawData(terrainInfo.terrainMesh));
+                    GraphBuilder.unity2vsg_EndNode(); // step out of vertex index draw node
                 }
 
-                GraphBuilder.unity2vsg_CreateBindDescriptorSetCommand(1);
                 
-
-                GraphBuilder.unity2vsg_AddVertexIndexDrawNode(MeshConverter.GetOrCreateVertexIndexDrawData(terrainInfo.terrainMesh));
-                GraphBuilder.unity2vsg_EndNode(); // step out of vertex index draw node
             }
             GraphBuilder.unity2vsg_EndNode(); // step out of stategroup node
 

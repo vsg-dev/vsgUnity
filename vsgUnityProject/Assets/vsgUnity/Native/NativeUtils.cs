@@ -243,7 +243,7 @@ namespace vsgUnity.Native
     public struct ImageData : IEquatable<ImageData>
     {
         public int id;
-        public ByteArray pixels;
+        public NativeArray pixels;
         public VkFormat format;
         public int width;
         public int height;
@@ -279,7 +279,8 @@ namespace vsgUnity.Native
     {
         public int id;
         public int binding;
-        public ImageData image;
+        public ImageData[] image;
+        public int descriptorCount;
 
         public bool Equals(DescriptorImageData b)
         {
@@ -333,14 +334,6 @@ namespace vsgUnity.Native
         {
             return binding == b.binding && value.Equals(b.value);
         }
-    }
-
-    public struct DescriptorImagesData
-    {
-        public IntPtr id;
-        public int channel;
-        //public TextureData[] data;
-        //public int length;
     }
 
     //
@@ -557,7 +550,7 @@ namespace vsgUnity.Native
             IntPtr ptr;
             if (array.length > 0)
             {
-                ptr = Marshal.AllocCoTaskMem(sizeof(uint) * array.length);
+                ptr = Marshal.AllocCoTaskMem(sizeof(int) * array.length);
                 Marshal.Copy(array.data, 0, ptr, array.length);
                 _nativePointersCache.Add(ptr);
             }
@@ -570,6 +563,50 @@ namespace vsgUnity.Native
             {
                 data = ptr,
                 length = array.length
+            };
+            return narray;
+        }
+
+        public static NativeArray ToNative(ByteArray array)
+        {
+            IntPtr ptr;
+            if (array.length > 0)
+            {
+                ptr = Marshal.AllocCoTaskMem(sizeof(byte) * array.length);
+                Marshal.Copy(array.data, 0, ptr, array.length);
+                _nativePointersCache.Add(ptr);
+            }
+            else
+            {
+                ptr = IntPtr.Zero;
+            }
+
+            NativeArray narray = new NativeArray
+            {
+                data = ptr,
+                length = array.length
+            };
+            return narray;
+        }
+
+        public static NativeArray ToNative(byte[] array)
+        {
+            IntPtr ptr;
+            if (array.Length > 0)
+            {
+                ptr = Marshal.AllocCoTaskMem(sizeof(byte) * array.Length);
+                Marshal.Copy(array, 0, ptr, array.Length);
+                _nativePointersCache.Add(ptr);
+            }
+            else
+            {
+                ptr = IntPtr.Zero;
+            }
+
+            NativeArray narray = new NativeArray
+            {
+                data = ptr,
+                length = array.Length
             };
             return narray;
         }

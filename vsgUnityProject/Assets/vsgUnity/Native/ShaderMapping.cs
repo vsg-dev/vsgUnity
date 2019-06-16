@@ -105,19 +105,31 @@ namespace vsgUnity
         {
             if (uniformType == UniformType.Texture2DUniform)
             {
-                return material.GetTexture(unityPropName);
+                if (material.HasProperty(unityPropName))
+                    return material.GetTexture(unityPropName);
+            }
+            else if(uniformType == UniformType.Texture2DArrayUniform)
+            {
+                if (material.HasProperty(unityPropName))
+                    return material.GetTexture(unityPropName);
             }
             else if (uniformType == UniformType.FloatUniform)
             {
-                return material.GetFloat(unityPropName);
+                if (material.HasProperty(unityPropName))
+                    return material.GetFloat(unityPropName);
+                else return 1.0f;
             }
             else if(uniformType == UniformType.Vec4Uniform)
             {
-                return material.GetVector(unityPropName);
+                if (material.HasProperty(unityPropName))
+                    return material.GetVector(unityPropName);
+                return Vector4.one;
             }
             else if (uniformType == UniformType.ColorUniform)
             {
-                return material.GetColor(unityPropName);
+                if (material.HasProperty(unityPropName))
+                    return material.GetColor(unityPropName);
+                else return Color.white;
             }
             return null;
         }
@@ -251,7 +263,7 @@ namespace vsgUnity
         public UniformMappedData[] GetUniformDatasFromMaterial(Material material)
         {
             // ensure the material and shader is valid
-            if (material == null || material.shader == null) return null;
+            if (material == null || material.shader == null) return new UniformMappedData[] { };
 
             List<UniformMappedData> results = new List<UniformMappedData>();
             foreach (UniformMapping mapping in uniformMappings)
@@ -282,43 +294,41 @@ namespace vsgUnity
     }
 
     /// <summary>
-    /// TerrainShaderMapping
-    /// Specialized shader mapping for terrain shaders, terrain shaders require texture arrays to be setup for layers and splat/alpha maps
-    /// </summary>
-
-    [System.Serializable]
-    public class TerrainShaderMapping : ShaderMapping
-    {
-        public List<UniformMapping> layerDiffuseMappings = new List<UniformMapping>(); // if empty use standard terrain layers, if multiple Texture2Ds combine into array, if single Texture2DArray use directly
-        public List<UniformMapping> layerNormalMappings = new List<UniformMapping>(); // if empty use standard terrain layers, if multiple Texture2Ds combine into array, if single Texture2DArray use directly
-        public int layerCountConstantIndex;
-
-        public List<UniformMapping> splatMappings = new List<UniformMapping>(); // if empty use standard terrain splats, if multiple Texture2Ds combine into array, if single Texture2DArray use directly
-        public int splatCountConstantIndex;
-    }
-
-    /// <summary>
     /// ShaderMappingIO
     /// Functions for reading and writting shadermapping json files
     /// </summary>
     
     public static class ShaderMappingIO
     {
+        public static Dictionary<string, ShaderMapping> _shaderMappingCache = new Dictionary<string, ShaderMapping>();
+        public static string _shaderMappingsDirectory = string.Empty;
+
         //
         // functions for read/write
 
-        public static T ReadFromJsonFile<T>(string filePath) where T : ShaderMapping
+        public static ShaderMapping ReadFromJsonFile(string filePath)
         {
-            if (!File.Exists(filePath)) return null;
+            ShaderMapping mapping;
 
-            string contents = File.ReadAllText(filePath);
-            T mapping = JsonUtility.FromJson<T>(contents);
-
-            // expand paths to shaders
-            string dir = Path.GetDirectoryName(filePath);
-            for(int i = 0; i < mapping.shaders.Count; i++)
+            if (_shaderMappingCache.ContainsKey(filePath))
             {
-                mapping.shaders[i].sourceFile = Path.Combine(dir, mapping.shaders[i].sourceFile);
+                mapping = _shaderMappingCache[filePath];
+            }
+            else
+            {
+                if (!File.Exists(filePath)) return null;
+
+                string contents = File.ReadAllText(filePath);
+                mapping = JsonUtility.FromJson<ShaderMapping>(contents);
+
+                // expand paths to shaders
+                string dir = Path.GetDirectoryName(filePath);
+                for (int i = 0; i < mapping.shaders.Count; i++)
+                {
+                    mapping.shaders[i].sourceFile = Path.Combine(dir, mapping.shaders[i].sourceFile);
+                }
+
+                _shaderMappingCache.Add(filePath, mapping);
             }
 
             return mapping;
@@ -330,9 +340,9 @@ namespace vsgUnity
             File.WriteAllText(filePath, contents);
         }
 
-        public static string GetNameForShaderMappingFile(Shader shader)
+        public static string GetFileNameForShaderMapping(string name)
         {
-            return shader.name.Replace("/", "+") + "-ShaderMapping";
+            return name.Replace("/", "+") + "-ShaderMapping";
         }
 
         public static string GetPathForAsset(string assetName)
@@ -346,25 +356,35 @@ namespace vsgUnity
 
         public static string GetPathForShaderMappingFile(string name)
         {
-            return GetPathForAsset(name + "-ShaderMapping");
+            string path = string.Empty;
+            if (string.IsNullOrEmpty(_shaderMappingsDirectory))
+            {
+                path = GetPathForAsset(GetFileNameForShaderMapping(name));
+                if(!string.IsNullOrEmpty(path)) _shaderMappingsDirectory = Path.GetDirectoryName(path);
+            }
+            else
+            {
+                path = Path.Combine(_shaderMappingsDirectory, GetFileNameForShaderMapping(name) + ".json");
+            }
+            return path;
         }
 
         public static string GetPathForShaderMappingFile(Shader shader)
         {
-            return GetPathForAsset(GetNameForShaderMappingFile(shader));
+            return GetPathForShaderMappingFile(shader.name);
         }
 
-        public static T ReadFromJsonFile<T>(Shader shader) where T : ShaderMapping
+        public static ShaderMapping ReadFromJsonFile(Shader shader)
         {
-            return ReadFromJsonFile<T>(GetPathForShaderMappingFile(shader));
+            return ReadFromJsonFile(GetPathForShaderMappingFile(shader));
         }
 
         //
         // function for creating a template shadermapping json file for a specific shader
 
-        public static T CreateTemplateForShader<T>(Shader shader) where T : ShaderMapping, new()
+        public static ShaderMapping CreateTemplateForShader(Shader shader)
         {
-            T mapping = new T()
+            ShaderMapping mapping = new ShaderMapping()
             {
                 unityShaderName = shader.name,
                 shaders = new List<ShaderResource>()
@@ -411,7 +431,7 @@ namespace vsgUnity
 
                     mapping.uniformMappings.Add(new UniformMapping() { unityPropName = propname, uniformType = textype });
                 }
-                else if (proptype == ShaderUtil.ShaderPropertyType.Float)
+                else if (proptype == ShaderUtil.ShaderPropertyType.Float || proptype == ShaderUtil.ShaderPropertyType.Range)
                 {
                     mapping.uniformMappings.Add(new UniformMapping() { unityPropName = propname, uniformType = UniformMapping.UniformType.FloatUniform });
                 }
@@ -427,10 +447,10 @@ namespace vsgUnity
             return mapping;
         }
 
-        public static void CreateTemplateFileForShader<T>(Shader shader) where T : ShaderMapping, new()
+        public static void CreateTemplateFileForShader(Shader shader)
         {
-            T mapping = CreateTemplateForShader<T>(shader);
-            string filePath = Path.Combine(Application.dataPath, GetNameForShaderMappingFile(shader) + "-Template.json");
+            ShaderMapping mapping = CreateTemplateForShader(shader);
+            string filePath = Path.Combine(Application.dataPath, GetFileNameForShaderMapping(shader.name) + "-Template.json");
             WriteToJsonFile(mapping, filePath);
         }
     }

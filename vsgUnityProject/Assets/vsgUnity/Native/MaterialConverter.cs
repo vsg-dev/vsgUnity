@@ -109,7 +109,7 @@ namespace vsgUnity
         }
 
         /// <summary>
-        /// Get a imag data to match the passed material if one exisits in the cache otherwise create a new one
+        /// Get a descriptorimage for the image data and binding or if one exists in the cache otherwise create a new one
         /// </summary>
         /// <param name="imageData"></param>
         /// <param name="binding"></param>
@@ -121,7 +121,7 @@ namespace vsgUnity
             foreach (int idkey in _descriptorImageDataCache.Keys)
             {
                 DescriptorImageData did = _descriptorImageDataCache[idkey];
-                if (did.binding == binding && did.image.id == imageData.id)
+                if (did.binding == binding && did.image.Length == 1 && did.image[0].id == imageData.id)
                 {
                     return did;
                 }
@@ -131,7 +131,49 @@ namespace vsgUnity
             {
                 id = _descriptorImageDataCache.Count,
                 binding = binding,
-                image = imageData
+                image = new ImageData[] { imageData },
+                descriptorCount = 1
+            };
+
+            _descriptorImageDataCache[descriptorImage.id] = descriptorImage;
+
+            return descriptorImage;
+        }
+
+        /// <summary>
+        /// Get a descriptorimage for the image datas and binding or if one exists in the cache otherwise create a new one
+        /// </summary>
+        /// <param name="imageData"></param>
+        /// <param name="binding"></param>
+        /// <returns></returns>
+
+        public static DescriptorImageData GetOrCreateDescriptorImageData(ImageData[] imageDatas, int binding)
+        {
+            // see if we have one already
+            foreach (int idkey in _descriptorImageDataCache.Keys)
+            {
+                DescriptorImageData did = _descriptorImageDataCache[idkey];
+                if (did.binding == binding && did.image.Length == imageDatas.Length)
+                {
+                    bool match = true;
+                    for(int i = 0; i < imageDatas.Length; i++)
+                    {
+                        if (did.image[i].id != imageDatas[i].id)
+                        {
+                            match = false;
+                            break;
+                        }
+                    }
+                    if(match) return did;
+                }
+            }
+            // must be new
+            DescriptorImageData descriptorImage = new DescriptorImageData
+            {
+                id = _descriptorImageDataCache.Count,
+                binding = binding,
+                image = imageDatas,
+                descriptorCount = imageDatas.Length
             };
 
             _descriptorImageDataCache[descriptorImage.id] = descriptorImage;
@@ -219,7 +261,7 @@ namespace vsgUnity
         /// <param name="material"></param>
         /// <returns></returns>
 
-        public static MaterialInfo GetOrCreateMaterialData(Material material)
+        public static MaterialInfo GetOrCreateMaterialData(Material material, ShaderMapping mapping = null)
         {
             if(_materialDataCache.ContainsKey(material.GetInstanceID()))
             {
@@ -227,7 +269,7 @@ namespace vsgUnity
             }
             else
             {
-                return CreateMaterialData(material);
+                return CreateMaterialData(material, mapping);
             }
         }
 
@@ -236,23 +278,24 @@ namespace vsgUnity
         /// </summary>
         /// <param name="material"></param>
         /// <returns></returns>
-        
-        public static MaterialInfo CreateMaterialData(Material material)
+
+        public static MaterialInfo CreateMaterialData(Material material, ShaderMapping mapping = null)
         {
             // fetch the shadermapping for this materials shader
-            ShaderMapping mapping = ShaderMappingIO.ReadFromJsonFile<ShaderMapping>(material.shader);
-            if(mapping == null) // if we fail to find a mapping try and load the default
+            if (mapping == null && material != null)
             {
-                mapping = ShaderMappingIO.ReadFromJsonFile<ShaderMapping>(ShaderMappingIO.GetPathForShaderMappingFile("Default"));
+                mapping = ShaderMappingIO.ReadFromJsonFile(material.shader);
+                if (mapping == null) // if we fail to find a mapping try and load the default
+                {
+                    mapping = ShaderMappingIO.ReadFromJsonFile(ShaderMappingIO.GetPathForShaderMappingFile("Default"));
+                }
             }
 
             MaterialInfo matdata = new MaterialInfo
             {
-                id = material.GetInstanceID(),
+                id = material != null ? material.GetInstanceID() : 0,
                 mapping = mapping
             };
-
-            Debug.Log("shader name: " + material.shader.name);
 
             // process uniforms
             UniformMappedData[] uniformDatas = mapping.GetUniformDatasFromMaterial(material);
@@ -260,6 +303,7 @@ namespace vsgUnity
             foreach (UniformMappedData uniData in uniformDatas)
             {
                 VkDescriptorType descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_MAX_ENUM;
+                uint descriptorCount = 1;
 
                 if (uniData.mapping.uniformType == UniformMapping.UniformType.Texture2DUniform)
                 {
@@ -273,6 +317,17 @@ namespace vsgUnity
                     matdata.imageDescriptors.Add(descriptorImage);
 
                     descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                }
+                else if (uniData.mapping.uniformType == UniformMapping.UniformType.Texture2DArrayUniform)
+                {
+                    Texture2DArray tex = uniData.data as Texture2DArray;
+                    if (tex == null) continue;
+                    ImageData[] imageDatas = TextureConverter.GetOrCreateImageData(tex);
+                    DescriptorImageData descriptorImage = GetOrCreateDescriptorImageData(imageDatas, uniData.mapping.vsgBindingIndex);
+                    matdata.imageDescriptors.Add(descriptorImage);
+
+                    descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                    descriptorCount = (uint)imageDatas.Length;
                 }
                 else if (uniData.mapping.uniformType == UniformMapping.UniformType.FloatUniform)
                 {
@@ -318,27 +373,27 @@ namespace vsgUnity
                 // add any custom defines related to the texture
                 if (uniData.mapping.vsgDefines != null && uniData.mapping.vsgDefines.Count > 0) matdata.customDefines.AddRange(uniData.mapping.vsgDefines);
 
-                if (descriptorType == VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) // hack for now only add the image samplers
+                // create the descriptor binding to match the descriptor image
+                VkDescriptorSetLayoutBinding descriptorBinding = new VkDescriptorSetLayoutBinding
                 {
-                    // create the descriptor binding to match the descriptor image
-                    VkDescriptorSetLayoutBinding descriptorBinding = new VkDescriptorSetLayoutBinding
-                    {
-                        binding = (uint)uniData.mapping.vsgBindingIndex,
-                        descriptorType = descriptorType,
-                        descriptorCount = 1,
-                        stageFlags = uniData.mapping.stages,
-                        pImmutableSamplers = System.IntPtr.Zero
-                    };
-                    matdata.descriptorBindings.Add(descriptorBinding);
-                }
+                    binding = (uint)uniData.mapping.vsgBindingIndex,
+                    descriptorType = descriptorType,
+                    descriptorCount = descriptorCount,
+                    stageFlags = uniData.mapping.stages,
+                    pImmutableSamplers = System.IntPtr.Zero
+                };
+                matdata.descriptorBindings.Add(descriptorBinding);
             }
 
-            string rendertype = material.GetTag("RenderType", true, "Opaque");
-            matdata.useAlpha = rendertype.Contains("Transparent") ? 1 : 0;
-            if (matdata.useAlpha == 1) matdata.customDefines.Add("VSG_BLEND");
+            if (material != null)
+            {
+                string rendertype = material.GetTag("RenderType", true, "Opaque");
+                matdata.useAlpha = rendertype.Contains("Transparent") ? 1 : 0;
+                if (matdata.useAlpha == 1) matdata.customDefines.Add("VSG_BLEND");
 
-            string lightmode = material.GetTag("LightMode", true, "ForwardBase");
-            if (lightmode != "Always") matdata.customDefines.Add("VSG_LIGHTING");
+                string lightmode = material.GetTag("LightMode", true, "ForwardBase");
+                if (lightmode != "Always") matdata.customDefines.Add("VSG_LIGHTING");
+            }
 
             // lastly process shaders now we know the defines etc it will use
             string customDefinesStr = string.Join(",", matdata.customDefines.ToArray());
@@ -346,7 +401,7 @@ namespace vsgUnity
             matdata.shaderStages = GetOrCreateShaderStagesInfo(mapping.shaders.ToArray(), customDefinesStr, null);
 
             // add to the cache (double check it doesn't exist already)
-            if(!_materialDataCache.ContainsKey(matdata.id))
+            if(material != null && !_materialDataCache.ContainsKey(matdata.id))
             {
                 _materialDataCache[matdata.id] = matdata;
             }

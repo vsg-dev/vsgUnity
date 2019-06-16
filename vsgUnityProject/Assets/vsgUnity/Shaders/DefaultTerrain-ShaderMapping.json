@@ -52,10 +52,5 @@
                 "VSG_NORMAL_MAP"
             ]
         }
-    ],
-    "layerDiffuseMappings": [],
-    "layerNormalMappings": [],
-    "layerCountConstantIndex": 0,
-    "splatMappings": [],
-    "splatCountConstantIndex": 0
+    ]
 }

@@ -410,7 +410,6 @@ public:
             {
                 specialEntires.push_back({i, i * sizeof(uint32_t), sizeof(uint32_t)});
                 dataarray->at(i) = specializationConstants.data[i];
-                DebugLog("Special Value: " + std::to_string(dataarray->at(i)));
             }
 
             shaderStage->setSpecializationMapEntries(specialEntires);
@@ -859,13 +858,20 @@ public:
         }
         else
         {
-            vsg::ref_ptr<vsg::Data> texdata = createDataForTexture(data.image);
-            if (!texdata.valid()) return vsg::ref_ptr<vsg::DescriptorImage>();
+            vsg::SamplerImages samplerImages;
+            for (int i = 0; i < data.descriptorCount; i++)
+            {
+                vsg::ref_ptr<vsg::Data> texdata = createDataForTexture(data.images[i]);
+                if (!texdata.valid()) return vsg::ref_ptr<vsg::DescriptorImage>();
 
-            vsg::ref_ptr<vsg::Sampler> sampler = vsg::Sampler::create();
-            sampler->info() = vkSamplerCreateInfoForTextureData(data.image);
+                vsg::ref_ptr<vsg::Sampler> sampler = vsg::Sampler::create();
+                sampler->info() = vkSamplerCreateInfoForTextureData(data.images[i]);
 
-            texture = vsg::DescriptorImage::create(sampler, texdata, data.binding, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                samplerImages.push_back({ sampler, texdata });
+            }
+
+
+            texture = vsg::DescriptorImage::create(samplerImages, data.binding, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
             if (useCache) _textureCache[data.id] = texture;
         }
@@ -878,34 +884,6 @@ public:
         auto texture = createTexture(data);
         _descriptors.push_back(texture);
         _descriptorObjectIds.push_back(std::to_string(data.id));
-    }
-
-    void addTextureToArray(const ImageData& data)
-    {
-        //auto texture = createTexture(data);
-        _textureArray.push_back(data);
-    }
-
-    void createTextureArray(DescriptorImagesData data)
-    {
-        vsg::SamplerImages sampleImages;
-
-        for (auto& texturedata : _textureArray)
-        {
-            vsg::ref_ptr<vsg::Data> texdata = createDataForTexture(texturedata);
-            vsg::ref_ptr<vsg::Sampler> sampler = vsg::Sampler::create();
-            sampler->info() = vkSamplerCreateInfoForTextureData(texturedata);
-            sampleImages.push_back({sampler, texdata});
-        }
-
-        vsg::ref_ptr<vsg::DescriptorImage> textureArray = vsg::DescriptorImage::create(sampleImages, data.channel, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-
-        textureArray->_dstBinding = data.channel;
-
-        _descriptors.push_back(textureArray);
-        _descriptorObjectIds.push_back(std::string(data.id));
-
-        _textureArray.clear();
     }
 
     //
@@ -1075,9 +1053,6 @@ public:
     // the current set of descriptors being built
     vsg::Descriptors _descriptors;
 
-    // the current array of textures build when we call create texture array
-    std::vector<ImageData> _textureArray;
-
     // the unique ids of the of the descriptos list being built
     std::vector<std::string> _descriptorObjectIds;
 
@@ -1213,21 +1188,6 @@ void unity2vsg_CreateBindDescriptorSetCommand(uint32_t addToStateGroup)
 void unity2vsg_AddDescriptorImage(unity2vsg::DescriptorImageData texture)
 {
     _builder->addTexture(texture);
-}
-
-void unity2vsg_AddTextureArrayDescriptor(unity2vsg::DescriptorImagesData textureArray)
-{
-    //_builder->addTextureArray(textureArray);
-}
-
-void unity2vsg_AddImageDataToActiveDescriptorImagesArray(unity2vsg::ImageData texture)
-{
-    _builder->addTextureToArray(texture);
-}
-
-void unity2vsg_CreateDescriptorImagesFromActiveArray(unity2vsg::DescriptorImagesData data)
-{
-    _builder->createTextureArray(data);
 }
 
 void unity2vsg_AddDescriptorBufferFloat(unity2vsg::DescriptorFloatUniformData data)

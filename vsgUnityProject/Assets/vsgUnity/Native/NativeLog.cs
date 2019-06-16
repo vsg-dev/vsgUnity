@@ -5,6 +5,7 @@
 //----------------------------------------------
 
 using System;
+using System.Text;
 using System.Runtime.InteropServices;
 using UnityEngine;
 using AOT;
@@ -35,7 +36,20 @@ namespace vsgUnity.Native
 
         static void WriteLogLineDelegate(string str)
         {
-            Debug.Log("vsgUnityNative: " + str);
+            WriteLine("vsgUnityNative: " + str);
+        }
+
+        public static StringBuilder _reportBuilder = new StringBuilder();
+
+        public static void WriteLine(string msg)
+        {
+            _reportBuilder.AppendLine(msg);
+        }
+
+        public static void PrintReport()
+        {
+            Debug.Log("vsgUnity Export Report:\n" + _reportBuilder.ToString());
+            _reportBuilder.Clear();
         }
     }
 

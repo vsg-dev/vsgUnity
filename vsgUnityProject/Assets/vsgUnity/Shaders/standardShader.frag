@@ -50,7 +50,7 @@ void main()
     vec4 base = vec4(1.0,1.0,1.0,1.0);
 #endif
 #ifdef VSG_COLOR
-    base = base * vertColor;
+    //base = base * vertColor;
 #endif
 #ifdef VSG_MATERIAL
     vec3 ambientColor = material.ambientColor.rgb;

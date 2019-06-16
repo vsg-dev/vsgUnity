@@ -152,7 +152,8 @@ namespace unity2vsg
     {
         int id;
         int binding;
-        ImageData image;
+        ImageData* images;
+        int descriptorCount;
     };
 
     struct DescriptorFloatUniformData
