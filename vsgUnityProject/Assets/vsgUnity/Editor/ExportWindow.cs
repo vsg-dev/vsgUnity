@@ -1,4 +1,16 @@
-﻿using System.IO;
+﻿/* <editor-fold desc="MIT License">
+
+Copyright(c) 2019 Thomas Hogarth
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+</editor-fold> */
+
+using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -32,8 +44,8 @@ namespace vsgUnity.Editor
         [MenuItem("Window/VulkanSceneGraph/Run Snippet")]
         static void RunSnippet()
         {
-            ShaderMappingIO.CreateTemplateFileForShader<ShaderMapping>(Shader.Find("Standard"));
-            ShaderMappingIO.CreateTemplateFileForShader<TerrainShaderMapping>(Shader.Find("Nature/Terrain/Diffuse"));
+            //ShaderMappingIO.CreateTemplateFileForShader<ShaderMapping>(Shader.Find("Standard"));
+            ShaderMappingIO.CreateTemplateFileForShader(Shader.Find("CTS/CTS Terrain Shader Advanced Trial"));
         }
 
         // open window
@@ -46,6 +58,7 @@ namespace vsgUnity.Editor
             if(!_hasInited)
             {
                 _settings.autoAddCullNodes = false;
+                _settings.zeroRootTransform = false;
 
                 _settings.standardTerrainShaderMappingPath = PathForShaderAsset("standardTerrain-ShaderMapping");
 
@@ -146,6 +159,7 @@ namespace vsgUnity.Editor
             _binaryExport = EditorGUILayout.Toggle("Binary", _binaryExport);
 
             _settings.autoAddCullNodes = EditorGUILayout.Toggle("Add Cull Nodes", _settings.autoAddCullNodes);
+            _settings.zeroRootTransform = EditorGUILayout.Toggle("Zero Root Transform", _settings.zeroRootTransform);
 
             EditorGUILayout.LabelField(_settings.standardTerrainShaderMappingPath);
 
