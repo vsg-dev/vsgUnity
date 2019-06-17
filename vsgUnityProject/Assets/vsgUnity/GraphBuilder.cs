@@ -97,9 +97,8 @@ namespace vsgUnity
                             {
                                 if(boundsrenderer != null) bounds.Encapsulate(boundsrenderer.bounds);
                             }
-                            lodCullData.center = bounds.center;
-                            Debug.Log("lod center: " + lodCullData.center + " transform: " + gotrans.position);
-                            lodCullData.radius = bounds.size.magnitude;
+                            lodCullData.center = bounds.center + -gotrans.localPosition;
+                            lodCullData.radius = bounds.size.magnitude * 0.5f;
                             GraphBuilderInterface.unity2vsg_AddLODNode(lodCullData);
 
                             insideLODGroup = true;
@@ -110,7 +109,7 @@ namespace vsgUnity
                                 if (lods[i].renderers.Length == 0) continue;
 
                                 LODChildData lodChild = new LODChildData();
-                                lodChild.minimumScreenHeightRatio = 0.0f;// lods[i].screenRelativeTransitionHeight;
+                                lodChild.minimumScreenHeightRatio = lods[i].screenRelativeTransitionHeight;
                                 GraphBuilderInterface.unity2vsg_AddLODChild(lodChild);
 
                                 foreach (Renderer lodrenderer in lods[i].renderers)
@@ -206,8 +205,8 @@ namespace vsgUnity
             if (settings.autoAddCullNodes)
             {
                 CullData culldata = new CullData();
-                culldata.center = meshRenderer.bounds.center - gotrans.position;
-                culldata.radius = meshRenderer.bounds.size.magnitude;
+                culldata.center = meshRenderer.bounds.center + -gotrans.localPosition;
+                culldata.radius = meshRenderer.bounds.size.magnitude * 0.5f;
                 GraphBuilderInterface.unity2vsg_AddCullGroupNode(culldata);
                 addedCullGroup = true;
             }
