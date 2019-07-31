@@ -178,7 +178,7 @@ namespace vsgUnity
 
         // Bind the descriptors in a materialinfo, should be called from within a StateGroup
         
-        private static void BindDescriptors(MaterialInfo materialInfo)
+        private static void BindDescriptors(MaterialInfo materialInfo, bool addToStateGroup)
         {
             bool addedAny = false;
             foreach (DescriptorImageData t in materialInfo.imageDescriptors)
@@ -196,7 +196,7 @@ namespace vsgUnity
                 GraphBuilderInterface.unity2vsg_AddDescriptorBufferFloat(t);
                 addedAny = true;
             }
-            if (addedAny) GraphBuilderInterface.unity2vsg_CreateBindDescriptorSetCommand(0);
+            if (addedAny) GraphBuilderInterface.unity2vsg_CreateBindDescriptorSetCommand(addToStateGroup ? 1 : 0);
         }
 
         private static void ExportMesh(Mesh mesh, MeshRenderer meshRenderer, Transform gotrans,  ExportSettings settings, List<PipelineData> storePipelines = null)
@@ -272,7 +272,7 @@ namespace vsgUnity
 
                             foreach (MaterialInfo md in mds)
                             {
-                                BindDescriptors(md);
+                                BindDescriptors(md, false);
 
                                 foreach (int submeshIndex in meshMaterials[shaderkey][md])
                                 {
@@ -307,7 +307,7 @@ namespace vsgUnity
 
                             if (GraphBuilderInterface.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1) == 1)
                             {
-                                BindDescriptors(mds[0]);
+                                BindDescriptors(mds[0], true);
 
                                 VertexIndexDrawData vertexIndexDrawData = MeshConverter.GetOrCreateVertexIndexDrawData(meshInfo);
                                 GraphBuilderInterface.unity2vsg_AddVertexIndexDrawNode(vertexIndexDrawData);
@@ -396,7 +396,7 @@ namespace vsgUnity
 
                 if (GraphBuilderInterface.unity2vsg_AddBindGraphicsPipelineCommand(pipelineData, 1) == 1)
                 {
-                    BindDescriptors(terrainInfo.customMaterial);
+                    BindDescriptors(terrainInfo.customMaterial, true);
 
                     GraphBuilderInterface.unity2vsg_AddVertexIndexDrawNode(MeshConverter.GetOrCreateVertexIndexDrawData(terrainInfo.terrainMesh));
                     GraphBuilderInterface.unity2vsg_EndNode(); // step out of vertex index draw node
