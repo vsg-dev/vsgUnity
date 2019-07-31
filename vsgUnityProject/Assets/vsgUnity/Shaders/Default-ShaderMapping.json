@@ -24,6 +24,13 @@
           "unityPropName": "_MainTex",
           "vsgBindingIndex": 0,
           "vsgDefines": ["VSG_DIFFUSE_MAP"]
+        },
+        {
+          "uniformTypeString": "Texture2DUniform",
+          "stagesString": "VertexStage|FragmentStage",
+          "unityPropName": "_BumpMap",
+          "vsgBindingIndex": 5,
+          "vsgDefines": ["VSG_NORMAL_MAP"]
         }
     ],
     "vertexDependancies": [

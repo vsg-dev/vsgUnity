@@ -37,6 +37,7 @@ namespace vsgUnity
             MeshConverter.ClearCaches();
             TextureConverter.ClearCaches();
             MaterialConverter.ClearCaches();
+            ShaderMappingIO.ClearCaches();
 
             GraphBuilderInterface.unity2vsg_BeginExport();
 

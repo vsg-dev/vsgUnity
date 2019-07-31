@@ -44,8 +44,8 @@ namespace vsgUnity.Editor
         [MenuItem("Window/VulkanSceneGraph/Run Snippet")]
         static void RunSnippet()
         {
-            //ShaderMappingIO.CreateTemplateFileForShader<ShaderMapping>(Shader.Find("Standard"));
-            ShaderMappingIO.CreateTemplateFileForShader(Shader.Find("CTS/CTS Terrain Shader Advanced Trial"));
+            ShaderMappingIO.CreateTemplateFileForShader(Shader.Find("Standard"));
+            //ShaderMappingIO.CreateTemplateFileForShader(Shader.Find("CTS/CTS Terrain Shader Advanced Trial"));
         }
 
         // open window

@@ -315,6 +315,12 @@ namespace vsgUnity
         public static Dictionary<string, ShaderMapping> _shaderMappingCache = new Dictionary<string, ShaderMapping>();
         public static string _shaderMappingsDirectory = string.Empty;
 
+        public static void ClearCaches()
+        {
+            _shaderMappingCache.Clear();
+            _shaderMappingsDirectory = string.Empty;
+        }
+
         //
         // functions for read/write
 
