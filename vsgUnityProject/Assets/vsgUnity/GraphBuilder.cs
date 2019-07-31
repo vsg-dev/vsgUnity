@@ -97,7 +97,7 @@ namespace vsgUnity
                             {
                                 if(boundsrenderer != null) bounds.Encapsulate(boundsrenderer.bounds);
                             }
-                            lodCullData.center = bounds.center + -gotrans.localPosition;
+                            lodCullData.center = bounds.center - gotrans.position;
                             lodCullData.radius = bounds.size.magnitude * 0.5f;
                             GraphBuilderInterface.unity2vsg_AddLODNode(lodCullData);
 
@@ -196,7 +196,7 @@ namespace vsgUnity
                 GraphBuilderInterface.unity2vsg_AddDescriptorBufferFloat(t);
                 addedAny = true;
             }
-            if (addedAny) GraphBuilderInterface.unity2vsg_CreateBindDescriptorSetCommand(1);
+            if (addedAny) GraphBuilderInterface.unity2vsg_CreateBindDescriptorSetCommand(0);
         }
 
         private static void ExportMesh(Mesh mesh, MeshRenderer meshRenderer, Transform gotrans,  ExportSettings settings, List<PipelineData> storePipelines = null)
@@ -205,7 +205,7 @@ namespace vsgUnity
             if (settings.autoAddCullNodes)
             {
                 CullData culldata = new CullData();
-                culldata.center = meshRenderer.bounds.center + -gotrans.localPosition;
+                culldata.center = meshRenderer.bounds.center - gotrans.position;
                 culldata.radius = meshRenderer.bounds.size.magnitude * 0.5f;
                 GraphBuilderInterface.unity2vsg_AddCullGroupNode(culldata);
                 addedCullGroup = true;
