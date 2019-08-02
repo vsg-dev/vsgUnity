@@ -1029,8 +1029,8 @@ public:
         _root->accept(leafDataCollection);
         _root->setObject("batch", leafDataCollection.objects);
 
-        vsg::vsgReaderWriter io;
-        io.writeFile(_root.get(), fileName);
+        vsg::ReaderWriter_vsg io;
+        io.write(_root.get(), fileName);
     }
 
     void releaseObjects()
@@ -1219,8 +1219,8 @@ void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg
 {
     try
     {
-        vsg::vsgReaderWriter io;
-        vsg::ref_ptr<vsg::Node> vsg_scene = io.read<vsg::Node>(filename);
+        vsg::ReaderWriter_vsg io;
+        vsg::ref_ptr<vsg::Node> vsg_scene = io.read_cast<vsg::Node>(filename);
 
         std::stringstream ss;
         ss << "cam pos: " << camdata.position.x << ", " << camdata.position.y << ", " << camdata.position.z << std::endl;
