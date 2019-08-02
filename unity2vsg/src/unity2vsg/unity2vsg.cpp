@@ -1239,7 +1239,7 @@ void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg
         auto viewer = vsg::Viewer::create();
 
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
-        if (!window)
+        if (!window.valid())
         {
             std::cout << "Could not create windows." << std::endl;
             _builder->releaseObjects();
