@@ -347,7 +347,7 @@ namespace vsgUnity
                     // get descriptor for the image data
                     DescriptorFloatUniformData descriptorFloat = new DescriptorFloatUniformData
                     {
-                        id = 0,
+                        id = material.GetInstanceID(),
                         binding = uniData.mapping.vsgBindingIndex,
                         value = value
                     };
@@ -369,7 +369,7 @@ namespace vsgUnity
                     // get descriptor for the image data
                     DescriptorVectorUniformData descriptorVector = new DescriptorVectorUniformData
                     {
-                        id = 0,
+                        id = material.GetInstanceID(),
                         binding = uniData.mapping.vsgBindingIndex,
                         value = vector
                     };

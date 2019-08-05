@@ -1,5 +1,5 @@
 #version 450
-#pragma import_defines ( VSG_NORMAL, VSG_COLOR, VSG_TEXCOORD0, VSG_LIGHTING, VSG_MATERIAL, VSG_DIFFUSE_MAP, VSG_OPACITY_MAP, VSG_AMBIENT_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP )
+#pragma import_defines ( VSG_NORMAL, VSG_COLOR, VSG_TEXCOORD0, VSG_LIGHTING, VSG_ALBEDO_COLOR, VSG_DIFFUSE_MAP, VSG_OPACITY_MAP, VSG_AMBIENT_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP )
 #extension GL_ARB_separate_shader_objects : enable
 #ifdef VSG_DIFFUSE_MAP
 layout(binding = 0) uniform sampler2D diffuseMap;
@@ -17,14 +17,11 @@ layout(binding = 5) uniform sampler2D normalMap;
 layout(binding = 6) uniform sampler2D specularMap;
 #endif
 
-#ifdef VSG_MATERIAL
-layout(binding = 10) uniform MaterialData
+#ifdef VSG_ALBEDO_COLOR
+layout(binding = 10) uniform AlbedoData
 {
-    vec4 ambientColor;
-    vec4 diffuseColor;
-    vec4 specularColor;
-    float shine;
-} material;
+    vec4 color;
+} albedo;
 #endif
 
 #ifdef VSG_NORMAL
@@ -52,11 +49,11 @@ void main()
 #ifdef VSG_COLOR
     //base = base * vertColor;
 #endif
-#ifdef VSG_MATERIAL
-    vec3 ambientColor = material.ambientColor.rgb;
-    vec3 diffuseColor = material.diffuseColor.rgb;
-    vec3 specularColor = material.specularColor.rgb;
-    float shine = material.shine;
+#ifdef VSG_ALBEDO_COLOR
+    vec3 ambientColor = vec3(0.1,0.1,0.1);
+    vec3 diffuseColor = albedo.color.rgb;
+    vec3 specularColor = vec3(0.3,0.3,0.3);
+    float shine = 16.0f;
 #else
     vec3 ambientColor = vec3(0.1,0.1,0.1);
     vec3 diffuseColor = vec3(1.0,1.0,1.0);

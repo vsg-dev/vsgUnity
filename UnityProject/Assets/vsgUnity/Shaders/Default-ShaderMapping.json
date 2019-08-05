@@ -15,8 +15,8 @@
             "uniformTypeString": "ColorUniform",
             "stagesString": "FragmentStage",
             "unityPropName": "_Color",
-            "vsgBindingIndex": 1,
-            "vsgDefines": []
+            "vsgBindingIndex": 10,
+            "vsgDefines": ["VSG_ALBEDO_COLOR"]
         },
         {
           "uniformTypeString": "Texture2DUniform",
