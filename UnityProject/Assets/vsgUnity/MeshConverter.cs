@@ -101,7 +101,10 @@ namespace vsgUnity
             MeshInfo meshinfo = new MeshInfo();
             meshinfo.id = mesh.GetInstanceID();
 
-            meshinfo.triangles = NativeUtils.WrapArray(mesh.triangles);
+            int[] triangles = mesh.triangles;
+            CoordSytemConverter.FlipTriangleFaces(triangles);
+
+            meshinfo.triangles = NativeUtils.WrapArray(triangles);
             meshinfo.use32BitIndicies = mesh.indexFormat == IndexFormat.UInt32 ? 1 : 0;
 
             for (int i = 0; i < mesh.subMeshCount; i++)
@@ -114,9 +117,18 @@ namespace vsgUnity
                 meshinfo.submeshs.Add(submesh);
             }
 
-            meshinfo.verticies = NativeUtils.WrapArray(mesh.vertices);
-            meshinfo.normals = NativeUtils.WrapArray(mesh.normals);
-            meshinfo.tangents = NativeUtils.WrapArray(mesh.tangents);
+            Vector3[] vertices = mesh.vertices;
+            CoordSytemConverter.Convert(vertices);
+            meshinfo.verticies = NativeUtils.WrapArray(vertices);
+
+            Vector3[] normals = mesh.normals;
+            CoordSytemConverter.Convert(normals);
+            meshinfo.normals = NativeUtils.WrapArray(normals);
+
+            Vector4[] tangents = mesh.tangents;
+            CoordSytemConverter.Convert(tangents);
+            meshinfo.tangents = NativeUtils.WrapArray(tangents);
+
             meshinfo.colors = NativeUtils.WrapArray(mesh.colors);
             meshinfo.uv0 = NativeUtils.WrapArray(mesh.uv);
             meshinfo.uv1 = NativeUtils.WrapArray(mesh.uv2);
