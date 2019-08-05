@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 5db1a085eb05cf84da11a8c41ceba8e9
+guid: 9182ad77b382b314184955e871144807
 PluginImporter:
   externalObjects: {}
   serializedVersion: 2
@@ -22,7 +22,7 @@ PluginImporter:
         Exclude LinuxUniversal: 0
         Exclude OSXUniversal: 0
         Exclude WebGL: 1
-        Exclude Win: 0
+        Exclude Win: 1
         Exclude Win64: 0
         Exclude WindowsStoreApps: 1
   - first:
@@ -77,7 +77,7 @@ PluginImporter:
   - first:
       Standalone: Win
     second:
-      enabled: 1
+      enabled: 0
       settings:
         CPU: None
   - first:
@@ -91,7 +91,7 @@ PluginImporter:
     second:
       enabled: 0
       settings:
-        CPU: X86
+        CPU: AnyCPU
         DontProcess: false
         PlaceholderPath: 
         SDK: AnySDK

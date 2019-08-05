@@ -108,6 +108,8 @@ DerivedData/
 *.iml
 build/
 local.properties
+
+
 vsgUnityProject/Assets/export.vsgb
 vsgUnityProject/Assets/export.vsgb.meta
 vsgUnityProject/Assets/export.vsga
