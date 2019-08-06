@@ -35,37 +35,26 @@ target_link_libraries(unity2vsg PUBLIC
     ${GLSLANG}
 )
 
-
-install(TARGETS unity2vsg EXPORT unity2vsgTargets
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        RUNTIME DESTINATION bin
-        INCLUDES DESTINATION include
-)
-
 #if (BUILD_SHARED_LIBS)
     target_compile_definitions(unity2vsg PUBLIC UNITY2VSG_SHARED_LIBRARY)
 #endif()
 
+# copy the binary into the unity project
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/unity2vsg DESTINATION include)
+if(WIN32)
+    set(PLATFORM_PLUGIN_FOLDER Windows)
+elseif(APPLE)
+    set(PLATFORM_PLUGIN_FOLDER Mac)
+elseif(UNIX)
+    set(PLATFORM_PLUGIN_FOLDER Linux)
+endif()
 
-# [==[
-install(EXPORT unity2vsgTargets
-    FILE unity2vsgTargets.cmake
-    NAMESPACE unity2vsg::
-    DESTINATION lib/cmake/unity2vsg
+
+add_custom_command(TARGET unity2vsg POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/../UnityProject/Assets/vsgUnity/Native/Plugins/${PLATFORM_PLUGIN_FOLDER}
 )
 
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file("${CMAKE_BINARY_DIR}/src/unity2vsg/unity2vsgConfigVersion.cmake"
-    VERSION ${UNITY2VSG_MAJOR_VERSION}.${UNITY2VSG_MINOR_VERSION}.${UNITY2VSG_PATCH_VERSION}
-    COMPATIBILITY SameMajorVersion
+add_custom_command(TARGET unity2vsg POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:unity2vsg> ${CMAKE_SOURCE_DIR}/../UnityProject/Assets/vsgUnity/Native/Plugins/${PLATFORM_PLUGIN_FOLDER}
 )
-
-install(FILES "unity2vsgConfig.cmake" "${CMAKE_BINARY_DIR}/src/unity2vsg/unity2vsgConfigVersion.cmake"
-    DESTINATION lib/cmake/unity2vsg
-)
-
-# ]==]
 
