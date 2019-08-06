@@ -49,12 +49,14 @@ elseif(UNIX)
     set(PLATFORM_PLUGIN_FOLDER Linux)
 endif()
 
+set(PLATFORM_PLUGIN_PATH ${CMAKE_SOURCE_DIR}/../UnityProject/Assets/vsgUnity/Native/Plugins/${PLATFORM_PLUGIN_FOLDER})
 
 add_custom_command(TARGET unity2vsg POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/../UnityProject/Assets/vsgUnity/Native/Plugins/${PLATFORM_PLUGIN_FOLDER}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${PLATFORM_PLUGIN_PATH}
 )
 
 add_custom_command(TARGET unity2vsg POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:unity2vsg> ${CMAKE_SOURCE_DIR}/../UnityProject/Assets/vsgUnity/Native/Plugins/${PLATFORM_PLUGIN_FOLDER}
+    COMMENT "*** Copying plugin to Unity project folder ${PLATFORM_PLUGIN_PATH} ensure Unity is closed or the plugin can't be copied ***"
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:unity2vsg> ${PLATFORM_PLUGIN_PATH}
 )
 
