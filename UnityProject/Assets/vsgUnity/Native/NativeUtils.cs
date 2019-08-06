@@ -465,7 +465,10 @@ namespace vsgUnity.Native
             CameraData camdata = new CameraData();
             camdata.position = camera.gameObject.transform.position;
             camdata.lookAt = camdata.position + camera.gameObject.transform.forward;
+            CoordSytemConverter.Convert(ref camdata.lookAt);
+            CoordSytemConverter.Convert(ref camdata.position);
             camdata.upDir = camera.gameObject.transform.up;
+            CoordSytemConverter.Convert(ref camdata.upDir);
             camdata.fov = camera.fieldOfView;
             camdata.nearZ = camera.nearClipPlane;
             camdata.farZ = camera.farClipPlane;

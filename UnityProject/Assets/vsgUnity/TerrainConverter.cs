@@ -98,6 +98,9 @@ namespace vsgUnity
                 }
             }
 
+            CoordSytemConverter.Convert(verts);
+            CoordSytemConverter.Convert(normals);
+
             // triangles
             int index = 0;
             for (int y = 0; y < cellw; y++)
@@ -113,6 +116,8 @@ namespace vsgUnity
                     indicies[index++] = (y * samplew) + x + 1;
                 }
             }
+
+            CoordSytemConverter.FlipTriangleFaces(indicies);
 
             // convert to meshinfo
             MeshInfo mesh = null;
