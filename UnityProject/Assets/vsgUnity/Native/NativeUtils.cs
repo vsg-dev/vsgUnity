@@ -414,7 +414,7 @@ namespace vsgUnity.Native
 
     public struct CullData
     {
-        public Vector3 center;
+        public NativeArray center;
         public float radius;
     }
 

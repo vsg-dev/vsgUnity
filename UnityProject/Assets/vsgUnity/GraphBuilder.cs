@@ -98,7 +98,9 @@ namespace vsgUnity
                             {
                                 if(boundsrenderer != null) bounds.Encapsulate(boundsrenderer.bounds);
                             }
-                            lodCullData.center = bounds.center - gotrans.position;
+                            Vector3 center = bounds.center - gotrans.position;
+                            CoordSytemConverter.Convert(ref center);
+                            lodCullData.center = NativeUtils.ToNative(center);
                             lodCullData.radius = bounds.size.magnitude * 0.5f;
                             GraphBuilderInterface.unity2vsg_AddLODNode(lodCullData);
 
@@ -206,7 +208,9 @@ namespace vsgUnity
             if (settings.autoAddCullNodes)
             {
                 CullData culldata = new CullData();
-                culldata.center = meshRenderer.bounds.center - gotrans.position;
+                Vector3 center = meshRenderer.bounds.center - gotrans.position;
+                CoordSytemConverter.Convert(ref center);
+                culldata.center = NativeUtils.ToNative(center);
                 culldata.radius = meshRenderer.bounds.size.magnitude * 0.5f;
                 GraphBuilderInterface.unity2vsg_AddCullGroupNode(culldata);
                 addedCullGroup = true;

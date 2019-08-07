@@ -213,7 +213,8 @@ public:
 
     void addCullNode(CullData cull)
     {
-        auto cullNode = vsg::CullNode::create(vsg::sphere(cull.center, cull.radius), nullptr);
+        vsg::vec3 center = vsg::vec3(cull.center.data[0], cull.center.data[1], cull.center.data[2]);
+        auto cullNode = vsg::CullNode::create(vsg::sphere(center, cull.radius), nullptr);
         if (!addChildToHead(cullNode))
         {
             DebugLog("GraphBuilder Error: Current head is not a group");
@@ -223,7 +224,8 @@ public:
 
     void addCullGroup(CullData cull)
     {
-        auto cullGroup = vsg::CullGroup::create(vsg::sphere(cull.center, cull.radius));
+        vsg::vec3 center = vsg::vec3(cull.center.data[0], cull.center.data[1], cull.center.data[2]); 
+        auto cullGroup = vsg::CullGroup::create(vsg::sphere(center, cull.radius));
         if (!addChildToHead(cullGroup))
         {
             DebugLog("GraphBuilder Error: Current head is not a group");
@@ -233,8 +235,9 @@ public:
 
     void addLOD(CullData cull)
     {
+        vsg::vec3 center = vsg::vec3(cull.center.data[0], cull.center.data[1], cull.center.data[2]);
         auto lod = vsg::LOD::create();
-        lod->setBound(vsg::sphere(cull.center, cull.radius));
+        lod->setBound(vsg::sphere(center, cull.radius));
         if (!addChildToHead(lod))
         {
             DebugLog("GraphBuilder Error: Current head is not a group");

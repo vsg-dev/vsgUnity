@@ -234,7 +234,7 @@ namespace unity2vsg
 
     struct CullData
     {
-        vsg::vec3 center;
+        FloatArray center;
         float radius;
     };
 
