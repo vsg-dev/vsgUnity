@@ -324,16 +324,11 @@ namespace vsgUnity.Native
     {
         public int id;
         public int binding;
-        //public Vector4 value;
-        public float x;
-        public float y;
-        public float z;
-        public float w;
+        public NativeArray value;
 
         public bool Equals(DescriptorVectorUniformData b)
         {
-            //return binding == b.binding && value.Equals(b.value);
-            return binding == b.binding && x == b.x && y == b.y && z == b.z && w == b.w;
+            return binding == b.binding && value.Equals(b.value);
         }
     }
 
@@ -561,12 +556,42 @@ namespace vsgUnity.Native
             return ptr;
         }
 
+        public static NativeArray ToNative(Vector4 vector)
+        {
+            FloatArray array;
+            array.data = new float[] { vector.x, vector.y, vector.z, vector.w };
+            array.length = array.data.Length;
+            return ToNative(array);
+        }
+
         public static NativeArray ToNative(IntArray array)
         {
             IntPtr ptr;
             if (array.length > 0)
             {
                 ptr = Marshal.AllocCoTaskMem(sizeof(int) * array.length);
+                Marshal.Copy(array.data, 0, ptr, array.length);
+                _nativePointersCache.Add(ptr);
+            }
+            else
+            {
+                ptr = IntPtr.Zero;
+            }
+
+            NativeArray narray = new NativeArray
+            {
+                data = ptr,
+                length = array.length
+            };
+            return narray;
+        }
+
+        public static NativeArray ToNative(FloatArray array)
+        {
+            IntPtr ptr;
+            if (array.length > 0)
+            {
+                ptr = Marshal.AllocCoTaskMem(sizeof(float) * array.length);
                 Marshal.Copy(array.data, 0, ptr, array.length);
                 _nativePointersCache.Add(ptr);
             }

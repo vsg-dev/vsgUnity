@@ -371,11 +371,7 @@ namespace vsgUnity
                     {
                         id = material.GetInstanceID(),
                         binding = uniData.mapping.vsgBindingIndex,
-                        //value = vector
-                        x = vector.x,
-                        y = vector.y,
-                        z = vector.z,
-                        w = vector.w
+                        value = NativeUtils.ToNative(vector)
                     };
 
                     matdata.vectorDescriptors.Add(descriptorVector);

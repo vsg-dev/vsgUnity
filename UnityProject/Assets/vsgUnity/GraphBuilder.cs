@@ -373,11 +373,7 @@ namespace vsgUnity
 
                     DescriptorVectorUniformData sizeDescriptor = new DescriptorVectorUniformData();
                     sizeDescriptor.binding = 3;
-                    //sizeDescriptor.value = terrainInfo.terrainSize;
-                    sizeDescriptor.x = terrainInfo.terrainSize.x;
-                    sizeDescriptor.y = terrainInfo.terrainSize.y;
-                    sizeDescriptor.z = terrainInfo.terrainSize.z;
-                    sizeDescriptor.w = terrainInfo.terrainSize.w;
+                    sizeDescriptor.value = NativeUtils.ToNative(terrainInfo.terrainSize);
                     GraphBuilderInterface.unity2vsg_AddDescriptorBufferVector(sizeDescriptor);
 
                     if (terrainInfo.maskTextureDatas.Count > 0)
