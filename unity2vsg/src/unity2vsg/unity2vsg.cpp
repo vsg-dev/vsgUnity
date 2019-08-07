@@ -1224,11 +1224,12 @@ void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg
         vsg::ReaderWriter_vsg io;
         vsg::ref_ptr<vsg::Node> vsg_scene = io.read_cast<vsg::Node>(filename);
 
-        std::stringstream ss;
+        /*std::stringstream ss;
         ss << "cam pos: " << camdata.position.x << ", " << camdata.position.y << ", " << camdata.position.z << std::endl;
         ss << "cam look: " << camdata.lookAt.x << ", " << camdata.lookAt.y << ", " << camdata.lookAt.z << std::endl;
         ss << "cam up: " << camdata.upDir.x << ", " << camdata.upDir.y << ", " << camdata.upDir.z << std::endl;
         //DebugLog(ss.str());
+        */
 
         if (!vsg_scene.valid()) return;
 
@@ -1264,7 +1265,7 @@ void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg
         if (useCamData == 1)
         {
             perspective = vsg::ref_ptr<vsg::Perspective>(new vsg::Perspective(camdata.fov, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), camdata.nearZ, camdata.farZ));
-            lookAt = vsg::ref_ptr<vsg::LookAt>(new vsg::LookAt(vsg::dvec3(camdata.position.x, camdata.position.y, camdata.position.z), vsg::dvec3(camdata.lookAt.x, camdata.lookAt.y, camdata.lookAt.z), vsg::dvec3(camdata.upDir.x, camdata.upDir.y, camdata.upDir.z)));
+            lookAt = vsg::ref_ptr<vsg::LookAt>(new vsg::LookAt(vsg::dvec3(camdata.position.data[0], camdata.position.data[1], camdata.position.data[2]), vsg::dvec3(camdata.lookAt.data[0], camdata.lookAt.data[1], camdata.lookAt.data[2]), vsg::dvec3(camdata.upDir.data[0], camdata.upDir.data[1], camdata.upDir.data[2])));
         }
         else
         {

@@ -425,9 +425,9 @@ namespace vsgUnity.Native
 
     public struct CameraData
     {
-        public Vector3 position;
-        public Vector3 lookAt;
-        public Vector3 upDir;
+        public NativeArray position;
+        public NativeArray lookAt;
+        public NativeArray upDir;
         public float fov;
         public float nearZ;
         public float farZ;
@@ -462,13 +462,17 @@ namespace vsgUnity.Native
 
         public static CameraData CreateCameraData(Camera camera)
         {
+            Vector3 campos = camera.gameObject.transform.position;
+            Vector3 lookat = campos + camera.gameObject.transform.forward;
+            Vector3 updir = camera.gameObject.transform.up;
+            CoordSytemConverter.Convert(ref campos);
+            CoordSytemConverter.Convert(ref lookat);
+            CoordSytemConverter.Convert(ref updir);
+
             CameraData camdata = new CameraData();
-            camdata.position = camera.gameObject.transform.position;
-            camdata.lookAt = camdata.position + camera.gameObject.transform.forward;
-            CoordSytemConverter.Convert(ref camdata.lookAt);
-            CoordSytemConverter.Convert(ref camdata.position);
-            camdata.upDir = camera.gameObject.transform.up;
-            CoordSytemConverter.Convert(ref camdata.upDir);
+            camdata.position = NativeUtils.ToNative(campos);
+            camdata.lookAt = NativeUtils.ToNative(lookat);
+            camdata.upDir = NativeUtils.ToNative(updir);
             camdata.fov = camera.fieldOfView;
             camdata.nearZ = camera.nearClipPlane;
             camdata.farZ = camera.farClipPlane;
@@ -554,6 +558,14 @@ namespace vsgUnity.Native
             IntPtr ptr = Marshal.StringToHGlobalAnsi(str);
             _nativePointersCache.Add(ptr);
             return ptr;
+        }
+
+        public static NativeArray ToNative(Vector3 vector)
+        {
+            FloatArray array;
+            array.data = new float[] { vector.x, vector.y, vector.z };
+            array.length = array.data.Length;
+            return ToNative(array);
         }
 
         public static NativeArray ToNative(Vector4 vector)

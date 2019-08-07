@@ -245,9 +245,9 @@ namespace unity2vsg
 
     struct CameraData
     {
-        vsg::vec3 position;
-        vsg::vec3 lookAt;
-        vsg::vec3 upDir;
+        FloatArray position;
+        FloatArray lookAt;
+        FloatArray upDir;
         float fov;
         float nearZ;
         float farZ;
