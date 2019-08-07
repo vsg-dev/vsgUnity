@@ -41,12 +41,12 @@ namespace vsgUnity.Editor
         bool _isExporting = false;
 
         // test code
-        [MenuItem("Window/VulkanSceneGraph/Run Snippet")]
+        /*[MenuItem("Window/VulkanSceneGraph/Run Snippet")]
         static void RunSnippet()
         {
             ShaderMappingIO.CreateTemplateFileForShader(Shader.Find("Standard"));
             //ShaderMappingIO.CreateTemplateFileForShader(Shader.Find("CTS/CTS Terrain Shader Advanced Trial"));
-        }
+        }*/
 
         // open window
         [MenuItem("Window/VulkanSceneGraph/Exporter")]
@@ -139,7 +139,9 @@ namespace vsgUnity.Editor
             EditorGUILayout.BeginHorizontal();
             {
                 EditorGUILayout.PrefixLabel("Folder");
-                GUILayout.Label(_exportDirectory, GUILayout.MaxHeight(100));
+                GUILayout.Label(new GUIContent(_exportDirectory, _exportDirectory), GUILayout.MaxHeight(100), GUILayout.MinWidth(20), GUILayout.MaxWidth(275));
+
+                GUILayout.FlexibleSpace();
 
                 if (GUILayout.Button("...", GUILayout.MaxWidth(GUI.skin.button.lineHeight * 2.0f)))
                 {
