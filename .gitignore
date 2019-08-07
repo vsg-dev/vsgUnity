@@ -110,7 +110,14 @@ build/
 local.properties
 
 
-vsgUnityProject/Assets/export.vsgb
-vsgUnityProject/Assets/export.vsgb.meta
-vsgUnityProject/Assets/export.vsga
-vsgUnityProject/Assets/export.vsga.meta
+*.vsgb
+*.vsga
+*.vsgt
+*.vsgb.meta
+*.vsga.meta
+*.vsgt.meta
+
+UnityProject/Assets/export.vsgb
+UnityProject/Assets/export.vsgb.meta
+UnityProject/Assets/export.vsga
+UnityProject/Assets/export.vsga.meta
