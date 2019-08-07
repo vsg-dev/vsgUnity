@@ -55,7 +55,7 @@ folder. If you want to use vsgUnity in you own project just copy that entire fol
 
 If you open the UnityProject folder as a project in Unity you can try out vsgUnity. Once open goto
 
-    Windows>VulkanSceneGraph>Exporter
+    Window>VulkanSceneGraph>Exporter
 
 A window will popup allowing you to select the GameObject you want to export (leave it blank to export
 the entire current scene). There are also various options and a option to preview your file ina VSG
