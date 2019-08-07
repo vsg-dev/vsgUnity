@@ -174,7 +174,11 @@ namespace unity2vsg
     {
         int id;
         int binding;
-        vsg::vec4 value;
+        //vsg::vec4 value;
+        float x;
+        float y;
+        float z;
+        float w;
     };
 
     struct DescriptorVectorArrayUniformData

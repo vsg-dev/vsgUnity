@@ -913,8 +913,10 @@ public:
 
     void addDescriptorBuffer(DescriptorVectorUniformData data)
     {
+        //std::cout << "native id " << data.id << " binding " << data.binding << std::endl;
         vsg::ref_ptr<vsg::vec4Value> vecval = vsg::ref_ptr<vsg::vec4Value>(new vsg::vec4Value());
-        vecval->value() = data.value;
+        //vecval->value() = data.value;
+        vecval->value() = vsg::vec4(data.x, data.y, data.z, data.w);
         _descriptors.push_back(vsg::DescriptorBuffer::create(vecval, data.binding));
         _descriptorObjectIds.push_back(std::to_string(data.id));
     }

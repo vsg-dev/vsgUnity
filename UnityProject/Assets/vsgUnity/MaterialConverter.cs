@@ -371,8 +371,13 @@ namespace vsgUnity
                     {
                         id = material.GetInstanceID(),
                         binding = uniData.mapping.vsgBindingIndex,
-                        value = vector
+                        //value = vector
+                        x = vector.x,
+                        y = vector.y,
+                        z = vector.z,
+                        w = vector.w
                     };
+
                     matdata.vectorDescriptors.Add(descriptorVector);
 
                     descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;

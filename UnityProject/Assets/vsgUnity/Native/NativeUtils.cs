@@ -324,11 +324,16 @@ namespace vsgUnity.Native
     {
         public int id;
         public int binding;
-        public Vector4 value;
+        //public Vector4 value;
+        public float x;
+        public float y;
+        public float z;
+        public float w;
 
         public bool Equals(DescriptorVectorUniformData b)
         {
-            return binding == b.binding && value.Equals(b.value);
+            //return binding == b.binding && value.Equals(b.value);
+            return binding == b.binding && x == b.x && y == b.y && z == b.z && w == b.w;
         }
     }
 
