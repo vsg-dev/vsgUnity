@@ -47,3 +47,17 @@ Command line instructions for default build of shared library (.so) in source:
 A post build step will copy libunity2vsg.so into UnityProject/Assets/vsgUnity/Native/Plugins/Linux.
 Ensure Unity is closed or the .so file will not copy.
 
+## Using vsgUnity
+
+As stated above vsgUnity consists of a collection of Unity scripts (.cs files) and the unity2vsg C++ library.
+Everything needed for vsgUnity to run within a Unity project is contained in the UnityProject/Assets/vsgUnity
+folder. If you want to use vsgUnity in you own project just copy that entire folder.
+
+If you open the UnityProject folder as a project in Unity you can try out vsgUnity. Once open goto
+
+    Windows>VulkanSceneGraph>Exporter
+
+A window will popup allowing you to select the GameObject you want to export (leave it blank to export
+the entire current scene). There are also various options and a option to preview your file ina VSG
+viewer.
+
