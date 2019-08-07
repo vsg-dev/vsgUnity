@@ -6,7 +6,16 @@ The vsgUnity project consists of two Libraries
 ### unity2vsg
 A C++ library exposing functionality to build, save and preview VSG graphs.
 ### vsgUnity
-A Unity3D project that utilises unity2vsg to export a Unity GameObject. The Assets/vsgUnity folder holds the main plugin code and can be copied into other Unity3D projects. When building from source the unity2vsg binary you build must be copied into  Assets/vsgUnity/Native/Plugins/(PlatformName) where (PlatformName) is the name of the OS platform you are using.
+A Unity3D plugin that utilises unity2vsg to export a Unity GameObject or Scene.
+
+To aid development a complete Unity project is included in this repository and contains the
+vsgUnity scripts as well as some useful test scenes. To open it select the root UnityProject
+folder when opening a project in Unity.
+
+The UnityProject/Assets/vsgUnity folder holds the main plugin scripts and can be copied into other Unity3D projects. When building from source the unity2vsg binary must be copied into UnityProject/Assets/vsgUnity/Native/Plugins/(PlatformName) where (PlatformName) is the name of the OS platform you are using, unity2vsg contains a post build step that should do this for you.
+
+Also note that you'll need to close Unity any time you want to copy a new unity2vsg binary as it'll
+be locked and the Unity only reloads the library on startup.
 
 ## Building unity2vsg
 ### Prerequisites
@@ -24,6 +33,17 @@ Command line instructions for default build of shared library (.dll) in source:
     cd vsgUnity/unity2vsg
     cmake . -G "Visual Studio 15 2017 Win64"
 
-Once built copy unity2vsg.dll into vsgUnity/Assets/vsgUnity/Native/Plugins/Windows.
+A post build step will copy unity2vsg.dll into UnityProject/Assets/vsgUnity/Native/Plugins/Windows.
+Ensure Unity is closed or the .dll file will not copy.
 
+### Building for Unix
+Command line instructions for default build of shared library (.so) in source:
+
+    git clone https://github.com/tomhog/vsgUnity
+    cd vsgUnity/unity2vsg
+    cmake .
+    make -j 8
+
+A post build step will copy libunity2vsg.so into UnityProject/Assets/vsgUnity/Native/Plugins/Linux.
+Ensure Unity is closed or the .so file will not copy.
 
