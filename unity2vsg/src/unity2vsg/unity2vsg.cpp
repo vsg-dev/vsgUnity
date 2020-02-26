@@ -38,9 +38,9 @@ public:
             vsg::DescriptorImage* texture = static_cast<vsg::DescriptorImage*>(&object);
             for (auto& samplerimage : texture->getSamplerImages())
             {
-                if (samplerimage.second.valid())
+                if (samplerimage.data.valid())
                 {
-                    objects->addChild(samplerimage.second);
+                    objects->addChild(samplerimage.data);
                 }
             }
         }
@@ -50,25 +50,25 @@ public:
 
     void apply(vsg::Geometry& geometry) override
     {
-        for (auto& data : geometry._arrays)
+        for (auto& data : geometry.arrays)
         {
             objects->addChild(data);
         }
-        if (geometry._indices)
+        if (geometry.indices)
         {
-            objects->addChild(geometry._indices);
+            objects->addChild(geometry.indices);
         }
     }
 
     void apply(vsg::VertexIndexDraw& vid) override
     {
-        for (auto& data : vid._arrays)
+        for (auto& data : vid.arrays)
         {
             objects->addChild(data);
         }
-        if (vid._indices)
+        if (vid.indices)
         {
-            objects->addChild(vid._indices);
+            objects->addChild(vid.indices);
         }
     }
 
@@ -111,9 +111,9 @@ public:
             vsg::DescriptorImage* texture = static_cast<vsg::DescriptorImage*>(&object);
             for (auto& samplerimage : texture->getSamplerImages())
             {
-                if (samplerimage.second.valid())
+                if (samplerimage.data.valid())
                 {
-                    samplerimage.second->dataRelease();
+                    samplerimage.data->dataRelease();
                 }
             }
         }
@@ -123,25 +123,25 @@ public:
 
     void apply(vsg::Geometry& geometry) override
     {
-        for (auto& data : geometry._arrays)
+        for (auto& data : geometry.arrays)
         {
             data->dataRelease();
         }
-        if (geometry._indices)
+        if (geometry.indices)
         {
-            //geometry._indices->dataRelease();
+            //geometry.indices->dataRelease();
         }
     }
 
     void apply(vsg::VertexIndexDraw& vid) override
     {
-        for (auto& data : vid._arrays)
+        for (auto& data : vid.arrays)
         {
             data->dataRelease();
         }
-        if (vid._indices)
+        if (vid.indices)
         {
-            //vid._indices->dataRelease();
+            //vid.indices->dataRelease();
         }
     }
 
@@ -297,7 +297,7 @@ public:
             if (data.uv0.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv0.data, data.uv0.length));
             if (data.uv1.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv1.data, data.uv1.length));
 
-            geometry->_arrays = inputarrays;
+            geometry->arrays = inputarrays;
 
             if (data.use32BitIndicies == 0)
             {
@@ -308,7 +308,7 @@ public:
                     indiciesushort->set(i, static_cast<uint16_t>(data.triangles.data[i]));
                 }
 
-                geometry->_indices = indiciesushort;
+                geometry->indices = indiciesushort;
             }
             else
             {
@@ -318,7 +318,7 @@ public:
                     indiciesuint->set(i, static_cast<uint32_t>(data.triangles.data[i]));
                 }
 
-                geometry->_indices = indiciesuint;
+                geometry->indices = indiciesuint;
             }
 
             geometry->indexCount = data.triangles.length;
@@ -870,7 +870,7 @@ public:
                 vsg::ref_ptr<vsg::Sampler> sampler = vsg::Sampler::create();
                 sampler->info() = vkSamplerCreateInfoForTextureData(data.images[i]);
 
-                samplerImages.push_back({ sampler, texdata });
+                samplerImages.push_back({ sampler, texdata, {} });
             }
 
 
@@ -1236,7 +1236,7 @@ void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg
 
         if (!vsg_scene.valid()) return;
 
-        auto windowTraits = vsg::Window::Traits::create();
+        auto windowTraits = vsg::WindowTraits::create();
         windowTraits->windowTitle = "vsg export - " + std::string(filename);
         windowTraits->width = 800;
         windowTraits->height = 600;
@@ -1276,10 +1276,10 @@ void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg
             lookAt = vsg::ref_ptr<vsg::LookAt>(new vsg::LookAt(centre + vsg::dvec3(0.0, 0.0, -radius * 3.5), centre, vsg::dvec3(0.0, 1.0, 0.0)));
         }
 
-        vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(perspective, lookAt, vsg::ViewportState::create(window->extent2D())));
+        auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-        // add a GraphicsStage tp the Window to do dispatch of the command graph to the commnad buffer(s)
-        window->addStage(vsg::GraphicsStage::create(vsg_scene, camera));
+        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         // compile the Vulkan objects
         viewer->compile();
@@ -1294,9 +1294,11 @@ void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
 
-            viewer->populateNextFrame();
+            viewer->update();
 
-            viewer->submitNextFrame();
+            viewer->recordAndSubmit();
+
+            viewer->present();
         }
     }
     catch (...)
