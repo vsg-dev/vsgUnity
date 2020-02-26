@@ -870,7 +870,7 @@ public:
                 vsg::ref_ptr<vsg::Sampler> sampler = vsg::Sampler::create();
                 sampler->info() = vkSamplerCreateInfoForTextureData(data.images[i]);
 
-                samplerImages.push_back({ sampler, texdata, {} });
+                samplerImages.push_back({ sampler, texdata});
             }
 
 
