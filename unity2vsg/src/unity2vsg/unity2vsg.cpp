@@ -404,19 +404,9 @@ public:
     {
         auto shaderStage = vsg::ShaderStage::create(stage, "main", shaderModule);
 
-        if (specializationConstants.length > 0)
+        for(int i = 0; i<specializationConstants.length; ++i)
         {
-            vsg::ShaderStage::SpecializationMapEntries specialEntires;
-            auto dataarray = new vsg::uintArray(specializationConstants.length);
-
-            for (uint32_t i = 0; i < specializationConstants.length; i++)
-            {
-                specialEntires.push_back({i, i * sizeof(uint32_t), sizeof(uint32_t)});
-                dataarray->at(i) = specializationConstants.data[i];
-            }
-
-            shaderStage->setSpecializationMapEntries(specialEntires);
-            shaderStage->setSpecializationData(dataarray);
+            shaderStage->getSpecializationConstants()[static_cast<uint32_t>(i)] = vsg::uintValue::create(specializationConstants.data[i]);
         }
 
         return shaderStage;
