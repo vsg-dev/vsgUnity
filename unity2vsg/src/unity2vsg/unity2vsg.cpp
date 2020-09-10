@@ -303,7 +303,7 @@ public:
             {
                 // for now convert the int32 array indicies to uint16
                 vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
-                for (uint32_t i = 0; i < data.triangles.length; i++)
+                for (int32_t i = 0; i < data.triangles.length; i++)
                 {
                     indiciesushort->set(i, static_cast<uint16_t>(data.triangles.data[i]));
                 }
@@ -313,7 +313,7 @@ public:
             else
             {
                 vsg::ref_ptr<vsg::uintArray> indiciesuint(new vsg::uintArray(data.triangles.length));
-                for (uint32_t i = 0; i < data.triangles.length; i++)
+                for (int32_t i = 0; i < data.triangles.length; i++)
                 {
                     indiciesuint->set(i, static_cast<uint32_t>(data.triangles.data[i]));
                 }
@@ -462,7 +462,7 @@ public:
             vsg::GraphicsPipelineBuilder::Traits::DescriptorBindingSet bindingSet;
             uint32_t shaderMode = 0;
 
-            for (uint32_t i = 0; i < data.descriptorBindings.length; i++)
+            for (int32_t i = 0; i < data.descriptorBindings.length; i++)
             {
                 VkDescriptorSetLayoutBinding dslb = data.descriptorBindings.data[i];
                 vsg::GraphicsPipelineBuilder::Traits::DescriptorBinding binding = {dslb.binding, dslb.descriptorType, dslb.descriptorCount};
@@ -568,7 +568,7 @@ public:
             {
                 // for now convert the int32 array indicies to uint16
                 vsg::ref_ptr<vsg::ushortArray> indiciesushort(new vsg::ushortArray(data.triangles.length));
-                for (uint32_t i = 0; i < data.triangles.length; i++)
+                for (int32_t i = 0; i < data.triangles.length; i++)
                 {
                     indiciesushort->set(i, static_cast<uint16_t>(data.triangles.data[i]));
                 }
@@ -577,7 +577,7 @@ public:
             else
             {
                 vsg::ref_ptr<vsg::uintArray> indiciesuint(new vsg::uintArray(data.triangles.length));
-                for (uint32_t i = 0; i < data.triangles.length; i++)
+                for (int32_t i = 0; i < data.triangles.length; i++)
                 {
                     indiciesuint->set(i, static_cast<uint32_t>(data.triangles.data[i]));
                 }
@@ -794,7 +794,7 @@ public:
             {
                 uint32_t width = data.width / sizeInfo.layout.blockWidth;
                 uint32_t height = data.height / sizeInfo.layout.blockHeight;
-                uint32_t depth = data.depth / sizeInfo.layout.blockDepth;
+                //uint32_t depth = data.depth / sizeInfo.layout.blockDepth;
 
                 if (sizeInfo.blockSize == 64)
                 {
