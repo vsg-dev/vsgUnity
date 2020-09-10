@@ -978,8 +978,8 @@ public:
         vsg::LOD* headLOD = getHeadAsLOD();
         if (headLOD != nullptr)
         {
-            vsg::LOD::LODChild lod;
-            lod.child = node;
+            vsg::LOD::Child lod;
+            lod.node = node;
             lod.minimumScreenHeightRatio = lodData.minimumScreenHeightRatio;
             headLOD->addChild(lod);
             return true;
