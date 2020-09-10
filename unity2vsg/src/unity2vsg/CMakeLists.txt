@@ -20,10 +20,17 @@ set(SOURCES
 
 add_library(unity2vsg SHARED ${HEADERS} ${SOURCES})
 
+# check whehther glslang/build_info.h exists
+if (EXISTS ${glslang_INCLUDE_DIR}/glslang/build_info.h)
+    set(EXTRA_DEFINES ${EXTRA_DEFINES} GLSLANG_HAS_BUILD_INFO_H)
+endif()
+
 set_property(TARGET unity2vsg PROPERTY VERSION ${UNITY2VSG_VERSION_MAJOR}.${UNITY2VSG_VERSION_MINOR}.${UNITY2VSG_VERSION_PATCH})
 set_property(TARGET unity2vsg PROPERTY NO_SONAME 1)
 set_property(TARGET unity2vsg PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET unity2vsg PROPERTY CXX_STANDARD 17)
+
+target_compile_definitions(unity2vsg PRIVATE ${EXTRA_DEFINES})
 
 target_include_directories(unity2vsg PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
@@ -32,7 +39,7 @@ target_include_directories(unity2vsg PUBLIC
 
 target_link_libraries(unity2vsg PUBLIC
     vsg::vsg
-    ${GLSLANG}
+    ${glslang_LIBRARIES}
 )
 
 #if (BUILD_SHARED_LIBS)

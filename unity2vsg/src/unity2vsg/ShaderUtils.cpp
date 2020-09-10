@@ -1,6 +1,6 @@
 #include <unity2vsg/ShaderUtils.h>
 
-#include <SPIRV/GlslangToSpv.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ShaderLang.h>
 
 #include "glsllang/ResourceLimits.h"

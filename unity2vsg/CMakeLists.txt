@@ -62,8 +62,7 @@ endforeach ()
 find_package(Vulkan)
 find_package(vsg)
 
-SET(CMAKE_MODULE_PATH "${UNITY2VSG_SOURCE_DIR}/CMakeModules;${CMAKE_MODULE_PATH}")
-find_package(glslang)
+find_package(vsgUnity_glslang REQUIRED CONFIG PATHS ${UNITY2VSG_SOURCE_DIR}/CMakeModules)
 
 add_custom_target(clobber
     COMMAND git clean -d -f -x
