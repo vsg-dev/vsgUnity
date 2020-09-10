@@ -262,42 +262,42 @@ namespace unity2vsg
         return vsg::ref_ptr<vsg::Array<T>>(new vsg::Array<T>(static_cast<size_t>(length), ptr));
     }
 
-    VkSamplerCreateInfo vkSamplerCreateInfoForTextureData(const ImageData& data)
+    vsg::ref_ptr<vsg::Sampler> createSamplerForTextureData(const ImageData& data)
     {
+        auto sampler = vsg::Sampler::create();
+
         bool mipmappingRequired = data.mipmapCount > 1;
 
-        VkSamplerCreateInfo samplerInfo = {};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.minFilter = data.filterMode;
-        samplerInfo.magFilter = data.filterMode;
-        samplerInfo.mipmapMode = data.mipmapMode;
-        samplerInfo.addressModeU = data.wrapMode;
-        samplerInfo.addressModeV = data.wrapMode;
-        samplerInfo.addressModeW = data.wrapMode;
+        sampler->minFilter = data.filterMode;
+        sampler->magFilter = data.filterMode;
+        sampler->mipmapMode = data.mipmapMode;
+        sampler->addressModeU = data.wrapMode;
+        sampler->addressModeV = data.wrapMode;
+        sampler->addressModeW = data.wrapMode;
 
         // requres Logical device to have deviceFeatures.samplerAnisotropy = VK_TRUE; set when creating the vsg::Deivce
-        samplerInfo.anisotropyEnable = data.anisoLevel > 1.0f ? VK_TRUE : VK_FALSE;
-        samplerInfo.maxAnisotropy = static_cast<float>(data.anisoLevel);
+        sampler->anisotropyEnable = data.anisoLevel > 1.0f ? VK_TRUE : VK_FALSE;
+        sampler->maxAnisotropy = static_cast<float>(data.anisoLevel);
 
         if (mipmappingRequired)
         {
-            samplerInfo.minLod = 0;
-            samplerInfo.maxLod = static_cast<float>(data.mipmapCount);
-            samplerInfo.mipLodBias = 0;
+            sampler->minLod = 0;
+            sampler->maxLod = static_cast<float>(data.mipmapCount);
+            sampler->mipLodBias = 0;
         }
         else
         {
-            samplerInfo.minLod = 0;
-            samplerInfo.maxLod = 0;
-            samplerInfo.mipLodBias = 0;
+            sampler->minLod = 0;
+            sampler->maxLod = 0;
+            sampler->mipLodBias = 0;
         }
 
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        sampler->borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 
-        samplerInfo.unnormalizedCoordinates = VK_FALSE;
-        samplerInfo.compareEnable = VK_FALSE;
+        sampler->unnormalizedCoordinates = VK_FALSE;
+        sampler->compareEnable = VK_FALSE;
 
-        return samplerInfo;
+        return sampler;
     }
 
     struct VkFormatSizeInfo

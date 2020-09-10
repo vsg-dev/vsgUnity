@@ -21,6 +21,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using namespace unity2vsg;
 
+vsg::ref_ptr<vsg::Data> getData(vsg::ImageInfo& imageInfo)
+{
+    if (imageInfo.imageView && imageInfo.imageView->image) return imageInfo.imageView->image->data;
+    else return {};
+}
+
 class LeafDataCollection : public vsg::Visitor
 {
 public:
@@ -36,11 +42,11 @@ public:
         if (typeid(object) == typeid(vsg::DescriptorImage))
         {
             vsg::DescriptorImage* texture = static_cast<vsg::DescriptorImage*>(&object);
-            for (auto& samplerimage : texture->getSamplerImages())
+            for (auto& imageInfo : texture->imageInfoList)
             {
-                if (samplerimage.data.valid())
+                if (auto data = getData(imageInfo))
                 {
-                    objects->addChild(samplerimage.data);
+                    objects->addChild(data);
                 }
             }
         }
@@ -109,11 +115,11 @@ public:
         if (typeid(object) == typeid(vsg::DescriptorImage))
         {
             vsg::DescriptorImage* texture = static_cast<vsg::DescriptorImage*>(&object);
-            for (auto& samplerimage : texture->getSamplerImages())
+            for (auto& imageInfo : texture->imageInfoList)
             {
-                if (samplerimage.data.valid())
+                if (auto data = getData(imageInfo))
                 {
-                    samplerimage.data->dataRelease();
+                    data->dataRelease();
                 }
             }
         }
@@ -406,7 +412,7 @@ public:
 
         for(int i = 0; i<specializationConstants.length; ++i)
         {
-            shaderStage->getSpecializationConstants()[static_cast<uint32_t>(i)] = vsg::uintValue::create(specializationConstants.data[i]);
+            shaderStage->specializationConstants[static_cast<uint32_t>(i)] = vsg::uintValue::create(specializationConstants.data[i]);
         }
 
         return shaderStage;
@@ -550,7 +556,7 @@ public:
             }
         }
 
-        _activeGraphicsPipeline = bindGraphicsPipeline->getPipeline();
+        _activeGraphicsPipeline = bindGraphicsPipeline->pipeline;
         return true;
     }
 
@@ -666,8 +672,8 @@ public:
         }
         else
         {
-            auto descriptorSet = vsg::DescriptorSet::create(_activeGraphicsPipeline->getPipelineLayout()->getDescriptorSetLayouts().front(), _descriptors);
-            bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, _activeGraphicsPipeline->getPipelineLayout(), 0, descriptorSet);
+            auto descriptorSet = vsg::DescriptorSet::create(_activeGraphicsPipeline->layout->setLayouts.front(), _descriptors);
+            bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, _activeGraphicsPipeline->layout, 0, descriptorSet);
             _bindDescriptorSetCache[fullid] = bindDescriptorSet;
         }
 
@@ -855,10 +861,9 @@ public:
             for (int i = 0; i < data.descriptorCount; i++)
             {
                 vsg::ref_ptr<vsg::Data> texdata = createDataForTexture(data.images[i]);
-                if (!texdata.valid()) return vsg::ref_ptr<vsg::DescriptorImage>();
+                if (!texdata.valid()) return {};
 
-                vsg::ref_ptr<vsg::Sampler> sampler = vsg::Sampler::create();
-                sampler->info() = vkSamplerCreateInfoForTextureData(data.images[i]);
+                vsg::ref_ptr<vsg::Sampler> sampler = createSamplerForTextureData(data.images[i]);
 
                 samplerImages.push_back({ sampler, texdata});
             }
