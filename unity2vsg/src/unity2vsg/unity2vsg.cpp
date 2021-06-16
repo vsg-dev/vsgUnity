@@ -80,7 +80,7 @@ public:
 
     void apply(vsg::BindVertexBuffers& bvb) override
     {
-        for (auto& data : bvb.getArrays())
+        for (auto& data : bvb.arrays)
         {
             objects->addChild(data);
         }
@@ -88,15 +88,15 @@ public:
 
     void apply(vsg::BindIndexBuffer& bib) override
     {
-        if (bib.getIndices())
+        if (bib.indices)
         {
-            objects->addChild(vsg::ref_ptr<vsg::Data>(bib.getIndices()));
+            objects->addChild(vsg::ref_ptr<vsg::Data>(bib.indices));
         }
     }
 
     void apply(vsg::StateGroup& stategroup) override
     {
-        for (auto& command : stategroup.getStateCommands())
+        for (auto& command : stategroup.stateCommands)
         {
             command->accept(*this);
         }
@@ -153,7 +153,7 @@ public:
 
     void apply(vsg::BindVertexBuffers& bvb) override
     {
-        for (auto& data : bvb.getArrays())
+        for (auto& data : bvb.arrays)
         {
             data->dataRelease();
         }
@@ -161,15 +161,15 @@ public:
 
     void apply(vsg::BindIndexBuffer& bib) override
     {
-        if (bib.getIndices())
+        if (bib.indices)
         {
-            //bib.getIndices()->dataRelease();
+            //bib.indices->dataRelease();
         }
     }
 
     void apply(vsg::StateGroup& stategroup) override
     {
-        for (auto& command : stategroup.getStateCommands())
+        for (auto& command : stategroup.stateCommands)
         {
             command->accept(*this);
         }
@@ -243,7 +243,7 @@ public:
     {
         vsg::vec3 center = vsg::vec3(cull.center.data[0], cull.center.data[1], cull.center.data[2]);
         auto lod = vsg::LOD::create();
-        lod->setBound(vsg::sphere(center, cull.radius));
+        lod->bound.set(center, cull.radius);
         if (!addChildToHead(lod))
         {
             DebugLog("GraphBuilder Error: Current head is not a group");
