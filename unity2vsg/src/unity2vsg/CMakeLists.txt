@@ -15,7 +15,6 @@ set(SOURCES
     DebugLog.cpp
 	GraphicsPipelineBuilder.cpp
 	ShaderUtils.cpp
-    glsllang/ResourceLimits.cpp
 )
 
 add_library(unity2vsg SHARED ${HEADERS} ${SOURCES})
@@ -39,7 +38,6 @@ target_include_directories(unity2vsg PUBLIC
 
 target_link_libraries(unity2vsg PUBLIC
     vsg::vsg
-    ${glslang_LIBRARIES}
 )
 
 #if (BUILD_SHARED_LIBS)

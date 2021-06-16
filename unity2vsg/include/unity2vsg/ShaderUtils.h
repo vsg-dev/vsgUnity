@@ -46,13 +46,4 @@ namespace unity2vsg
     // create standard shader and inject defines based on shadermode mask and geometryattributes
     extern std::string createFbxVertexSource(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes, const std::vector<std::string>& customDefines);
     extern std::string createFbxFragmentSource(const uint32_t& shaderModeMask, const uint32_t& geometryAttrbutes, const std::vector<std::string>& customDefines);
-
-    class ShaderCompiler : public vsg::Object
-    {
-    public:
-        ShaderCompiler(vsg::Allocator* allocator = nullptr);
-        virtual ~ShaderCompiler();
-
-        bool compile(vsg::ShaderStages& shaders);
-    };
 } // namespace unity2vsg

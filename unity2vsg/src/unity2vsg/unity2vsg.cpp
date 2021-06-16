@@ -499,13 +499,6 @@ public:
                 }
             }
 
-            ShaderCompiler shaderCompiler;
-            if (!shaderCompiler.compile(shaders))
-            {
-                DebugLog("GraphBuilder Error: Failed to compile shaders.");
-                return false;
-            }
-
             traits->shaderStages = shaders;
 
             // topology
@@ -1029,8 +1022,8 @@ public:
         _root->accept(leafDataCollection);
         _root->setObject("batch", leafDataCollection.objects);
 
-        vsg::ReaderWriter_vsg io;
-        io.write(_root.get(), fileName);
+        vsg::VSG io;
+        io.write(_root, fileName);
     }
 
     void releaseObjects()
@@ -1219,7 +1212,7 @@ void unity2vsg_LaunchViewer(const char* filename, uint32_t useCamData, unity2vsg
 {
     try
     {
-        vsg::ReaderWriter_vsg io;
+        vsg::VSG io;
         vsg::ref_ptr<vsg::Node> vsg_scene = io.read_cast<vsg::Node>(filename);
 
         /*std::stringstream ss;
