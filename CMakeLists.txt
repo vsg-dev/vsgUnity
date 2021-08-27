@@ -5,6 +5,7 @@ project(vsgUnity
         DESCRIPTION "Unity support"
         LANGUAGES CXX
 )
+set(vsgUnity_RELEASE_CANDIDATE 0)
 
 # find the vsg
 if (VULKAN_SDK)
@@ -17,6 +18,11 @@ find_package(vsg REQUIRED)
 
 add_target_clobber()
 add_target_uninstall()
+
+add_option_maintainer(
+    PREFIX vsgUnity
+    RCLEVEL ${vsgUnity_RELEASE_CANDIDATE}
+)
 
 add_subdirectory(unity2vsg)
 
