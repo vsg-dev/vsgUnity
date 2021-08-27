@@ -30,7 +30,7 @@ Ensure Vulkan is installed and the VULKAN_SDK environment variable has been set 
 Command line instructions for default build of shared library (.dll) in source:
 
     git clone https://github.com/vsg-dev/vsgUnity
-    cd vsgUnity/unity2vsg
+    cd vsgUnity
     cmake . -G "Visual Studio 15 2017 Win64"
 
 A post build step will copy unity2vsg.dll into UnityProject/Assets/vsgUnity/Native/Plugins/Windows.
@@ -40,7 +40,7 @@ Ensure Unity is closed or the .dll file will not copy.
 Command line instructions for default build of shared library (.so) in source:
 
     git clone https://github.com/vsg-dev/vsgUnity
-    cd vsgUnity/unity2vsg
+    cd vsgUnity
     cmake .
     make -j 8
 

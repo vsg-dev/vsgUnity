@@ -1,5 +1,5 @@
 
-SET(HEADER_PATH ${CMAKE_SOURCE_DIR}/include/unity2vsg)
+SET(HEADER_PATH ${CMAKE_SOURCE_DIR}/unity2vsg/include/unity2vsg)
 
 set(HEADERS
     ${HEADER_PATH}/Export.h
@@ -32,7 +32,7 @@ set_property(TARGET unity2vsg PROPERTY CXX_STANDARD 17)
 target_compile_definitions(unity2vsg PRIVATE ${EXTRA_DEFINES})
 
 target_include_directories(unity2vsg PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/unity2vsg/include>
     $<INSTALL_INTERFACE:include>
 )
 
