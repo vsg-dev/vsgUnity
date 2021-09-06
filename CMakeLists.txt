@@ -16,15 +16,15 @@ endif()
 find_package(Vulkan REQUIRED)
 find_package(vsg REQUIRED)
 
-add_target_clobber()
-add_target_uninstall()
+vsg_add_target_clobber()
+vsg_add_target_uninstall()
 
-add_option_maintainer(
+vsg_add_option_maintainer(
     PREFIX vsgUnity
     RCLEVEL ${vsgUnity_RELEASE_CANDIDATE}
 )
 
 add_subdirectory(unity2vsg)
 
-add_feature_summary()
+vsg_add_feature_summary()
 
