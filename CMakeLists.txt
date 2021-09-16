@@ -14,7 +14,7 @@ endif()
 
 #find vulkan and vsg
 find_package(Vulkan REQUIRED)
-find_package(vsg REQUIRED)
+find_package(vsg 0.1.6 REQUIRED)
 
 vsg_add_target_clobber()
 vsg_add_target_uninstall()
