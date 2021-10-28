@@ -12,8 +12,6 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-#find vulkan and vsg
-find_package(Vulkan REQUIRED)
 find_package(vsg 0.1.6 REQUIRED)
 
 vsg_add_target_clobber()
