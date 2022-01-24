@@ -21,9 +21,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using namespace unity2vsg;
 
-vsg::ref_ptr<vsg::Data> getData(vsg::ImageInfo& imageInfo)
+vsg::ref_ptr<vsg::Data> getData(vsg::ref_ptr<vsg::ImageInfo>& imageInfo)
 {
-    if (imageInfo.imageView && imageInfo.imageView->image) return imageInfo.imageView->image->data;
+    if (imageInfo->imageView && imageInfo->imageView->image) return imageInfo->imageView->image->data;
     else return {};
 }
 
@@ -80,9 +80,9 @@ public:
 
     void apply(vsg::BindVertexBuffers& bvb) override
     {
-        for (auto& data : bvb.arrays)
+        for (auto& array : bvb.arrays)
         {
-            objects->addChild(data);
+            objects->addChild(array);
         }
     }
 
@@ -90,7 +90,7 @@ public:
     {
         if (bib.indices)
         {
-            objects->addChild(vsg::ref_ptr<vsg::Data>(bib.indices));
+            objects->addChild(bib.indices);
         }
     }
 
@@ -129,41 +129,41 @@ public:
 
     void apply(vsg::Geometry& geometry) override
     {
-        for (auto& data : geometry.arrays)
+        for (auto& array : geometry.arrays)
         {
-            data->dataRelease();
+            if (array->data) array->data->dataRelease();
         }
-        if (geometry.indices)
+        if (geometry.indices && geometry.indices->data)
         {
-            //geometry.indices->dataRelease();
+            geometry.indices->data->dataRelease();
         }
     }
 
     void apply(vsg::VertexIndexDraw& vid) override
     {
-        for (auto& data : vid.arrays)
+        for (auto& array : vid.arrays)
         {
-            data->dataRelease();
+            if (array->data) array->data->dataRelease();
         }
-        if (vid.indices)
+        if (vid.indices && vid.indices->data)
         {
-            //vid.indices->dataRelease();
+            vid.indices->data->dataRelease();
         }
     }
 
     void apply(vsg::BindVertexBuffers& bvb) override
     {
-        for (auto& data : bvb.arrays)
+        for (auto& array : bvb.arrays)
         {
-            data->dataRelease();
+            if (array->data) array->data->dataRelease();
         }
     }
 
     void apply(vsg::BindIndexBuffer& bib) override
     {
-        if (bib.indices)
+        if (bib.indices && bib.indices->data)
         {
-            //bib.indices->dataRelease();
+            bib.indices->data->dataRelease();
         }
     }
 
@@ -203,10 +203,10 @@ public:
 
     void addMatrixTrasform(const TransformData& data)
     {
-        vsg::mat4 matrix = vsg::mat4(data.matrix.data[0], data.matrix.data[1], data.matrix.data[2], data.matrix.data[3],
-                                     data.matrix.data[4], data.matrix.data[5], data.matrix.data[6], data.matrix.data[7],
-                                     data.matrix.data[8], data.matrix.data[9], data.matrix.data[10], data.matrix.data[11],
-                                     data.matrix.data[12], data.matrix.data[13], data.matrix.data[14], data.matrix.data[15]);
+        vsg::dmat4 matrix(data.matrix.data[0], data.matrix.data[1], data.matrix.data[2], data.matrix.data[3],
+                          data.matrix.data[4], data.matrix.data[5], data.matrix.data[6], data.matrix.data[7],
+                          data.matrix.data[8], data.matrix.data[9], data.matrix.data[10], data.matrix.data[11],
+                          data.matrix.data[12], data.matrix.data[13], data.matrix.data[14], data.matrix.data[15]);
 
         auto transform = vsg::MatrixTransform::create(matrix);
 
@@ -219,8 +219,8 @@ public:
 
     void addCullNode(CullData cull)
     {
-        vsg::vec3 center = vsg::vec3(cull.center.data[0], cull.center.data[1], cull.center.data[2]);
-        auto cullNode = vsg::CullNode::create(vsg::sphere(center, cull.radius), nullptr);
+        vsg::dvec3 center(cull.center.data[0], cull.center.data[1], cull.center.data[2]);
+        auto cullNode = vsg::CullNode::create(vsg::dsphere(center, cull.radius), nullptr);
         if (!addChildToHead(cullNode))
         {
             DebugLog("GraphBuilder Error: Current head is not a group");
@@ -230,8 +230,8 @@ public:
 
     void addCullGroup(CullData cull)
     {
-        vsg::vec3 center = vsg::vec3(cull.center.data[0], cull.center.data[1], cull.center.data[2]); 
-        auto cullGroup = vsg::CullGroup::create(vsg::sphere(center, cull.radius));
+        vsg::dvec3 center(cull.center.data[0], cull.center.data[1], cull.center.data[2]);
+        auto cullGroup = vsg::CullGroup::create(vsg::dsphere(center, cull.radius));
         if (!addChildToHead(cullGroup))
         {
             DebugLog("GraphBuilder Error: Current head is not a group");
@@ -303,7 +303,7 @@ public:
             if (data.uv0.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv0.data, data.uv0.length));
             if (data.uv1.length > 0) inputarrays.push_back(createVsgArray<vsg::vec2>(data.uv1.data, data.uv1.length));
 
-            geometry->arrays = inputarrays;
+            geometry->assignArrays(inputarrays);
 
             if (data.use32BitIndicies == 0)
             {
@@ -314,7 +314,7 @@ public:
                     indiciesushort->set(i, static_cast<uint16_t>(data.triangles.data[i]));
                 }
 
-                geometry->indices = indiciesushort;
+                geometry->assignIndices(indiciesushort);
             }
             else
             {
@@ -324,7 +324,7 @@ public:
                     indiciesuint->set(i, static_cast<uint32_t>(data.triangles.data[i]));
                 }
 
-                geometry->indices = indiciesuint;
+                geometry->assignIndices(indiciesuint);
             }
 
             geometry->indexCount = data.triangles.length;
@@ -834,7 +834,6 @@ public:
             return vsg::ref_ptr<vsg::Data>();
         }
 
-        texdata->setFormat(format);
         texdata->setLayout(sizeInfo.layout);
         return texdata;
     }
@@ -850,7 +849,7 @@ public:
         }
         else
         {
-            vsg::SamplerImages samplerImages;
+            vsg::ImageInfoList imageInfos;
             for (int i = 0; i < data.descriptorCount; i++)
             {
                 vsg::ref_ptr<vsg::Data> texdata = createDataForTexture(data.images[i]);
@@ -858,11 +857,10 @@ public:
 
                 vsg::ref_ptr<vsg::Sampler> sampler = createSamplerForTextureData(data.images[i]);
 
-                samplerImages.push_back({ sampler, texdata});
+                imageInfos.push_back(vsg::ImageInfo::create(sampler, texdata));
             }
 
-
-            texture = vsg::DescriptorImage::create(samplerImages, data.binding, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            texture = vsg::DescriptorImage::create(imageInfos, data.binding, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
             if (useCache) _textureCache[data.id] = texture;
         }

@@ -310,6 +310,7 @@ namespace unity2vsg
     {
         VkFormatSizeInfo sizeInfo;
         sizeInfo.layout.maxNumMipmaps = 1; // sensible default
+        sizeInfo.layout.format = format;
 
         switch (format)
         {
