@@ -1,6 +1,7 @@
 ﻿/* <editor-fold desc="MIT License">
 
 Copyright(c) 2019 Thomas Hogarth
+Copyright(c) 2022 Christian Schott (InstruNEXT GmbH)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -30,7 +31,13 @@ namespace vsgUnity
         public static Dictionary<int, ImageData> _imageDataCache = new Dictionary<int, ImageData>();
         public static List<Texture2D> _convertedTextures = new List<Texture2D>();
 
-        public static void ClearCaches()
+        static TextureConverter() 
+        {
+            SceneGraphExporter.OnBeginExport += ClearCaches;
+            SceneGraphExporter.OnEndExport += ClearCaches;
+        }
+
+        private static void ClearCaches()
         {
             _imageDataCache.Clear();
 
@@ -99,6 +106,7 @@ namespace vsgUnity
             {
                 case TextureDimension.Tex2D: PopulateImageData(texture as Texture2D, ref texdata); break;
                 case TextureDimension.Tex3D: PopulateImageData(texture as Texture3D, ref texdata); break;
+                case TextureDimension.Cube: PopulateImageData(texture as Cubemap, ref texdata); break;
                 default: break;
             }
 
@@ -205,6 +213,33 @@ namespace vsgUnity
             texdata.depth = texture.depth;
             //texdata.pixels.data = Color32ArrayToByteArray(texture.GetPixels32());
             //texdata.pixels.length = texdata.pixels.data.Length;
+            
+            return true;
+        }
+
+        public static bool PopulateImageData(Cubemap cubemap, ref ImageData texdata)
+        {
+            var rt = RenderTexture.GetTemporary(cubemap.width, cubemap.height * 6, 0, RenderTextureFormat.ARGB32);
+            rt.Create();
+            var mappedCubeTex = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
+            _convertedTextures.Add(mappedCubeTex);
+
+            for (int face = 0; face < 6; face++) {
+                Graphics.CopyTexture(cubemap, face, 0, 0, 0, cubemap.width, cubemap.height, rt, 0, 0, 0, face * cubemap.height);
+            }
+
+            // read back
+            RenderTexture.active = rt;
+            mappedCubeTex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0, false);
+            mappedCubeTex.Apply(false, false);
+            RenderTexture.active = null;
+
+            if (!TextureConverter.PopulateImageData(mappedCubeTex as Texture, ref texdata))
+                return false;
+            texdata.pixels = NativeUtils.ToNative(mappedCubeTex.GetRawTextureData());
+            texdata.viewType = (int)VkImageViewType.VK_IMAGE_VIEW_TYPE_CUBE;
+            texdata.depth = 6;
+            texdata.height = texdata.width;
             return true;
         }
 
@@ -237,6 +272,7 @@ namespace vsgUnity
             texdata.mipmapMode = Vulkan.vkSamplerMipmapModeForFilterMode(texture.filterMode);
             texdata.mipmapCount = 1;
             texdata.mipmapBias = 0.0f;
+            texdata.viewType = -1;
             return true;
         }
 
@@ -287,7 +323,15 @@ namespace vsgUnity
             VkFormat format = Vulkan.vkFormatForGraphicsFormat(texture.graphicsFormat);
             if (format == VkFormat.UNDEFINED) issues |= TextureSupportIssues.Format;
 
-            if (texture.dimension != TextureDimension.Tex2D && texture.dimension != TextureDimension.Tex2DArray) issues |= TextureSupportIssues.Dimensions; //&& texture.dimension != TextureDimension.Tex3D
+            switch(texture.dimension) {
+                case TextureDimension.Tex2D:
+                case TextureDimension.Tex2DArray:
+                case TextureDimension.Cube:
+                    break;
+                default:
+                    issues |= TextureSupportIssues.Dimensions;
+                    break;
+            }
 
             return issues;
         }

@@ -3,6 +3,7 @@
 /* <editor-fold desc="MIT License">
 
 Copyright(c) 2019 Thomas Hogarth
+Copyright(c) 2022 Christian Schott (InstruNEXT GmbH)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -21,6 +22,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vsg/maths/vec4.h>
 
 #include "GraphicsPipelineBuilder.h"
+
 
 namespace unity2vsg
 {
@@ -140,6 +142,7 @@ namespace unity2vsg
         VkSamplerAddressMode wrapMode;
         VkFilter filterMode;
         VkSamplerMipmapMode mipmapMode;
+        int viewType;
         int mipmapCount;
         float mipmapBias;
     };
@@ -243,6 +246,18 @@ namespace unity2vsg
         float minimumScreenHeightRatio;
     };
 
+    struct LightData
+    {
+        int type;
+        bool eyeCoordinateFrame;
+        FloatArray position;
+        FloatArray direction;
+        FloatArray color;
+        float intensity;
+        float innerAngle;
+        float outerAngle;
+    };
+
     struct CameraData
     {
         FloatArray position;
@@ -253,13 +268,27 @@ namespace unity2vsg
         float farZ;
     };
 
-    // create a vsg Array from a pointer and length, by default the ownership of the memory will be external to vsg still
-    // so be sure to call Array dataRelease before the ref_ptr tries to delete the memory
-
     template<typename T>
-    vsg::ref_ptr<vsg::Array<T>> createVsgArray(T* ptr, uint32_t length)
+    class ExternalArray : public vsg::Array<T>
     {
-        return vsg::ref_ptr<vsg::Array<T>>(new vsg::Array<T>(static_cast<size_t>(length), ptr));
+    public:
+        using value_type = T;
+        ExternalArray(uint32_t numElements, value_type* data, vsg::Data::Layout layout = {}) :
+            vsg::Array<T>(numElements, data, layout) {}
+
+        virtual ~ExternalArray() override
+        {
+            // the data is not owned by vsg, so we release it before vsg tries to delete it
+            vsg::Array<T>::dataRelease();
+            vsg::Array<T>::~Array();
+        }
+    };
+
+    // create a vsg array from data, which is not owned by vsg. This ensures vsg::ref_ptr does not try to delete data it does not own
+    template<typename T>
+    vsg::ref_ptr<vsg::Array<T>> createExternalVsgArray(T* ptr, uint32_t length)
+    {
+        return vsg::ref_ptr<ExternalArray<T>>(new ExternalArray<T>(static_cast<size_t>(length), ptr));
     }
 
     vsg::ref_ptr<vsg::Sampler> createSamplerForTextureData(const ImageData& data)
@@ -738,4 +767,150 @@ namespace unity2vsg
             return sizeInfo;
     }
 
+    vsg::ref_ptr<vsg::Data> createDataForTexture(const ImageData& data)
+    {
+        vsg::ref_ptr<vsg::Data> texdata;
+        VkFormat format = data.format;
+        VkFormatSizeInfo sizeInfo = GetSizeInfoForFormat(data.format);
+        sizeInfo.layout.imageViewType = data.viewType;
+        sizeInfo.layout.maxNumMipmaps = data.mipmapCount;
+        uint32_t blockVolume = sizeInfo.layout.blockWidth * sizeInfo.layout.blockHeight * sizeInfo.layout.blockDepth;
+
+        if (data.depth == 1)
+        {
+            if (blockVolume == 1)
+            {
+                switch (format)
+                {
+                //
+                // uint8 formats
+
+                // 1 component
+                case VK_FORMAT_R8_UNORM:
+                case VK_FORMAT_R8_SRGB:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray2D(data.width, data.height, data.pixels.data));
+                    break;
+                }
+                // 2 component
+                case VK_FORMAT_R8G8_UNORM:
+                case VK_FORMAT_R8G8_SRGB:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec2*>(data.pixels.data)));
+                    break;
+                }
+                // 3 component
+                case VK_FORMAT_B8G8R8_UNORM:
+                case VK_FORMAT_B8G8R8_SRGB:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec3Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec3*>(data.pixels.data)));
+                    break;
+                }
+                // 4 component
+                case VK_FORMAT_R8G8B8A8_UNORM:
+                case VK_FORMAT_R8G8B8A8_SRGB:
+                case VK_FORMAT_B8G8R8A8_UNORM:
+                case VK_FORMAT_B8G8R8A8_SRGB:
+                case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array2D(data.width, data.height, reinterpret_cast<vsg::ubvec4*>(data.pixels.data)));
+                    break;
+                }
+
+                //
+                // uint16 formats
+
+                // 1 component
+                case VK_FORMAT_R16_UNORM:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::ushortArray2D(data.width, data.height, reinterpret_cast<uint16_t*>(data.pixels.data)));
+                    break;
+                }
+                // 2 component
+                case VK_FORMAT_R16G16_UNORM:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::usvec2Array2D(data.width, data.height, reinterpret_cast<vsg::usvec2*>(data.pixels.data)));
+                    break;
+                }
+                // 4 component
+                case VK_FORMAT_R16G16B16A16_UNORM:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::usvec4Array2D(data.width, data.height, reinterpret_cast<vsg::usvec4*>(data.pixels.data)));
+                    break;
+                }
+
+                //
+                // uint32 formats
+
+                // 1 component
+                case VK_FORMAT_R32_UINT:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::uintArray2D(data.width, data.height, reinterpret_cast<uint32_t*>(data.pixels.data)));
+                    break;
+                }
+                // 2 component
+                case VK_FORMAT_R32G32_UINT:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::uivec2Array2D(data.width, data.height, reinterpret_cast<vsg::uivec2*>(data.pixels.data)));
+                    break;
+                }
+                // 4 component
+                case VK_FORMAT_R32G32B32A32_UINT:
+                {
+                    texdata = vsg::ref_ptr<vsg::Data>(new vsg::uivec4Array2D(data.width, data.height, reinterpret_cast<vsg::uivec4*>(data.pixels.data)));
+                    break;
+                }
+
+                default: break;
+                }
+            }
+            else
+            {
+                uint32_t width = data.width / sizeInfo.layout.blockWidth;
+                uint32_t height = data.height / sizeInfo.layout.blockHeight;
+                //uint32_t depth = data.depth / sizeInfo.layout.blockDepth;
+
+                if (sizeInfo.blockSize == 64)
+                {
+                    texdata = new vsg::block64Array2D(width, height, reinterpret_cast<vsg::block64*>(data.pixels.data));
+                }
+                else if (sizeInfo.blockSize == 128)
+                {
+                    texdata = new vsg::block128Array2D(width, height, reinterpret_cast<vsg::block128*>(data.pixels.data));
+                }
+            }
+        }
+        else if (data.depth > 1) // 3d textures
+        {
+            switch (format)
+            {
+            case VK_FORMAT_R8_UNORM:
+            {
+                texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubyteArray3D(data.width, data.height, data.depth, data.pixels.data));
+                break;
+            }
+            case VK_FORMAT_R8G8_UNORM:
+            {
+                texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec2Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec2*>(data.pixels.data)));
+                break;
+            }
+            case VK_FORMAT_R8G8B8A8_UNORM:
+            {
+                texdata = vsg::ref_ptr<vsg::Data>(new vsg::ubvec4Array3D(data.width, data.height, data.depth, reinterpret_cast<vsg::ubvec4*>(data.pixels.data)));
+                break;
+            }
+            default: break;
+            }
+        }
+
+        if (!texdata.valid())
+        {
+            return vsg::ref_ptr<vsg::Data>();
+        }
+
+        texdata->setLayout(sizeInfo.layout);
+        return texdata;
+    }
+
 } // namespace unity2vsg
+

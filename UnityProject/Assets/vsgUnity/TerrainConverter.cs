@@ -43,7 +43,7 @@ namespace vsgUnity
             TerrainInfo terrainInfo = new TerrainInfo();
             bool usingCustomMaterial = false;
 
-            if (terrain.materialType == Terrain.MaterialType.Custom)
+            if (terrain.materialTemplate)
             {
                 // try and load a shader mapping file to match the custom terrain material
                 terrainInfo.shaderMapping = ShaderMappingIO.ReadFromJsonFile(terrain.materialTemplate.shader);
@@ -67,11 +67,11 @@ namespace vsgUnity
             terrainInfo.shaderDefines.Add("VSG_LIGHTING");
 
             // build mesh
-            int samplew = terrain.terrainData.heightmapWidth;
-            int sampleh = terrain.terrainData.heightmapHeight;
+            int samplew = terrain.terrainData.heightmapResolution;
+            int sampleh = terrain.terrainData.heightmapResolution;
 
-            int cellw = terrain.terrainData.heightmapWidth - 1;
-            int cellh = terrain.terrainData.heightmapHeight - 1;
+            int cellw = terrain.terrainData.heightmapResolution - 1;
+            int cellh = terrain.terrainData.heightmapResolution - 1;
 
             Vector3 size = terrain.terrainData.size;
 

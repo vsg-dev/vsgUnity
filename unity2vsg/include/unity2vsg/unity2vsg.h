@@ -3,6 +3,7 @@
 /* <editor-fold desc="MIT License">
 
 Copyright(c) 2019 Thomas Hogarth
+Copyright(c) 2022 Christian Schott (InstruNEXT GmbH)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -30,9 +31,12 @@ extern "C"
     UNITY2VSG_EXPORT void unity2vsg_AddStateGroupNode();
     UNITY2VSG_EXPORT void unity2vsg_AddCommandsNode();
     UNITY2VSG_EXPORT void unity2vsg_AddVertexIndexDrawNode(unity2vsg::VertexIndexDrawData mesh);
+    UNITY2VSG_EXPORT void unity2vsg_AddSkybox(unity2vsg::DescriptorImageData skyboxTexture);
+    UNITY2VSG_EXPORT void unity2vsg_AddLightNode(unity2vsg::LightData lightData);
 
     // add meta data to nodes
     UNITY2VSG_EXPORT void unity2vsg_AddStringValue(const char* name, const char* value);
+    UNITY2VSG_EXPORT void unity2vsg_AddFloatArray(const char* name, unity2vsg::FloatArray data);
 
     // add command to commands node if one is current head or last stategroup node
     UNITY2VSG_EXPORT int unity2vsg_AddBindGraphicsPipelineCommand(unity2vsg::PipelineData pipeline, uint32_t addToStateGroup);

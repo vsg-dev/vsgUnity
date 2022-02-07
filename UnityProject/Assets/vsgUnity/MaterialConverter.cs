@@ -1,6 +1,7 @@
 ﻿/* <editor-fold desc="MIT License">
 
 Copyright(c) 2019 Thomas Hogarth
+Copyright(c) 2022 Christian Schott (InstruNEXT GmbH)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -110,12 +111,36 @@ namespace vsgUnity
         public static Dictionary<int, ShaderStageInfo> _shaderStageInfoCache = new Dictionary<int, ShaderStageInfo>();
         public static Dictionary<int, ShaderStagesInfo> _shaderStagesInfoCache = new Dictionary<int, ShaderStagesInfo>();
 
-        public static void ClearCaches()
+        static MaterialConverter() 
+        {
+            SceneGraphExporter.OnBeginExport += ClearCaches;
+            SceneGraphExporter.OnEndExport += ClearCaches;
+        }
+
+        private static void ClearCaches()
         {
             _materialDataCache.Clear();
             _descriptorImageDataCache.Clear();
             _shaderStageInfoCache.Clear();
             _shaderStagesInfoCache.Clear();
+        }
+
+        public static Dictionary<int, Dictionary<MaterialInfo, List<int>>> ConvertMaterials(Material[] materials, int subMeshCount) {
+            var meshMaterials = new Dictionary<int, Dictionary<MaterialInfo, List<int>>>();
+            for (int matindex = 0; matindex < materials.Length && matindex < subMeshCount; matindex++)
+            {
+                Material mat = materials[matindex];
+                if (mat == null) continue;
+
+                MaterialInfo matdata = MaterialConverter.GetOrCreateMaterialData(mat);
+                int matshaderid = matdata.shaderStages.id;
+
+                if (!meshMaterials.ContainsKey(matshaderid)) meshMaterials.Add(matshaderid, new Dictionary<MaterialInfo, List<int>>());
+                if (!meshMaterials[matshaderid].ContainsKey(matdata)) meshMaterials[matshaderid].Add(matdata, new List<int>());
+
+                meshMaterials[matshaderid][matdata].Add(matindex);
+            }
+            return meshMaterials;
         }
 
         /// <summary>

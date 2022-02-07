@@ -1,6 +1,7 @@
 ﻿/* <editor-fold desc="MIT License">
 
 Copyright(c) 2019 Thomas Hogarth
+Copyright(c) 2022 Christian Schott (InstruNEXT GmbH)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -323,6 +324,17 @@ namespace vsgUnity
         PVRTC1_4BPP_SRGB_BLOCK_IMG = 1000054005,
         PVRTC2_2BPP_SRGB_BLOCK_IMG = 1000054006,
         PVRTC2_4BPP_SRGB_BLOCK_IMG = 1000054007
+    }
+
+    public enum VkImageViewType {
+        VK_IMAGE_VIEW_TYPE_1D = 0,
+        VK_IMAGE_VIEW_TYPE_2D = 1,
+        VK_IMAGE_VIEW_TYPE_3D = 2,
+        VK_IMAGE_VIEW_TYPE_CUBE = 3,
+        VK_IMAGE_VIEW_TYPE_1D_ARRAY = 4,
+        VK_IMAGE_VIEW_TYPE_2D_ARRAY = 5,
+        VK_IMAGE_VIEW_TYPE_CUBE_ARRAY = 6,
+        VK_IMAGE_VIEW_TYPE_MAX_ENUM = 0x7FFFFFFF
     }
 
     public struct VkDescriptorSetLayoutBinding : IEquatable<VkDescriptorSetLayoutBinding>
