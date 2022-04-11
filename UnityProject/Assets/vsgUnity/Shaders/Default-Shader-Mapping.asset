@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 598353fbb8a7a6e2ba6d5355954691d1, type: 3}
+  m_Name: Default-Shader-Mapping
+  m_EditorClassIdentifier: 
+  sourceShader: {fileID: 0}
+  shaders:
+  - stages: 1
+    source: {fileID: 102900000, guid: 7aef0b1e86b447445ac0ed9aa41a7610, type: 3}
+    entryPointName: main
+  - stages: 16
+    source: {fileID: 102900000, guid: 2dd4ace44387fcf45b9f6ee0f50bf26c, type: 3}
+    entryPointName: main
+  uniformMappings:
+  - stages: 16
+    mappingSources:
+    - uniformType: 0
+      unityPropName: 
+      valueConversionExpressions: []
+    - uniformType: 0
+      unityPropName: 
+      valueConversionExpressions: []
+    - uniformType: 0
+      unityPropName: 
+      valueConversionExpressions: []
+    vsgBindingIndex: 10
+    vsgDefines:
+    - VSG_ALBEDO_COLOR
+  - stages: 16
+    mappingSources: []
+    vsgBindingIndex: 0
+    vsgDefines:
+    - VSG_DIFFUSE_MAP
+  - stages: 16
+    mappingSources: []
+    vsgBindingIndex: 5
+    vsgDefines:
+    - VSG_NORMAL_MAP
+  vertexDependancies:
+  - attributeType: 0
+    dependantDefines:
+    - ALL
+  - attributeType: 1
+    dependantDefines:
+    - VSG_LIGHTING
+  - attributeType: 2
+    dependantDefines:
+    - NONE
+  - attributeType: 3
+    dependantDefines:
+    - NONE
+  - attributeType: 4
+    dependantDefines:
+    - VSG_DIFFUSE_MAP

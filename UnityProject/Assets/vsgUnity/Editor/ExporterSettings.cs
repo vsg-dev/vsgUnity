@@ -50,7 +50,6 @@ namespace vsgUnity.Editor
             result.GraphBuilderSettings.autoAddCullNodes = false;
             result.GraphBuilderSettings.zeroRootTransform = false;
             result.GraphBuilderSettings.keepIdentityTransforms = false;
-            result.GraphBuilderSettings.standardTerrainShaderMappingPath = PathForShaderAsset("standardTerrain-ShaderMapping");
             result.ExportDirectory = Application.dataPath;
             EditorUtility.SetDirty(result);
             return result;
@@ -66,15 +65,6 @@ namespace vsgUnity.Editor
             AssetDatabase.SaveAssets ();
             AssetDatabase.Refresh();
             return asset;
-        }
-
-        private static string PathForShaderAsset(string shaderFileName)
-        {
-            string[] shaderGUID = AssetDatabase.FindAssets(shaderFileName);
-            if (shaderGUID == null || shaderGUID.Length == 0) return string.Empty;
-            string datapath = Application.dataPath;
-            datapath = datapath.Remove(datapath.Length - ("Assets").Length);
-            return Path.Combine(datapath, AssetDatabase.GUIDToAssetPath(shaderGUID[0]));
         }
     }
 }

@@ -73,6 +73,7 @@ namespace vsgUnity
         VK_DESCRIPTOR_TYPE_MAX_ENUM = 0x7FFFFFFF
     }
 
+    [Serializable]
     [System.Flags]
     public enum VkShaderStageFlagBits
     {

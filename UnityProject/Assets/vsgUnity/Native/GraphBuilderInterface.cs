@@ -106,12 +106,15 @@ namespace vsgUnity.Native
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDescriptorBufferFloatArray")]
         public static extern void unity2vsg_AddDescriptorBufferFloatArray(DescriptorFloatArrayUniformData data);
 
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDescriptorBufferFloatBuffer")]
+        public static extern void unity2vsg_AddDescriptorBufferFloatBuffer(DescriptorFloatBufferUniformData data);
+
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDescriptorBufferVector")]
         public static extern void unity2vsg_AddDescriptorBufferVector(DescriptorVectorUniformData data);
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDescriptorBufferVectorArray")]
         public static extern void unity2vsg_AddDescriptorBufferVectorArray(DescriptorVectorArrayUniformData data);
-
+        
         //
         //
 

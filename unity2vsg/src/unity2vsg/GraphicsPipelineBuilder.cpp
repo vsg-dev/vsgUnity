@@ -42,6 +42,9 @@ void GraphicsPipelineBuilder::build(ref_ptr<Traits> traits)
         descriptorSetLayouts.push_back(DescriptorSetLayout::create(setLayoutBindings));
     }
 
+    // TODO
+    descriptorSetLayouts.push_back(ViewDescriptorSetLayout::create());
+
     // create vertex bindings and attributes
     VertexInputState::Bindings vertexBindingsDescriptions;
     VertexInputState::Attributes vertexAttributeDescriptions;

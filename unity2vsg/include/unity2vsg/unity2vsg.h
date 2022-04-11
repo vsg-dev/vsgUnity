@@ -45,12 +45,14 @@ extern "C"
     UNITY2VSG_EXPORT void unity2vsg_AddDrawIndexedCommand(unity2vsg::DrawIndexedData data);
     // create and add a binddescriptorset command using the current list of descriptors
     UNITY2VSG_EXPORT void unity2vsg_CreateBindDescriptorSetCommand(uint32_t addToStateGroup);
+    //UNITY2VSG_EXPORT void unity2vsg_CreateBindViewDescriptorSetCommand(uint32_t addToStateGroup);
 
     // add descriptor to current descriptors list that will be bound by BindDescriptors call
     UNITY2VSG_EXPORT void unity2vsg_AddDescriptorImage(unity2vsg::DescriptorImageData texture);
 
     UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferFloat(unity2vsg::DescriptorFloatUniformData data);
     UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferFloatArray(unity2vsg::DescriptorFloatArrayUniformData data);
+    UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferFloatBuffer(unity2vsg::DescriptorFloatBufferUniformData data);
     UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferVector(unity2vsg::DescriptorVectorUniformData data);
     UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferVectorArray(unity2vsg::DescriptorVectorArrayUniformData data);
 

@@ -323,6 +323,18 @@ namespace vsgUnity.Native
         }
     }
 
+    public struct DescriptorFloatBufferUniformData : IEquatable<DescriptorFloatBufferUniformData>
+    {
+        public int id;
+        public int binding;
+        public FloatArray value;
+
+        public bool Equals(DescriptorFloatBufferUniformData b)
+        {
+            return binding == b.binding && value.Equals(b.value);
+        }
+    }
+
     public struct DescriptorVectorUniformData : IEquatable<DescriptorVectorUniformData>
     {
         public int id;
@@ -358,11 +370,13 @@ namespace vsgUnity.Native
         public NativeArray specializationData;
         public IntPtr customDefines;
         public IntPtr source;
+        public IntPtr entryPointName;
 
         public bool Equals(ShaderStageData b)
         {
             return stages == b.stages &&
                 source == b.source &&
+                entryPointName == b.entryPointName &&
                 customDefines == b.customDefines &&
                 specializationData.Equals(b.specializationData);
         }

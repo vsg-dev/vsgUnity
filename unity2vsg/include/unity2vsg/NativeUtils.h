@@ -173,6 +173,13 @@ namespace unity2vsg
         FloatArray value;
     };
 
+    struct DescriptorFloatBufferUniformData
+    {
+        int id;
+        int binding;
+        FloatArray value;
+    };
+
     struct DescriptorVectorUniformData
     {
         int id;
@@ -204,6 +211,7 @@ namespace unity2vsg
         UIntArray specializationData;
         const char* customDefines;
         const char* source;
+        const char* entryPointName;
     };
 
     struct ShaderStagesData

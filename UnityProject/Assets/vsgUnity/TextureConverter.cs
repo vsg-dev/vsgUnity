@@ -31,12 +31,7 @@ namespace vsgUnity
         public static Dictionary<int, ImageData> _imageDataCache = new Dictionary<int, ImageData>();
         public static List<Texture2D> _convertedTextures = new List<Texture2D>();
 
-        static TextureConverter() 
-        {
-            SceneGraphExporter.OnBeginExport += ClearCaches;
-            SceneGraphExporter.OnEndExport += ClearCaches;
-        }
-
+        [OnBeginExport, OnEndExport]
         private static void ClearCaches()
         {
             _imageDataCache.Clear();

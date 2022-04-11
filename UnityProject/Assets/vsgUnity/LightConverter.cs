@@ -29,8 +29,8 @@ namespace vsgUnity
             lightData.position = NativeUtils.ToNative(Vector3.zero);
             lightData.color = NativeUtils.ToNative(getLightColor(light));
             lightData.intensity = light.intensity;
-            Vector3 lightDirection = light.transform.forward; // TODO: local or world-space forward?
-            CoordSytemConverter.Convert(ref lightDirection);
+            Vector3 lightDirection = Vector3.forward;//light.transform.forward; // TODO: local or world-space forward?
+            //CoordSytemConverter.Convert(ref lightDirection);
             lightData.direction = NativeUtils.ToNative(lightDirection);
 
             // type specific
@@ -44,8 +44,8 @@ namespace vsgUnity
                     break;
                 case LightType.Spot:
                     lightData.type = 2;
-                    lightData.innerAngle = light.innerSpotAngle;
-                    lightData.outerAngle = light.spotAngle;
+                    lightData.innerAngle = light.innerSpotAngle * .5f;
+                    lightData.outerAngle = light.spotAngle * .5f;
                     break;
                 default:
                     NativeLog.WriteLine("Unsupported light type: " + light.type);

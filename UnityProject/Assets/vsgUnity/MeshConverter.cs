@@ -75,13 +75,7 @@ namespace vsgUnity
         public static Dictionary<int, Dictionary<int, DrawIndexedData>> _drawIndexedDataCache = new Dictionary<int, Dictionary<int, DrawIndexedData>>();
         static int _drawIndexedIDCount = 0;
 
-
-        static MeshConverter() 
-        {
-            SceneGraphExporter.OnBeginExport += ClearCaches;
-            SceneGraphExporter.OnEndExport += ClearCaches;
-        }
-
+        [OnBeginExport, OnEndExport]
         private static void ClearCaches()
         {
             _meshInfoCache.Clear();

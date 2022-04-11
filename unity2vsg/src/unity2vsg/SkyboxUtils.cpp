@@ -228,9 +228,7 @@ vsg::ref_ptr<vsg::Node> createSkybox(const vsg::ref_ptr<vsg::DescriptorImage> &c
     draw->instanceCount = 1;
     root->addChild(draw);
 
-
-    auto xform = vsg::MatrixTransform::create(
-          vsg::rotate(vsg::PI * 0.5, 1.0, 0.0, 0.0));
+    auto xform = vsg::MatrixTransform::create();
     xform->addChild(root);
 
     return xform;

@@ -32,16 +32,14 @@ namespace vsgUnity
             public bool zeroRootTransform;
             public bool keepIdentityTransforms;
             public Cubemap skybox;
-            public string standardShaderMappingPath;
-            public string standardTerrainShaderMappingPath;
         }
 
         public static void Export(GameObject[] gameObjects, string saveFileName, ExportSettings settings)
         {
             using (var vsgExporter = new SceneGraphExporter(saveFileName, settings)) {
                 // add ambient light
-                if (LightConverter.CreateAmbientLight(out LightData ambientLight))
-                    using (new LightNode(ambientLight)) {}
+                //if (LightConverter.CreateAmbientLight(out LightData ambientLight))
+                //    using (new LightNode(ambientLight)) {}
 
                 // add skybox
                 if (settings.skybox)
@@ -56,6 +54,8 @@ namespace vsgUnity
 
         private static void processGameObject(GameObject go, SceneGraphExporter vsgExporter) 
         {
+            if (!go.activeInHierarchy)
+                return;
             using (var node = vsgExporter.CreateNodeForGameObject(go)) {
                 var gotrans = go.transform;
                 bool meshexported = false;
@@ -81,20 +81,20 @@ namespace vsgUnity
                 }
 
                 // does it have a mesh
-                if (!meshexported && meshFilter && meshFilter.sharedMesh && meshRenderer)
+                if (!meshexported && meshFilter && meshFilter && meshFilter.sharedMesh && meshRenderer && meshRenderer.enabled)
                 {
                     ExportMesh(meshFilter.sharedMesh, meshRenderer, gotrans, vsgExporter);
                 }
 
                 // does it contain a light component
                 Light light = go.GetComponent<Light>();
-                if (light != null) {
+                if (light && light.enabled) {
                     ExportLight(light);
                 }
 
                 // does this node have a terrain
                 Terrain terrain = go.GetComponent<Terrain>();
-                if (terrain) 
+                if (terrain && terrain.enabled) 
                 {
                     ExportTerrainMesh(terrain, vsgExporter);
                 }

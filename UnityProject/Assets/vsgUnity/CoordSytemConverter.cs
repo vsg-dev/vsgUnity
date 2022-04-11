@@ -19,6 +19,69 @@ namespace vsgUnity
 {
     public static class CoordSytemConverter
     {
+        static readonly Vector3 kLeftToRightScalingVector = new Vector3(-1.0f, 1.0f, 1.0f);
+
+        static Vector3 _conversionVector = kLeftToRightScalingVector;
+
+        public static void Convert(ref Vector3 vec)
+        {
+            vec.x *= _conversionVector.x;
+            vec.y *= _conversionVector.y;
+            vec.z *= _conversionVector.z;
+        }
+
+        public static void Convert(Vector3[] vecArray)
+        {
+            for(int i = 0; i < vecArray.Length; i++)
+            {
+                Convert(ref vecArray[i]);
+            }
+        }
+
+        public static void Convert(ref Vector4 vec)
+        {
+            vec.x *= _conversionVector.x;
+            vec.y *= _conversionVector.y;
+            vec.z *= _conversionVector.z;
+        }
+
+        public static void Convert(Vector4[] vecArray)
+        {
+            for (int i = 0; i < vecArray.Length; i++)
+            {
+                Convert(ref vecArray[i]);
+            }
+        }
+
+
+        public static void Convert(ref Quaternion quat)
+        {
+            Vector3 fromAxis = new Vector3(quat.x, quat.y, quat.z);
+            float axisFlipScale = true ? -1.0f : 1.0f;
+            Vector3 toAxis = axisFlipScale * Vector3.Scale(fromAxis, _conversionVector);
+
+            quat.x = toAxis.x;
+            quat.y = toAxis.y;
+            quat.z = toAxis.z;
+        }
+
+        public static void Convert(ref Matrix4x4 mat)
+        {
+            Matrix4x4 convert = Matrix4x4.Scale(_conversionVector);
+            mat = (convert * mat * convert);
+        }
+
+        public static void FlipTriangleFaces(int[] indices)
+        {
+            for (int i = 0; i < indices.Length; i += 3)
+            {
+                int temp = indices[i];
+                indices[i] = indices[i + 2];
+                indices[i + 2] = temp;
+            }
+        }
+
+        /*
         // flip y and z axis
         static readonly Matrix4x4 _conversionMatrix = new Matrix4x4(
             new Vector4(1f, 0f, 0f, 0f), 
@@ -81,7 +144,7 @@ namespace vsgUnity
                 indices[i] = indices[i + 2];
                 indices[i + 2] = temp;
             }
-        }
+        }*/
     }
 
 } // end vsgUnity namespace

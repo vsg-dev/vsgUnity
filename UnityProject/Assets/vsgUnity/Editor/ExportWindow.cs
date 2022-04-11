@@ -107,7 +107,6 @@ namespace vsgUnity.Editor
                         graphBulderSettings.zeroRootTransform = EditorGUILayout.Toggle("Zero Root Transform", graphBulderSettings.zeroRootTransform);
                         graphBulderSettings.keepIdentityTransforms = EditorGUILayout.Toggle("Keep Identity Transforms", graphBulderSettings.keepIdentityTransforms);
                         graphBulderSettings.skybox = (Cubemap) EditorGUILayout.ObjectField("Skybox", graphBulderSettings.skybox, typeof (Cubemap), true);
-                        EditorGUILayout.LabelField(graphBulderSettings.standardTerrainShaderMappingPath);
                         _exporterSettings.GraphBuilderSettings = graphBulderSettings;
                     }
 

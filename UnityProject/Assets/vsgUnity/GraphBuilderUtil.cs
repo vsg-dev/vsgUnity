@@ -11,6 +11,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
+using System;
+using System.Reflection;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,11 +22,15 @@ using vsgUnity.Native;
 namespace vsgUnity
 {
 
+public class OnBeginExportAttribute : Attribute { }
+public class OnEndExportAttribute : Attribute { }
+public class OnProcessGameObjectAttribute : Attribute { }
+
 public class SceneGraphExporter : System.IDisposable
 {
-    public static event System.Action OnBeginExport = delegate {};
-    public static event System.Action<GameObject> OnProcessGameObject = delegate {};
-    public static event System.Action OnEndExport = delegate {};
+    private event Action OnBeginExport = delegate {};
+    private event Action<GameObject> OnProcessGameObject = delegate {};
+    private event Action OnEndExport = delegate {};
 
     public readonly string ExportPath;
     public readonly GraphBuilder.ExportSettings ExportSettings;
@@ -39,9 +45,28 @@ public class SceneGraphExporter : System.IDisposable
     {
         ExportPath = path;
         ExportSettings = settings;
+        loadExporterHooks();
         NativeLog.InstallDebugLogCallback();
         GraphBuilderInterface.unity2vsg_BeginExport();
         OnBeginExport.Invoke();
+    }
+
+    private void loadExporterHooks()
+    {
+        foreach (var type in typeof(SceneGraphExporter).Assembly.GetTypes())
+        {
+            if (!type.IsSealed || !type.IsClass) continue;
+            foreach (var method in type.GetRuntimeMethods())
+            {
+                if (!method.IsStatic) continue;
+                if (method.GetCustomAttribute<OnBeginExportAttribute>() != null) 
+                    OnBeginExport += (Action)method.CreateDelegate(typeof(Action));
+                if (method.GetCustomAttribute<OnEndExportAttribute>() != null) 
+                    OnEndExport += (Action)method.CreateDelegate(typeof(Action));
+                if (method.GetCustomAttribute<OnProcessGameObjectAttribute>() != null) 
+                    OnProcessGameObject += (Action<GameObject>)method.CreateDelegate(typeof(Action<GameObject>));
+            }
+        }
     }
 
     public Node CreateNodeForGameObject(GameObject go) 
@@ -239,6 +264,7 @@ public class BindDescriptorSetCommand : System.IDisposable
     public List<DescriptorVectorArrayUniformData> vectorArrays = new List<DescriptorVectorArrayUniformData>();
     public List<DescriptorFloatUniformData> floats = new List<DescriptorFloatUniformData>();
     public List<DescriptorFloatArrayUniformData> floatArrays = new List<DescriptorFloatArrayUniformData>();
+    public List<DescriptorFloatBufferUniformData> floatBuffers = new List<DescriptorFloatBufferUniformData>();
 
     public BindDescriptorSetCommand(StateGroupNode s) {
         addToStateGroup = true;
@@ -252,6 +278,7 @@ public class BindDescriptorSetCommand : System.IDisposable
         images.AddRange(materialInfo.imageDescriptors);
         vectors.AddRange(materialInfo.vectorDescriptors);
         floats.AddRange(materialInfo.floatDescriptors);
+        floatBuffers.AddRange(materialInfo.floatBufferDescriptors);
     }
 
     public void Dispose() {
@@ -265,7 +292,9 @@ public class BindDescriptorSetCommand : System.IDisposable
             GraphBuilderInterface.unity2vsg_AddDescriptorBufferFloat(data);
         foreach(var data in floatArrays)
             GraphBuilderInterface.unity2vsg_AddDescriptorBufferFloatArray(data);
-        if (images.Count > 0 || vectors.Count > 0 || vectorArrays.Count > 0 || floats.Count > 0 || floatArrays.Count > 0)
+        foreach(var data in floatBuffers)
+            GraphBuilderInterface.unity2vsg_AddDescriptorBufferFloatBuffer(data);
+        if (images.Count > 0 || vectors.Count > 0 || vectorArrays.Count > 0 || floats.Count > 0 || floatArrays.Count > 0 || floatBuffers.Count > 0)
             GraphBuilderInterface.unity2vsg_CreateBindDescriptorSetCommand(addToStateGroup ? 1 : 0);
     }
 }

@@ -20,6 +20,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <vsg/all.h>
 #include <vsg/core/Objects.h>
+#include <vsg/io/VSG.h>
 
 using namespace unity2vsg;
 
@@ -128,8 +129,8 @@ public:
                 auto spot = vsg::SpotLight::create();
                 spot->position = vsg::dvec3(lightData.position.data[0], lightData.position.data[1], lightData.position.data[2]);
                 spot->direction = vsg::dvec3(lightData.direction.data[0], lightData.direction.data[1], lightData.direction.data[2]);
-                spot->innerAngle = lightData.innerAngle;
-                spot->outerAngle = lightData.outerAngle;
+                spot->innerAngle = vsg::radians(lightData.innerAngle);
+                spot->outerAngle = vsg::radians(lightData.outerAngle);
                 return spot;
             }
             case 3:
@@ -245,7 +246,7 @@ public:
 
     void addFloatArray(std::string name, const FloatArray &array)
     {
-        getHead()->setValue(name, createExternalVsgArray<float>(array.data, array.length));
+        getHead()->setObject(name, createExternalVsgArray<float>(array.data, array.length));
     }
 
     //
@@ -298,14 +299,16 @@ public:
                 }
                 _shaderModulesCache[shaderkey] = shaderModule;
             }
+            shaderModule->hints = vsg::ShaderCompileSettings::create();
+            shaderModule->hints->defines = customdefs;
         }
 
         return shaderModule;
     }
 
-    vsg::ref_ptr<vsg::ShaderStage> createShaderStage(VkShaderStageFlagBits stage, vsg::ref_ptr<vsg::ShaderModule> shaderModule, UIntArray specializationConstants)
+    vsg::ref_ptr<vsg::ShaderStage> createShaderStage(VkShaderStageFlagBits stage, vsg::ref_ptr<vsg::ShaderModule> shaderModule, std::string entryPointName, UIntArray specializationConstants)
     {
-        auto shaderStage = vsg::ShaderStage::create(stage, "main", shaderModule);
+        auto shaderStage = vsg::ShaderStage::create(stage, entryPointName, shaderModule);
 
         for(int i = 0; i<specializationConstants.length; ++i)
         {
@@ -384,15 +387,15 @@ public:
 
                 if ((shaderStageData.stages & VK_SHADER_STAGE_VERTEX_BIT) == VK_SHADER_STAGE_VERTEX_BIT)
                 {
-                    std::string vertDefines = customDefs + ", VSG_VERTEX_CODE";
+                    std::string vertDefines = customDefs + ",VSG_VERTEX_CODE";
                     auto vertShaderModule = getOrCreateShaderModule(VK_SHADER_STAGE_VERTEX_BIT, std::string(shaderStageData.source), inputshaderatts, shaderMode, vertDefines);
-                    shaders.push_back(createShaderStage(VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule, shaderStageData.specializationData));
+                    shaders.push_back(createShaderStage(VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule, std::string(shaderStageData.entryPointName), shaderStageData.specializationData));
                 }
                 if ((shaderStageData.stages & VK_SHADER_STAGE_FRAGMENT_BIT) == VK_SHADER_STAGE_FRAGMENT_BIT)
                 {
-                    std::string fragDefines = customDefs + ", VSG_FRAGMENT_CODE";
+                    std::string fragDefines = customDefs + ",VSG_FRAGMENT_CODE";
                     auto fragShaderModule = getOrCreateShaderModule(VK_SHADER_STAGE_FRAGMENT_BIT, std::string(shaderStageData.source), inputshaderatts, shaderMode, fragDefines);
-                    shaders.push_back(createShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderModule, shaderStageData.specializationData));
+                    shaders.push_back(createShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderModule, std::string(shaderStageData.entryPointName), shaderStageData.specializationData));
                 }
             }
 
@@ -572,6 +575,11 @@ public:
             {
                 DebugLog("GraphBuilder Error: No Active StateGroup");
             }
+
+            if (!addStateCommandToActiveStateGroup(vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, _activeGraphicsPipeline->layout, 1)))
+            {
+                DebugLog("GraphBuilder Error:Failed adding BindViewDescriptor");
+            }
         }
         else
         {
@@ -652,6 +660,13 @@ public:
         }
 
         _descriptors.push_back(vsg::DescriptorBuffer::create(vallist, data.binding));
+        _descriptorObjectIds.push_back(std::to_string(data.id));
+    }
+
+    void addDescriptorBuffer(DescriptorFloatBufferUniformData data)
+    {
+        vsg::ref_ptr<vsg::floatArray> floatBufer = createExternalVsgArray<float>(data.value.data, data.value.length);
+        _descriptors.push_back(vsg::DescriptorBuffer::create(floatBufer, data.binding));
         _descriptorObjectIds.push_back(std::to_string(data.id));
     }
 
@@ -948,6 +963,11 @@ void unity2vsg_AddDescriptorBufferFloat(unity2vsg::DescriptorFloatUniformData da
 }
 
 void unity2vsg_AddDescriptorBufferFloatArray(unity2vsg::DescriptorFloatArrayUniformData data)
+{
+    _builder->addDescriptorBuffer(data);
+}
+
+void unity2vsg_AddDescriptorBufferFloatBuffer(unity2vsg::DescriptorFloatBufferUniformData data)
 {
     _builder->addDescriptorBuffer(data);
 }

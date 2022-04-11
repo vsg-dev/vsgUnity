@@ -27,6 +27,7 @@ namespace vsgUnity
         public IntArray specializationData;
         public string customDefines;
         public string source;
+        public string entryPointName;
 
         public bool Equals(ShaderStageInfo b)
         {
@@ -44,7 +45,8 @@ namespace vsgUnity
                 stages = stages,
                 specializationData = NativeUtils.ToNative(specializationData),
                 customDefines = NativeUtils.ToNative(customDefines),
-                source = NativeUtils.ToNative(source)
+                source = NativeUtils.ToNative(source),
+                entryPointName = NativeUtils.ToNative(entryPointName)
             };
             return s;
         }
@@ -93,10 +95,75 @@ namespace vsgUnity
         public ShaderStagesInfo shaderStages;
         public List<DescriptorImageData> imageDescriptors = new List<DescriptorImageData>();
         public List<DescriptorFloatUniformData> floatDescriptors = new List<DescriptorFloatUniformData>();
+        public List<DescriptorFloatBufferUniformData> floatBufferDescriptors = new List<DescriptorFloatBufferUniformData>();
         public List<DescriptorVectorUniformData> vectorDescriptors = new List<DescriptorVectorUniformData>();
         public List<VkDescriptorSetLayoutBinding> descriptorBindings = new List<VkDescriptorSetLayoutBinding>();
         public List<string> customDefines = new List<string>();
         public int useAlpha;
+
+        public void AddUniformDescriptorsFromMaterial(Material source) {
+            foreach (var uniformMapping in mapping.uniformMappings) {
+                var descriptorType = uniformMapping.GetDescriptorType();
+                uint descriptorCount = 1;
+                if (descriptorType == VkDescriptorType.VK_DESCRIPTOR_TYPE_MAX_ENUM)
+                    continue;
+                if (descriptorType ==  VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+                    if (uniformMapping.TryGetTextureUniform(source, out Texture tex)) {
+                        if (tex is Texture2D) {
+                            ImageData imageData = TextureConverter.GetOrCreateImageData(tex as Texture2D);
+                            imageDescriptors.Add(MaterialConverter.GetOrCreateDescriptorImageData(imageData, uniformMapping.vsgBindingIndex));
+                        } else if (tex is Texture2DArray) {
+                            ImageData[] imageDatas = TextureConverter.GetOrCreateImageData(tex as Texture2DArray);
+                            descriptorCount = (uint)imageDatas.Length;
+                            imageDescriptors.Add(MaterialConverter.GetOrCreateDescriptorImageData(imageDatas, uniformMapping.vsgBindingIndex));
+                        }
+                        descriptorAdded(descriptorType, descriptorCount, uniformMapping);
+                    }
+                } else if (descriptorType ==  VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+                    // TODO: support integer uniform data? 
+                    if (uniformMapping.TryGetFloatUniformData(source, out FloatArray data)) {
+                        if (data.length == 1) {
+                            floatDescriptors.Add(new DescriptorFloatUniformData
+                            {
+                                id = source.GetInstanceID(),
+                                binding = uniformMapping.vsgBindingIndex,
+                                value = data.data[0]
+                            });
+                        } else if (data.length == 4) {
+                            vectorDescriptors.Add(new DescriptorVectorUniformData
+                            {
+                                id = source.GetInstanceID(),
+                                binding = uniformMapping.vsgBindingIndex,
+                                value = NativeUtils.ToNative(data)
+                            });
+                        } else {
+                            floatBufferDescriptors.Add(new DescriptorFloatBufferUniformData
+                            {
+                                id = source.GetInstanceID(),
+                                binding = uniformMapping.vsgBindingIndex,
+                                value = data
+                            });
+                        }
+                        descriptorAdded(descriptorType, descriptorCount, uniformMapping);
+                    }
+                }
+            }
+        }
+
+        private void descriptorAdded(VkDescriptorType type, uint count, UniformMapping mapping) 
+        {
+            // add any custom defines related to the texture
+            if (mapping.vsgDefines != null && mapping.vsgDefines.Count > 0) 
+                customDefines.AddRange(mapping.vsgDefines);
+            descriptorBindings.Add(new VkDescriptorSetLayoutBinding
+            {
+                binding = (uint)mapping.vsgBindingIndex,
+                descriptorType = type,
+                descriptorCount = count,
+                stageFlags = mapping.stages,
+                pImmutableSamplers = System.IntPtr.Zero
+            });
+        }
     }
 
     /// <summary>
@@ -111,12 +178,8 @@ namespace vsgUnity
         public static Dictionary<int, ShaderStageInfo> _shaderStageInfoCache = new Dictionary<int, ShaderStageInfo>();
         public static Dictionary<int, ShaderStagesInfo> _shaderStagesInfoCache = new Dictionary<int, ShaderStagesInfo>();
 
-        static MaterialConverter() 
-        {
-            SceneGraphExporter.OnBeginExport += ClearCaches;
-            SceneGraphExporter.OnEndExport += ClearCaches;
-        }
 
+        [OnBeginExport, OnEndExport]
         private static void ClearCaches()
         {
             _materialDataCache.Clear();
@@ -228,7 +291,8 @@ namespace vsgUnity
         {
             ShaderStageInfo shaderStage = new ShaderStageInfo
             {
-                source = shaderResource.sourceFile,
+                source = shaderResource.GetSourceFilePath(),
+                entryPointName = shaderResource.entryPointName,
                 stages = shaderResource.stages,
                 customDefines = customDefines,
                 specializationData = NativeUtils.WrapArray(specializationContants)
@@ -319,11 +383,7 @@ namespace vsgUnity
             // fetch the shadermapping for this materials shader
             if (mapping == null && material != null)
             {
-                mapping = ShaderMappingIO.ReadFromJsonFile(material.shader);
-                if (mapping == null) // if we fail to find a mapping try and load the default
-                {
-                    mapping = ShaderMappingIO.ReadFromJsonFile(ShaderMappingIO.GetPathForShaderMappingFile("Default"));
-                }
+                mapping = ShaderMappings.GetShaderMapping(material.shader);
             }
 
             MaterialInfo matdata = new MaterialInfo
@@ -332,97 +392,12 @@ namespace vsgUnity
                 mapping = mapping
             };
 
-            // process uniforms
-            UniformMappedData[] uniformDatas = mapping.GetUniformDatasFromMaterial(material);
-
-            foreach (UniformMappedData uniData in uniformDatas)
-            {
-                VkDescriptorType descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_MAX_ENUM;
-                uint descriptorCount = 1;
-
-                if (uniData.mapping.uniformType == UniformMapping.UniformType.Texture2DUniform)
-                {
-                    Texture tex = uniData.data as Texture;
-                    if (tex == null) continue;
-
-                    // get imagedata for the texture
-                    ImageData imageData = TextureConverter.GetOrCreateImageData(tex);
-                    // get descriptor for the image data
-                    DescriptorImageData descriptorImage = GetOrCreateDescriptorImageData(imageData, uniData.mapping.vsgBindingIndex);
-                    matdata.imageDescriptors.Add(descriptorImage);
-
-                    descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                }
-                else if (uniData.mapping.uniformType == UniformMapping.UniformType.Texture2DArrayUniform)
-                {
-                    Texture2DArray tex = uniData.data as Texture2DArray;
-                    if (tex == null) continue;
-                    ImageData[] imageDatas = TextureConverter.GetOrCreateImageData(tex);
-                    DescriptorImageData descriptorImage = GetOrCreateDescriptorImageData(imageDatas, uniData.mapping.vsgBindingIndex);
-                    matdata.imageDescriptors.Add(descriptorImage);
-
-                    descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    descriptorCount = (uint)imageDatas.Length;
-                }
-                else if (uniData.mapping.uniformType == UniformMapping.UniformType.FloatUniform)
-                {
-                    float value = (float)uniData.data;
-                    if (value == float.NaN) continue;
-
-                    // get descriptor for the image data
-                    DescriptorFloatUniformData descriptorFloat = new DescriptorFloatUniformData
-                    {
-                        id = material.GetInstanceID(),
-                        binding = uniData.mapping.vsgBindingIndex,
-                        value = value
-                    };
-                    matdata.floatDescriptors.Add(descriptorFloat);
-
-                    descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                }
-                else if(uniData.mapping.uniformType == UniformMapping.UniformType.Vec4Uniform || uniData.mapping.uniformType == UniformMapping.UniformType.ColorUniform)
-                {
-                    Vector4 vector = Vector4.zero;
-                    if(uniData.mapping.uniformType == UniformMapping.UniformType.Vec4Uniform) vector = (Vector4)uniData.data;
-                    if (uniData.mapping.uniformType == UniformMapping.UniformType.ColorUniform)
-                    {
-                        Color color = (Color)uniData.data;
-                        vector = new Vector4(color.r, color.g, color.b, color.a);
-                    }
-                    if (vector == null) continue;
-
-                    // get descriptor for the image data
-                    DescriptorVectorUniformData descriptorVector = new DescriptorVectorUniformData
-                    {
-                        id = material.GetInstanceID(),
-                        binding = uniData.mapping.vsgBindingIndex,
-                        value = NativeUtils.ToNative(vector)
-                    };
-
-                    matdata.vectorDescriptors.Add(descriptorVector);
-
-                    descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                }
-
-                if (descriptorType == VkDescriptorType.VK_DESCRIPTOR_TYPE_MAX_ENUM) continue;
-
-                // add any custom defines related to the texture
-                if (uniData.mapping.vsgDefines != null && uniData.mapping.vsgDefines.Count > 0) matdata.customDefines.AddRange(uniData.mapping.vsgDefines);
-
-                // create the descriptor binding to match the descriptor image
-                VkDescriptorSetLayoutBinding descriptorBinding = new VkDescriptorSetLayoutBinding
-                {
-                    binding = (uint)uniData.mapping.vsgBindingIndex,
-                    descriptorType = descriptorType,
-                    descriptorCount = descriptorCount,
-                    stageFlags = uniData.mapping.stages,
-                    pImmutableSamplers = System.IntPtr.Zero
-                };
-                matdata.descriptorBindings.Add(descriptorBinding);
-            }
-
             if (material != null)
             {
+                // process uniforms
+                matdata.AddUniformDescriptorsFromMaterial(material);
+
+                // TODO: expose this to the ShaderMapping
                 string rendertype = material.GetTag("RenderType", true, "Opaque");
                 matdata.useAlpha = rendertype.Contains("Transparent") ? 1 : 0;
                 if (matdata.useAlpha == 1) matdata.customDefines.Add("VSG_BLEND");
