@@ -1,6 +1,7 @@
-﻿/* <editor-fold desc="MIT License">
+/* <editor-fold desc="MIT License">
 
 Copyright(c) 2019 Thomas Hogarth
+Copyright(c) 2022 Christian Schott (InstruNEXT GmbH)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -260,6 +261,7 @@ namespace vsgUnity.Native
         public VkSamplerAddressMode wrapMode;
         public VkFilter filterMode;
         public VkSamplerMipmapMode mipmapMode;
+        public int viewType;
         public int mipmapCount;
         public float mipmapBias;
 
@@ -274,6 +276,7 @@ namespace vsgUnity.Native
                 filterMode == b.filterMode &&
                 mipmapMode == b.mipmapMode &&
                 mipmapCount == b.mipmapCount &&
+                viewType == b.viewType &&
                 mipmapBias == b.mipmapBias &&
                 pixels.Equals(b.pixels);
         }
@@ -320,6 +323,18 @@ namespace vsgUnity.Native
         }
     }
 
+    public struct DescriptorFloatBufferUniformData : IEquatable<DescriptorFloatBufferUniformData>
+    {
+        public int id;
+        public int binding;
+        public FloatArray value;
+
+        public bool Equals(DescriptorFloatBufferUniformData b)
+        {
+            return binding == b.binding && value.Equals(b.value);
+        }
+    }
+
     public struct DescriptorVectorUniformData : IEquatable<DescriptorVectorUniformData>
     {
         public int id;
@@ -355,11 +370,13 @@ namespace vsgUnity.Native
         public NativeArray specializationData;
         public IntPtr customDefines;
         public IntPtr source;
+        public IntPtr entryPointName;
 
         public bool Equals(ShaderStageData b)
         {
             return stages == b.stages &&
                 source == b.source &&
+                entryPointName == b.entryPointName &&
                 customDefines == b.customDefines &&
                 specializationData.Equals(b.specializationData);
         }
@@ -423,6 +440,18 @@ namespace vsgUnity.Native
         public float minimumScreenHeightRatio;
     }
 
+    public struct LightData
+    {
+        public int type;
+        public bool eyeCoordinateFrame;
+        public NativeArray position;
+        public NativeArray direction;
+        public NativeArray color;
+        public float intensity;
+        public float innerAngle;
+        public float outerAngle;
+    }
+
     public struct CameraData
     {
         public NativeArray position;
@@ -435,6 +464,21 @@ namespace vsgUnity.Native
 
     public static class NativeUtils
     {
+        public static CullData GetCullData(Vector3 basePosition, params Renderer[] renderers) 
+        {
+            Bounds bounds = (renderers.Length > 0 && renderers[0]) ? renderers[0].bounds : new Bounds(basePosition, Vector3.zero);
+            for(int i = 1; i < renderers.Length; i++) {
+                if (renderers[i]) 
+                    bounds.Encapsulate(renderers[i].bounds);
+            }
+            Vector3 center = bounds.center - basePosition;
+            CoordSytemConverter.Convert(ref center);
+            return new CullData() { 
+                center = ToNative(center), 
+                radius = bounds.size.magnitude * 0.5f 
+            };
+        }
+
         public static PipelineData CreatePipelineData(MeshInfo meshData)
         {
             PipelineData pipeline = new PipelineData();
@@ -572,6 +616,14 @@ namespace vsgUnity.Native
         {
             FloatArray array;
             array.data = new float[] { vector.x, vector.y, vector.z, vector.w };
+            array.length = array.data.Length;
+            return ToNative(array);
+        }
+
+        public static NativeArray ToNative(Color color)
+        {
+            FloatArray array;
+            array.data = new float[] { color.r, color.g, color.b, color.a };
             array.length = array.data.Length;
             return ToNative(array);
         }

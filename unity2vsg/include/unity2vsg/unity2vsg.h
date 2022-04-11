@@ -3,6 +3,7 @@
 /* <editor-fold desc="MIT License">
 
 Copyright(c) 2019 Thomas Hogarth
+Copyright(c) 2022 Christian Schott (InstruNEXT GmbH)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -30,9 +31,12 @@ extern "C"
     UNITY2VSG_EXPORT void unity2vsg_AddStateGroupNode();
     UNITY2VSG_EXPORT void unity2vsg_AddCommandsNode();
     UNITY2VSG_EXPORT void unity2vsg_AddVertexIndexDrawNode(unity2vsg::VertexIndexDrawData mesh);
+    UNITY2VSG_EXPORT void unity2vsg_AddSkybox(unity2vsg::DescriptorImageData skyboxTexture);
+    UNITY2VSG_EXPORT void unity2vsg_AddLightNode(unity2vsg::LightData lightData);
 
     // add meta data to nodes
     UNITY2VSG_EXPORT void unity2vsg_AddStringValue(const char* name, const char* value);
+    UNITY2VSG_EXPORT void unity2vsg_AddFloatArray(const char* name, unity2vsg::FloatArray data);
 
     // add command to commands node if one is current head or last stategroup node
     UNITY2VSG_EXPORT int unity2vsg_AddBindGraphicsPipelineCommand(unity2vsg::PipelineData pipeline, uint32_t addToStateGroup);
@@ -41,12 +45,14 @@ extern "C"
     UNITY2VSG_EXPORT void unity2vsg_AddDrawIndexedCommand(unity2vsg::DrawIndexedData data);
     // create and add a binddescriptorset command using the current list of descriptors
     UNITY2VSG_EXPORT void unity2vsg_CreateBindDescriptorSetCommand(uint32_t addToStateGroup);
+    //UNITY2VSG_EXPORT void unity2vsg_CreateBindViewDescriptorSetCommand(uint32_t addToStateGroup);
 
     // add descriptor to current descriptors list that will be bound by BindDescriptors call
     UNITY2VSG_EXPORT void unity2vsg_AddDescriptorImage(unity2vsg::DescriptorImageData texture);
 
     UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferFloat(unity2vsg::DescriptorFloatUniformData data);
     UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferFloatArray(unity2vsg::DescriptorFloatArrayUniformData data);
+    UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferFloatBuffer(unity2vsg::DescriptorFloatBufferUniformData data);
     UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferVector(unity2vsg::DescriptorVectorUniformData data);
     UNITY2VSG_EXPORT void unity2vsg_AddDescriptorBufferVectorArray(unity2vsg::DescriptorVectorArrayUniformData data);
 

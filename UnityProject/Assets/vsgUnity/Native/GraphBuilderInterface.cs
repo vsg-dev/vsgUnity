@@ -1,6 +1,7 @@
 ﻿/* <editor-fold desc="MIT License">
 
 Copyright(c) 2019 Thomas Hogarth
+Copyright(c) 2022 Christian Schott (InstruNEXT GmbH)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -53,12 +54,21 @@ namespace vsgUnity.Native
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddVertexIndexDrawNode")]
         public static extern void unity2vsg_AddVertexIndexDrawNode(VertexIndexDrawData mesh);
 
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddSkybox")]
+        public static extern void unity2vsg_AddSkybox(DescriptorImageData skyboxTexture);
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddLightNode")]
+        public static extern void unity2vsg_AddLightNode(LightData lightData);
+
         //
         // Meta Data
         //
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddStringValue")]
         public static extern void unity2vsg_AddStringValue([MarshalAs(UnmanagedType.LPStr)] string name, [MarshalAs(UnmanagedType.LPStr)] string value);
+
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddFloatArray")]
+        public static extern void unity2vsg_AddFloatArray([MarshalAs(UnmanagedType.LPStr)] string name, FloatArray data);
 
         //
         // Commands
@@ -96,12 +106,15 @@ namespace vsgUnity.Native
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDescriptorBufferFloatArray")]
         public static extern void unity2vsg_AddDescriptorBufferFloatArray(DescriptorFloatArrayUniformData data);
 
+        [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDescriptorBufferFloatBuffer")]
+        public static extern void unity2vsg_AddDescriptorBufferFloatBuffer(DescriptorFloatBufferUniformData data);
+
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDescriptorBufferVector")]
         public static extern void unity2vsg_AddDescriptorBufferVector(DescriptorVectorUniformData data);
 
         [DllImport(Library.libraryName, EntryPoint = "unity2vsg_AddDescriptorBufferVectorArray")]
         public static extern void unity2vsg_AddDescriptorBufferVectorArray(DescriptorVectorArrayUniformData data);
-
+        
         //
         //
 

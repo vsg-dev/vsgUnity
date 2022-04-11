@@ -1,6 +1,7 @@
-﻿/* <editor-fold desc="MIT License">
+/* <editor-fold desc="MIT License">
 
 Copyright(c) 2019 Thomas Hogarth
+Copyright(c) 2022 Christian Schott (InstruNEXT GmbH)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -22,23 +23,11 @@ namespace vsgUnity.Editor
 {
     public class ExportWindow : EditorWindow
     {
-        public static string _exportDirectory = "";
-        public static string _exportFileName = "export";
-
-        public static GameObject _exportTarget = null;
-        public static GraphBuilder.ExportSettings _settings = new GraphBuilder.ExportSettings();
-        protected static bool _hasInited = false;
-
-        public static bool _binaryExport = true;
-        public static bool _showPreview = true;
-        public static bool _matchSceneCamera = true;
-
-        public static int _cameraSelectionIndex = 0;
-        public static List<Camera>_previewCameras = new List<Camera>();
-        public static List<string>_previewCameraNames = new List<string>();
-
-        string _feedbackText = "Select an export object.";
-        bool _isExporting = false;
+        private int _cameraSelectionIndex = 0;
+        private List<Camera> _previewCameras = new List<Camera>();
+        private List<string> _previewCameraNames = new List<string>();
+        private string _feedbackText = "Select an export object.";
+        private ExporterSettings _exporterSettings = null;
 
         // test code
         /*[MenuItem("Window/VulkanSceneGraph/Run Snippet")]
@@ -51,154 +40,153 @@ namespace vsgUnity.Editor
         // open window
         [MenuItem("Window/VulkanSceneGraph/Exporter")]
         static void Init()
-        {  
+        {
             // Get existing open window or if none, make a new one:
-            ExportWindow window = (ExportWindow) EditorWindow.GetWindow(typeof (ExportWindow), true, "vsgUnity");
-
-            if(!_hasInited)
-            {
-                _settings.autoAddCullNodes = false;
-                _settings.zeroRootTransform = false;
-
-                _settings.standardTerrainShaderMappingPath = PathForShaderAsset("standardTerrain-ShaderMapping");
-
-                _hasInited = true;
-            }
-
-            if (string.IsNullOrEmpty(_exportDirectory))
-            {
-                _exportDirectory = Application.dataPath;
-            }
-
-            if (_exportTarget == null)
-            {
-                //_exportTarget = Selection.transforms.Length > 0 ? Selection.transforms[0].gameObject : null;
-            }
-
-            PopulatePreviewCamerasList();
-
+            ExportWindow window = (ExportWindow) EditorWindow.GetWindow(typeof (ExportWindow), false, "vsgUnity");
             window.Show();
         }
 
-        static string PathForShaderAsset(string shaderFileName)
+        void OnEnable() 
         {
-            string[] shaderGUID = AssetDatabase.FindAssets(shaderFileName);
-            if (shaderGUID == null || shaderGUID.Length == 0) return string.Empty;
-            string datapath = Application.dataPath;
-            datapath = datapath.Remove(datapath.Length - ("Assets").Length);
-            return Path.Combine(datapath, AssetDatabase.GUIDToAssetPath(shaderGUID[0]));
-        }
-
-        void ExportTarget()
-        {
-            if (_isExporting) return;
-
-            _isExporting = true;
-
-            NativeLog.InstallDebugLogCallback(); // why do we need to do this every time?
-            float starttick = Time.realtimeSinceStartup;
-
-            string exportname = string.IsNullOrEmpty(_exportFileName) ? "export" : Path.GetFileNameWithoutExtension(_exportFileName);
-            string finalSaveFileName = Path.Combine(_exportDirectory, exportname) + (_binaryExport ? ".vsgb"
-                                                                                     : ".vsga");
-
-            if (_exportTarget != null)
-            {
-                GraphBuilder.Export(new GameObject[]{_exportTarget}, finalSaveFileName, _settings);
+            if (_exporterSettings == null) {
+                var settingsGUIDs = AssetDatabase.FindAssets("t:" + typeof(ExporterSettings).Name);
+                if (settingsGUIDs.Length > 0) {
+                    var path = AssetDatabase.GUIDToAssetPath(settingsGUIDs[0]);
+                    _exporterSettings = AssetDatabase.LoadAssetAtPath<ExporterSettings>(path);
+                }
+                if (_exporterSettings == null)
+                    _exporterSettings = ExporterSettings.CreateNew();
             }
-            else
-            {
-                Scene scene = SceneManager.GetActiveScene();
-                GraphBuilder.Export(scene.GetRootGameObjects(), finalSaveFileName, _settings);
-            }
-
-            _feedbackText = "Exported in " + (Time.realtimeSinceStartup - starttick) + " seconds";
-            EditorUtility.SetDirty(this);
-
-            if (_showPreview) GraphBuilder.LaunchViewer(finalSaveFileName, _matchSceneCamera, _previewCameras[_cameraSelectionIndex]); // this currently blocks
-
-            _isExporting = false;
         }
 
         void OnGUI()
         {
-            GUILayout.Label("VulkanSceneGraph Exporter", EditorStyles.boldLabel);
+            using (var check = new EditorGUI.ChangeCheckScope()) {
+                using (new EditorGUI.IndentLevelScope()) {
+                    EditorGUIUtility.labelWidth = 180;
+                    EditorGUILayout.LabelField("VulkanSceneGraph Exporter", EditorStyles.largeLabel);
+                    EditorGUILayout.Separator();
+                    EditorGUILayout.Separator();
 
-            EditorGUILayout.Separator();
-            EditorGUILayout.Separator();
+                    // TODO: use SerializedObject & SerializedProperties instead 
 
-            // target object
-            _exportTarget = (GameObject) EditorGUILayout.ObjectField("Specific Object", _exportTarget, typeof (GameObject), true);
+                    // target object
+                    _exporterSettings.ExportMode = (ExporterSettings.Mode) EditorGUILayout.EnumPopup("Mode", _exporterSettings.ExportMode);
+                    if (_exporterSettings.ExportMode == ExporterSettings.Mode.Object) 
+                        _exporterSettings.ExportTarget = (GameObject) EditorGUILayout.ObjectField("Target Object", _exporterSettings.ExportTarget, typeof (GameObject), true);
 
-            EditorGUILayout.Separator();
+                    EditorGUILayout.Separator();
 
-            // filename
-            _exportFileName = EditorGUILayout.TextField("File Name", _exportFileName);
+                    // filename
+                    _exporterSettings.ExportFileName = EditorGUILayout.TextField("File Name", _exporterSettings.ExportFileName);
 
-            // directory selection
-            EditorGUILayout.BeginHorizontal();
-            {
-                EditorGUILayout.PrefixLabel("Folder");
-                GUILayout.Label(new GUIContent(_exportDirectory, _exportDirectory), GUILayout.MaxHeight(100), GUILayout.MinWidth(20), GUILayout.MaxWidth(275));
-
-                GUILayout.FlexibleSpace();
-
-                if (GUILayout.Button("...", GUILayout.MaxWidth(GUI.skin.button.lineHeight * 2.0f)))
-                {
-                    string defaultFolder = string.IsNullOrEmpty(_exportDirectory) ? Application.dataPath : _exportDirectory;
-
-                    string selectedfolder = EditorUtility.OpenFolderPanel("Select export file path", defaultFolder, "");
-
-                    if (!string.IsNullOrEmpty(selectedfolder))
+                    // directory selection
+                    using (new EditorGUILayout.HorizontalScope())
                     {
-                        _exportDirectory = selectedfolder;
-                        EditorUtility.SetDirty(this);
+                        var dir = _exporterSettings.ExportDirectory;
+                        EditorGUILayout.LabelField(new GUIContent("Folder", dir), new GUIContent(dir, dir), GUILayout.MinWidth(10));
+
+                        if (GUILayout.Button("...", GUILayout.MaxWidth(GUI.skin.button.lineHeight * 2.0f)))
+                        {
+                            string defaultFolder = string.IsNullOrEmpty(dir) ? Application.dataPath : dir;
+                            string selectedfolder = EditorUtility.OpenFolderPanel("Select export file path", defaultFolder, "");
+
+                            if (!string.IsNullOrEmpty(selectedfolder))
+                            {
+                                _exporterSettings.ExportDirectory = selectedfolder;
+                                EditorUtility.SetDirty(this);
+                            }
+                        }
+                    }
+                    _exporterSettings.BinaryExport = EditorGUILayout.Toggle("Binary", _exporterSettings.BinaryExport);
+
+                    EditorGUILayout.Separator();
+                    {
+                        var graphBulderSettings = _exporterSettings.GraphBuilderSettings;
+                        graphBulderSettings.autoAddCullNodes = EditorGUILayout.Toggle("Add Cull Nodes", graphBulderSettings.autoAddCullNodes);
+                        graphBulderSettings.zeroRootTransform = EditorGUILayout.Toggle("Zero Root Transform", graphBulderSettings.zeroRootTransform);
+                        graphBulderSettings.keepIdentityTransforms = EditorGUILayout.Toggle("Keep Identity Transforms", graphBulderSettings.keepIdentityTransforms);
+                        graphBulderSettings.skybox = (Cubemap) EditorGUILayout.ObjectField("Skybox", graphBulderSettings.skybox, typeof (Cubemap), true);
+                        _exporterSettings.GraphBuilderSettings = graphBulderSettings;
+                    }
+
+                    EditorGUILayout.Separator();
+
+                    // preview
+                    using (var previewGroup = new EditorGUILayout.ToggleGroupScope("Preview", _exporterSettings.ShowPreview))
+                    {
+                        _exporterSettings.ShowPreview = previewGroup.enabled;
+                        _exporterSettings.MatchSceneCamera = EditorGUILayout.Toggle("Match Camera", _exporterSettings.MatchSceneCamera);
+
+                        if (previewGroup.enabled)
+                            PopulatePreviewCamerasList();
+                        _cameraSelectionIndex = EditorGUILayout.Popup(_cameraSelectionIndex, _previewCameraNames.ToArray());
+                    }
+
+                    EditorGUILayout.Separator();
+
+                    if (GUILayout.Button("Export"))
+                    {
+                        ExportTarget();
+                    }
+
+                    if (GUILayout.Button("Fix Import Settings"))
+                    {
+                        FixImportSettings();
+                    }
+
+                    EditorGUILayout.LabelField(_feedbackText, EditorStyles.centeredGreyMiniLabel);
+
+                    if (check.changed) {
+                        EditorUtility.SetDirty(_exporterSettings);
                     }
                 }
             }
-            EditorGUILayout.EndHorizontal();
-
-            _binaryExport = EditorGUILayout.Toggle("Binary", _binaryExport);
-
-            _settings.autoAddCullNodes = EditorGUILayout.Toggle("Add Cull Nodes", _settings.autoAddCullNodes);
-            _settings.zeroRootTransform = EditorGUILayout.Toggle("Zero Root Transform", _settings.zeroRootTransform);
-
-            EditorGUILayout.LabelField(_settings.standardTerrainShaderMappingPath);
-
-            EditorGUILayout.Separator();
-
-            // preview
-            _showPreview = EditorGUILayout.BeginToggleGroup("Preview", _showPreview);
-            {
-                _matchSceneCamera = EditorGUILayout.Toggle("Match Camera", _matchSceneCamera);
-
-                PopulatePreviewCamerasList();
-                _cameraSelectionIndex = EditorGUILayout.Popup(_cameraSelectionIndex, _previewCameraNames.ToArray());
-            }
-            EditorGUILayout.EndToggleGroup();
-
-            EditorGUILayout.Separator();
-
-            if (GUILayout.Button("Export"))
-            {
-                ExportTarget();
-            }
-
-            if (GUILayout.Button("Fix Import Settings"))
-            {
-                FixImportSettings();
-            }
-
-            EditorGUILayout.LabelField(_feedbackText, EditorStyles.centeredGreyMiniLabel);
         }
 
-        static void PopulatePreviewCamerasList()
+        void ExportTarget()
+        {
+            float starttick = Time.realtimeSinceStartup;
+            string finalSaveFileName = _exporterSettings.GetFinalSaveFileName();
+
+            GraphBuilder.Export(exportGameObjects(), finalSaveFileName, _exporterSettings.GraphBuilderSettings);
+
+            _feedbackText = "Exported in " + (Time.realtimeSinceStartup - starttick) + " seconds";
+            EditorUtility.SetDirty(this);
+
+            if (_exporterSettings.ShowPreview) 
+                GraphBuilder.LaunchViewer(finalSaveFileName, _exporterSettings.MatchSceneCamera, _previewCameras[_cameraSelectionIndex]); // this currently blocks
+        }
+
+        void FixImportSettings()
+        {
+            foreach(GameObject go in exportGameObjects())
+                FixImportSettings(go);
+        }
+
+        private  GameObject[] exportGameObjects() 
+        {
+            if (_exporterSettings.ExportMode == ExporterSettings.Mode.Object)
+            {
+                if (_exporterSettings.ExportTarget)
+                    return new GameObject[] { _exporterSettings.ExportTarget };
+            }
+            else
+            {
+                return SceneManager.GetActiveScene().GetRootGameObjects();
+            }
+            return new GameObject[0];
+        }
+
+        private void PopulatePreviewCamerasList()
         {
             _previewCameras.Clear();
             _previewCameraNames.Clear();
 
-            _previewCameras.Add(SceneView.lastActiveSceneView.camera);
-            _previewCameraNames.Add("Scene View");
+            if (SceneView.lastActiveSceneView) {
+                _previewCameras.Add(SceneView.lastActiveSceneView.camera);
+                _previewCameraNames.Add("Scene View");
+            }
             Camera[] sceneCameras = Camera.allCameras;
             for (int i = 0; i < sceneCameras.Length; i++)
             {
@@ -212,24 +200,7 @@ namespace vsgUnity.Editor
             }
         }
 
-        static void FixImportSettings()
-        {
-            if (_exportTarget != null)
-            {
-                FixImportSettings(_exportTarget);
-            }
-            else
-            {
-                Scene scene = SceneManager.GetActiveScene();
-                GameObject[] rootObjects = scene.GetRootGameObjects();
-                foreach(GameObject go in rootObjects)
-                {
-                    FixImportSettings(go);
-                }
-            }
-        }
-
-        static void FixImportSettings(GameObject gameObject)
+        private void FixImportSettings(GameObject gameObject)
         {
             MeshRenderer[] renderers = gameObject.GetComponentsInChildren<MeshRenderer>();
             MeshFilter[] filters = gameObject.GetComponentsInChildren<MeshFilter>();

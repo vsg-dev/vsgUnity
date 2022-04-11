@@ -1,6 +1,7 @@
 ﻿/* <editor-fold desc="MIT License">
 
 Copyright(c) 2019 Thomas Hogarth
+Copyright(c) 2022 Christian Schott (InstruNEXT GmbH)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -26,10 +27,10 @@ namespace vsgUnity
             CoordSytemConverter.Convert(ref matrix);
             transformdata.matrix.data = new float[]
             {
-                matrix[0, 0], matrix[0, 1], matrix[0, 2], matrix[0, 3],
-                matrix[1, 0], matrix[1, 1], matrix[1, 2], matrix[1, 3],
-                matrix[2, 0], matrix[2, 1], matrix[2, 2], matrix[2, 3],
-                matrix[3, 0], matrix[3, 1], matrix[3, 2], matrix[3, 3]
+                matrix[0, 0], matrix[1, 0], matrix[2, 0], matrix[3, 0], /* column 0 */
+                matrix[0, 1], matrix[1, 1], matrix[2, 1], matrix[3, 1], /* column 1 */
+                matrix[0, 2], matrix[1, 2], matrix[2, 2], matrix[3, 2], /* column 2 */
+                matrix[0, 3], matrix[1, 3], matrix[2, 3], matrix[3, 3]  /* column 3 */
             };
             transformdata.matrix.length = transformdata.matrix.data.Length;
             return transformdata;

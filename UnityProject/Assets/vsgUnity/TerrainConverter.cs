@@ -43,35 +43,36 @@ namespace vsgUnity
             TerrainInfo terrainInfo = new TerrainInfo();
             bool usingCustomMaterial = false;
 
-            if (terrain.materialType == Terrain.MaterialType.Custom)
+            if (terrain.materialTemplate)
             {
                 // try and load a shader mapping file to match the custom terrain material
-                terrainInfo.shaderMapping = ShaderMappingIO.ReadFromJsonFile(terrain.materialTemplate.shader);
+                terrainInfo.shaderMapping = ShaderMappings.GetShaderMapping(terrain.materialTemplate.shader);
                 if (terrainInfo.shaderMapping != null) usingCustomMaterial = true;
             }
             else
             {
                 // load the default terrain shader mapping file
-                terrainInfo.shaderMapping = ShaderMappingIO.ReadFromJsonFile(ShaderMappingIO.GetPathForShaderMappingFile("DefaultTerrain"));
+                terrainInfo.shaderMapping = ShaderMappings.GetShaderMapping(Shader.Find("DefaultTerrain"));
             }
 
             if (terrainInfo.shaderMapping == null)
             {
                 // no mapping loaded, use a default shader so we can at least export and render the terrain mesh
                 NativeLog.WriteLine("GraphBuilder: Failed to load Terrain Shader Mapping file for terrain '" + terrain.name + "'.");
-                terrainInfo.shaderMapping = ShaderMappingIO.ReadFromJsonFile(ShaderMappingIO.GetPathForShaderMappingFile("Default"));
+                terrainInfo.shaderMapping = ShaderMappings.GetShaderMapping(Shader.Find("Default")); // TODO: shader names/ chache somewhere
                 usingCustomMaterial = true;
-                return null;
+                if (terrainInfo.shaderMapping == null)
+                    return null;
             }
 
             terrainInfo.shaderDefines.Add("VSG_LIGHTING");
 
             // build mesh
-            int samplew = terrain.terrainData.heightmapWidth;
-            int sampleh = terrain.terrainData.heightmapHeight;
+            int samplew = terrain.terrainData.heightmapResolution;
+            int sampleh = terrain.terrainData.heightmapResolution;
 
-            int cellw = terrain.terrainData.heightmapWidth - 1;
-            int cellh = terrain.terrainData.heightmapHeight - 1;
+            int cellw = terrain.terrainData.heightmapResolution - 1;
+            int cellh = terrain.terrainData.heightmapResolution - 1;
 
             Vector3 size = terrain.terrainData.size;
 
